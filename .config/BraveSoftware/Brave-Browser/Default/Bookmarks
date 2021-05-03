@@ -1,0 +1,40 @@
+{
+   "checksum": "2df2d17dcfb29b818bc91e06a31979ad",
+   "roots": {
+      "bookmark_bar": {
+         "children": [ {
+            "date_added": "13264449302104020",
+            "guid": "e76360a8-6c89-4bc8-b7a8-75dcd49566b5",
+            "id": "5",
+            "name": "(86) Bash Scripting Full Course 3 Hours - YouTube",
+            "type": "url",
+            "url": "https://www.youtube.com/watch?v=e7BufAVwDiM"
+         } ],
+         "date_added": "13264448779940964",
+         "date_modified": "13264449302104020",
+         "guid": "00000000-0000-4000-a000-000000000002",
+         "id": "1",
+         "name": "Bookmarks",
+         "type": "folder"
+      },
+      "other": {
+         "children": [  ],
+         "date_added": "13264448779940965",
+         "date_modified": "0",
+         "guid": "00000000-0000-4000-a000-000000000003",
+         "id": "2",
+         "name": "Other bookmarks",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [  ],
+         "date_added": "13264448779940967",
+         "date_modified": "0",
+         "guid": "00000000-0000-4000-a000-000000000004",
+         "id": "3",
+         "name": "Mobile bookmarks",
+         "type": "folder"
+      }
+   },
+   "version": 1
+}

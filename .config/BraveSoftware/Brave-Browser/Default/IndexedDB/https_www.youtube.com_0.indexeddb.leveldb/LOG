@@ -1,0 +1,48 @@
+2021/05/02-18:30:57.037 440a Reusing MANIFEST /home/liam/.config/BraveSoftware/Brave-Browser/Default/IndexedDB/https_www.youtube.com_0.indexeddb.leveldb/MANIFEST-000001
+2021/05/02-18:30:57.037 440a Recovering log #21
+2021/05/02-18:30:57.040 440a Reusing old log /home/liam/.config/BraveSoftware/Brave-Browser/Default/IndexedDB/https_www.youtube.com_0.indexeddb.leveldb/000021.log 
+2021/05/02-18:38:02.135 4408 Level-0 table #26: started
+2021/05/02-18:38:02.143 4408 Level-0 table #26: 937872 bytes OK
+2021/05/02-18:38:02.148 4408 Delete type=0 #21
+2021/05/02-18:39:08.893 43ea Compacting 1@1 + 1@2 files
+2021/05/02-18:39:08.899 43ea Generated table #27@1: 278 keys, 24312 bytes
+2021/05/02-18:39:08.899 43ea Compacted 1@1 + 1@2 files => 24312 bytes
+2021/05/02-18:39:08.905 43ea compacted to: files[ 0 0 1 0 0 0 0 ]
+2021/05/02-18:39:08.905 43ea Delete type=2 #23
+2021/05/02-18:39:08.905 43ea Delete type=2 #26
+2021/05/02-18:47:39.927 43eb Level-0 table #29: started
+2021/05/02-18:47:39.934 43eb Level-0 table #29: 870777 bytes OK
+2021/05/02-18:47:39.939 43eb Delete type=0 #25
+2021/05/02-18:49:47.749 43eb Compacting 1@1 + 1@2 files
+2021/05/02-18:49:47.766 43eb Generated table #30@1: 307 keys, 22376 bytes
+2021/05/02-18:49:47.766 43eb Compacted 1@1 + 1@2 files => 22376 bytes
+2021/05/02-18:49:47.770 43eb compacted to: files[ 0 0 1 0 0 0 0 ]
+2021/05/02-18:49:47.770 43eb Delete type=2 #29
+2021/05/02-18:49:47.770 43eb Delete type=2 #27
+2021/05/02-18:58:10.805 43eb Level-0 table #32: started
+2021/05/02-18:58:10.826 43eb Level-0 table #32: 782261 bytes OK
+2021/05/02-18:58:10.833 43eb Delete type=0 #28
+2021/05/02-19:00:42.484 7639 Compacting 1@1 + 1@2 files
+2021/05/02-19:00:42.488 7639 Generated table #33@1: 331 keys, 22154 bytes
+2021/05/02-19:00:42.488 7639 Compacted 1@1 + 1@2 files => 22154 bytes
+2021/05/02-19:00:42.492 7639 compacted to: files[ 0 0 1 0 0 0 0 ]
+2021/05/02-19:00:42.492 7639 Delete type=2 #32
+2021/05/02-19:00:42.492 7639 Delete type=2 #30
+2021/05/02-19:56:27.003 6326 Level-0 table #35: started
+2021/05/02-19:56:27.010 6326 Level-0 table #35: 799306 bytes OK
+2021/05/02-19:56:27.014 6326 Delete type=0 #31
+2021/05/02-19:58:00.928 6a7a Compacting 1@1 + 1@2 files
+2021/05/02-19:58:00.934 6a7a Generated table #36@1: 369 keys, 27740 bytes
+2021/05/02-19:58:00.934 6a7a Compacted 1@1 + 1@2 files => 27740 bytes
+2021/05/02-19:58:00.941 6a7a compacted to: files[ 0 0 1 0 0 0 0 ]
+2021/05/02-19:58:00.941 6a7a Delete type=2 #33
+2021/05/02-19:58:00.941 6a7a Delete type=2 #35
+2021/05/02-20:19:23.761 6b58 Level-0 table #38: started
+2021/05/02-20:19:23.769 6b58 Level-0 table #38: 943042 bytes OK
+2021/05/02-20:19:23.773 6b58 Delete type=0 #34
+2021/05/02-20:20:47.765 6b58 Compacting 1@1 + 1@2 files
+2021/05/02-20:20:47.769 6b58 Generated table #39@1: 411 keys, 16219 bytes
+2021/05/02-20:20:47.769 6b58 Compacted 1@1 + 1@2 files => 16219 bytes
+2021/05/02-20:20:47.773 6b58 compacted to: files[ 0 0 1 0 0 0 0 ]
+2021/05/02-20:20:47.773 6b58 Delete type=2 #38
+2021/05/02-20:20:47.773 6b58 Delete type=2 #36

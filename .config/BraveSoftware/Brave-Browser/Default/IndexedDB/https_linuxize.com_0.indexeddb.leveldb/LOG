@@ -1,0 +1,6 @@
+2021/05/02-19:25:08.416 3b2 Creating DB /home/liam/.config/BraveSoftware/Brave-Browser/Default/IndexedDB/https_linuxize.com_0.indexeddb.leveldb since it was missing.
+2021/05/02-19:25:08.425 3b2 Reusing MANIFEST /home/liam/.config/BraveSoftware/Brave-Browser/Default/IndexedDB/https_linuxize.com_0.indexeddb.leveldb/MANIFEST-000001
+2021/05/02-19:26:55.610 5408 Level-0 table #5: started
+2021/05/02-19:26:55.613 5408 Level-0 table #5: 6303 bytes OK
+2021/05/02-19:26:55.617 5408 Delete type=0 #3
+2021/05/02-19:26:55.617 5408 Manual compaction at level-0 from (begin) .. (end); will stop at (end)
