@@ -29,8 +29,7 @@ git config --list
 echo "Are you useing openrc?: "  
 
 read -r INSTALL
-e
-cho "Install programs"
+echo "Install programs"
 
 if [[ $INSTALL  = yes ]]
 then
@@ -57,10 +56,10 @@ echo "you are done"
 
 # set up config
 echo "Set up config."
-cp -r /dotfiles/.config ~/
-cp /dotfiles/.bashrc ~/
-cp /dotfiles/.zshrc ~/
-cp /dotfiles/.vimrc ~/
+cp -r ~/dotfiles/.config ~/
+cp ~/dotfiles/.bashrc ~/
+cp ~/dotfiles/.zshrc ~/
+cp ~/dotfiles/.vimrc ~/
 
 #notes
 echo "Setting up notes."
