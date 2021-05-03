@@ -43,10 +43,10 @@ then
   sudo rc-update add sddm
 else
 
-    sudo pacman -S fish  qtile rofi dmenu python-pip python-psutil alacritty sddm xorg xorg-xinit xorg-server pluseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
+    sudo pacman -S fish qtile rofi dmenu python-pip python-psutil alacritty sddm xorg xorg-xinit xorg-server pulseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
 
 
-   yay -S ttf-fonts-awesome ttf-fonts-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete librewolf
+   yay -S ttf-font-awesome ttf-font-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete librewolf
   
   
   sudo systemctl enable sddm
@@ -67,5 +67,5 @@ cd || ~/Documents
 git clone https://github.com/l0cky-notes/1002-notes.git
 
 echo "you need to restart"
-sudo reboot
+
 
