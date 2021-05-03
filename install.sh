@@ -38,7 +38,7 @@ then
   sudo pacman -S fish sddm-openrc qtile rofi dmenu python-pip python-psutil alacritty sddm xorg xorg-xinit xorg-server pulseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
 
 
-  yay -S ttf-fonts-awesome ttf-fonts-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete
+  yay -S ttf-fonts-awesome ttf-fonts-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete librewolf
   
   sudo rc-update add sddm
 else
@@ -46,7 +46,7 @@ else
     sudo pacman -S fish  qtile rofi dmenu python-pip python-psutil alacritty sddm xorg xorg-xinit xorg-server pluseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
 
 
-   yay -S ttf-fonts-awesome ttf-fonts-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete
+   yay -S ttf-fonts-awesome ttf-fonts-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete librewolf
   
   
   sudo systemctl enable sddm
