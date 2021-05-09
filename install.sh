@@ -60,6 +60,9 @@ cp -r ~/dotfiles/.config ~/
 cp ~/dotfiles/.bashrc ~/
 cp ~/dotfiles/.zshrc ~/
 cp ~/dotfiles/.vimrc ~/
+mkdir ~/wallpaper
+cp ~/dotfiles/wp2.jpeg ~/wallpaper
+
 
 #notes
 echo "Setting up notes."
