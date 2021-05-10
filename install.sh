@@ -3,7 +3,7 @@
 
 cd || ~
 sudo pacman -S git
-
+read -p "USERNAME: " USER
 
 
 
@@ -38,7 +38,7 @@ then
   sudo pacman -S fish sddm-openrc qtile rofi dmenu python-pip python-psutil alacritty sddm xorg xorg-xinit xorg-server pulseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
 
 
-  yay -S ttf-symbola ttf-font-awesome ttf-font-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete librewolf
+  yay -S ttf-symbola ttf-font-awesome ttf-fonts-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete librewolf
   
   sudo rc-update add sddm
 else
@@ -51,6 +51,16 @@ else
   
   sudo systemctl enable sddm
 fi
+
+
+#virtualbox on are linux
+sudo pacman -S virtualbox
+sudo modprobe vboxdrv
+yay -S virtual-ext-oracle
+sudo pacman -S qt5-x11extras
+sudo gpasswd -a $USER vboxusers
+echo "you are done"
+
 echo "you are done"
 
 
@@ -69,6 +79,18 @@ echo "Setting up notes."
 cd || ~/Documents
 git clone https://github.com/l0cky-notes/1002-notes.git
 
-echo "you need to restart"
+#mount drive for iso
+sudo mkdir /mnt/mydrive
+sudo mount /dev/sda2 /mnt/mydrive
+sudo cd /mnt/mydrive/home/$USER/Desktop
+sudo cp -r iso/ ~/
+echo "your iso is all done :)"
+
+#restart because we install a lot of package and services were enable or disable so just to be save
+echo "you need to restart please :)"
+
+
+
+
 
 
