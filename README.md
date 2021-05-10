@@ -1,4 +1,17 @@
 # dotfiles
+make sure you read this in vim because I can not firgure out the READMME.md stuff
+
+
+
+
+
+
+
+
+
+
+
+
 
 This is my dotfiles
 make sure you read it all
@@ -62,3 +75,8 @@ if you want metric just get rid of that line. If you want Imperial then put metr
 
 archlinux install https://wiki.archlinux.org/title/Install__guide
 artixlinux install(openrc if you do not want the evil systemd) https://wiki.artixlinux.org/Main/Installation
+
+
+
+
+![2021-05-10_07-55](https://user-images.githubusercontent.com/73147961/117676813-807d9000-b173-11eb-9b12-080742f9f155.png)
