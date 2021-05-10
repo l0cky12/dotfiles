@@ -80,3 +80,10 @@ artixlinux install(openrc if you do not want the evil systemd) https://wiki.arti
 
 
 ![2021-05-10_07-55](https://user-images.githubusercontent.com/73147961/117676813-807d9000-b173-11eb-9b12-080742f9f155.png)
+
+
+
+wallpaper one
+
+![wp2](https://user-images.githubusercontent.com/73147961/117676944-a145e580-b173-11eb-9bf4-d87ff6ea9d0c.jpeg)
+
