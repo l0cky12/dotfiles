@@ -72,7 +72,7 @@ cp ~/dotfiles/.zshrc ~/
 cp ~/dotfiles/.vimrc ~/
 mkdir ~/wallpaper
 cp ~/dotfiles/wp2.jpeg ~/wallpaper
-
+cp ~/dotfiles/tsunderUpscaled.png ~/wallpaper
 
 #notes
 echo "Setting up notes."
