@@ -2,26 +2,7 @@
 
 
 cd || ~
-sudo pacman -S git
 read -p "USERNAME: " USER
-
-
-
-
-# Git Configuration
-echo '###Congigure Git..'
-
-echo "Enter the Global Username for Git:";
-read -r GITUSER;
-git config --global user.name "${GITUSER}"
-
-echo "Enter the Global Email for Git:";
-read -r GITEMAIL;
-git config --global user.email "${GITEMAIL}"
-
-echo 'Git has been configured!'
-git config --list
-
 
 
 
@@ -35,7 +16,7 @@ if [[ $INSTALL  = yes ]]
 then
   
 
-  sudo pacman -S fish sddm-openrc qtile rofi dmenu python-pip python-psutil alacritty sddm xorg xorg-xinit xorg-server pulseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
+  sudo pacman -S fish sddm-openrc qtile rofi dmenu python-pip python-psutil kitty sddm xorg xorg-xinit xorg-server pulseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
 
 
   yay -S tldr ttf-symbola ttf-font-awesome ttf-fonts-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete librewolf
@@ -43,10 +24,10 @@ then
   sudo rc-update add sddm
 else
 
-    sudo pacman -S fish qtile rofi dmenu python-pip python-psutil alacritty sddm xorg xorg-xinit xorg-server pulseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
+    sudo pacman -S fish qtile rofi dmenu python-pip python-psutil kitty sddm xorg xorg-xinit xorg-server pulseaudio picom feh neovim  htop exa  alsa-utils flatpak geany
 
 
-   yay -S tldr ttf-symbola ttf-font-awesome ttf-font-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian brave nerd-fonts-dejavu-complete librewolf
+   yay -S tldr ttf-symbola ttf-font-awesome ttf-font-awesome-4 nerd-fonts-hack picom zsh timeshift  discord spotify gimp obsidian  nerd-fonts-dejavu-complete librewolf
   
   
   sudo systemctl enable sddm

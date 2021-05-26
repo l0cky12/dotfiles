@@ -11,12 +11,12 @@ from libqtile.lazy import lazy
 from typing import List  # noqa: F401
 
 mod = "mod4"                                     # Sets mod key to SUPER/WINDOWS
-myTerm = "alacritty"                             # My terminal of choice
+myTerm = "kitty"                             # My terminal of choice
 
 keys = [
          ### The essentials
          Key([mod], "Return",
-             lazy.spawn(myTerm+" -e fish"),
+             lazy.spawn(myTerm+" -e bash"),
              desc='Launches My Terminal'
              ),
          Key([mod, "shift"], "Return",

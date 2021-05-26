@@ -252,18 +252,11 @@ alias kak="/usr/bin/kak -c mysession"
 alias kaks="/usr/bin/kak -s mysession"
 alias kakd="/usr/bin/kak -d -s mysession &"
 
-### RANDOM COLOR SCRIPT ###
-# Get this script from my GitLab: gitlab.com/dwt1/shell-color-scripts
-# Or install it from the Arch User Repository: shell-color-scripts
-colorscript random
-
-### SOURCING BROOT ###
-source ~/.config/broot/launcher/bash/br
-
 ### BASH INSULTER ###
 if [ -f /etc/bash.command-not-found ]; then
     . /etc/bash.command-not-found
 fi
 
-### SETTING THE STARSHIP PROMPT ###
-eval "$(starship init bash)"
+
+### SETTING neofetch ###
+neofetch --ascii_distro windows
