@@ -1,0 +1,72 @@
+/* ~/.config/waybar/colors.css
+ * GENERATED from themes/{{ theme_slug }}/colors.toml — do not edit.
+ * Theme: {{ theme_name }} ({{ theme_mode }})
+ *
+ * style.css @imports this and refers to these names only, so the bar's layout
+ * and information architecture live there and its palette lives here.
+ */
+
+@define-color bar              {{ css_rgba(background, 0) }};
+@define-color module           {{ css_rgba(surface, surface_opacity * 0.78) }};
+@define-color module_hover     {{ css_rgba(surface_alt, surface_opacity * 0.92) }};
+@define-color module_active    {{ css_rgba(accent, 0.18) }};
+
+@define-color text             {{ foreground }};
+@define-color text_bright      {{ foreground_bright }};
+@define-color muted            {{ muted }};
+@define-color disabled         {{ disabled }};
+
+@define-color accent           {{ accent }};
+@define-color accent_alt       {{ accent_alt }};
+@define-color on_accent        {{ fg_on(accent) }};
+
+@define-color success          {{ success }};
+@define-color warning          {{ warning }};
+@define-color critical         {{ critical }};
+@define-color info             {{ info }};
+@define-color urgent           {{ urgent }};
+
+@define-color border           {{ css_rgba(border, 0.55) }};
+@define-color border_active    {{ css_rgba(border_active, 0.62) }};
+@define-color separator        {{ css_rgba(overlay, 0.45) }};
+
+@define-color tooltip_bg       {{ css_rgba(background_alt, 0.96) }};
+@define-color tooltip_border   {{ css_rgba(overlay, 0.40) }};
+
+@define-color shadow           {{ css_rgba(shadow, shadow_opacity * 0.45) }};
+
+@define-color scrim            {{ css_rgba(background, scrim_opacity) }};
+
+/* ── Structural ───────────────────────────────────────────────────────────────
+ * GTK CSS has no numeric custom properties, so corner treatment and border
+ * weight cannot be handed to style.css as variables — the generated file has to
+ * set them itself. style.css therefore does NOT set border-radius or
+ * border-width on these selectors; it owns layout, padding and which modules
+ * exist, and this block owns their shape. The selector list mirrors the module
+ * group in style.css.
+ */
+#window,
+#workspaces,
+#custom-update,
+#clock,
+#cpu,
+#memory,
+#network,
+#pulseaudio,
+#battery,
+#tray,
+#custom-power {
+  border-radius: {{ radius_pill }}px;
+  border-width: {{ border_width }}px;
+  border-style: solid;
+}
+
+#workspaces button {
+  border-radius: {{ radius_pill }}px;
+}
+
+tooltip {
+  border-radius: {{ radius_panel }}px;
+  border-width: {{ border_width }}px;
+  border-style: solid;
+}

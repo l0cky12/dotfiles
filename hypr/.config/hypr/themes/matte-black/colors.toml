@@ -1,0 +1,67 @@
+[theme]
+name = "Matte Black"
+slug = "matte-black"
+mode = "dark"
+description = "Neutral near-black, solid and minimal — a lone warm orange accent"
+family = "matte-black"
+wallpaper = "matte-black"
+
+[colors]
+# Neutral near-black. Surfaces are pure grey, close together and matte; the
+# hierarchy is felt through value alone.
+background       = "#0e0e0e"
+background_alt   = "#080808"
+surface          = "#161616"
+surface_alt      = "#1e1e1e"
+overlay          = "#282828"
+
+foreground       = "#d6d6d6"
+foreground_bright = "#f0f0f0"
+muted            = "#848484"
+disabled         = "#4a4a4a"
+
+# Warm orange is the single accent, used sparingly; everything else is neutral.
+accent           = "#e68e0d"
+accent_alt       = "#b0b0b0"
+
+red              = "#e05656"
+green            = "#8abf8a"
+yellow           = "#d6b56a"
+blue             = "#7a9cc8"
+magenta          = "#c892c8"
+cyan             = "#7ab8c8"
+
+selection        = "#282828"
+border           = "#1e1e1e"
+border_active    = "#e68e0d"
+urgent           = "#e05656"
+shadow           = "#000000"
+
+[ansi]
+# Neutral terminal palette; the orange accent is the only warmth.
+black          = "#0e0e0e"
+red            = "#e05656"
+green          = "#8abf8a"
+yellow         = "#d6b56a"
+blue           = "#7a9cc8"
+magenta        = "#c892c8"
+cyan           = "#7ab8c8"
+white          = "#d6d6d6"
+bright_black   = "#4a4a4a"
+bright_red     = "#f07a7a"
+bright_green   = "#a8d8a8"
+bright_yellow  = "#e8cc82"
+bright_blue    = "#98b8e0"
+bright_magenta = "#e0ace0"
+bright_cyan    = "#98d0e0"
+bright_white   = "#f0f0f0"
+
+[style]
+rounding = 4
+border_width = 2
+surface_opacity = 0.97
+scrim_opacity = 0.55
+shadow_opacity = 0.45
+blur = true
+blur_size = 8
+blur_passes = 2

@@ -1,0 +1,66 @@
+[theme]
+name = "Gruvbox Dark"
+slug = "gruvbox"
+mode = "dark"
+description = "Warm retro workstation — Gruvbox Dark, sun-faded browns and a warm aqua"
+family = "gruvbox"
+wallpaper = "gruvbox"
+
+[colors]
+# Gruvbox Dark. Three surface steps of sun-faded brown, warm and even.
+background       = "#282828"
+background_alt   = "#1d2021"
+surface          = "#3c3836"
+surface_alt      = "#504945"
+overlay          = "#665c54"
+
+foreground       = "#ebdbb2"
+foreground_bright = "#fbf1c7"
+muted            = "#7daea3"
+disabled         = "#665c54"
+
+# Warm orange leads, the muted aqua backs it up.
+accent           = "#d65d0e"
+accent_alt       = "#83a598"
+
+red              = "#cc241d"
+green            = "#98971a"
+yellow           = "#d79921"
+blue             = "#458588"
+magenta          = "#b16286"
+cyan             = "#689d6a"
+
+selection        = "#504945"
+border           = "#3c3836"
+border_active    = "#d65d0e"
+urgent           = "#fb4934"
+shadow           = "#000000"
+
+[ansi]
+# Upstream Gruvbox Dark terminal palette.
+black          = "#282828"
+red            = "#cc241d"
+green          = "#98971a"
+yellow         = "#d79921"
+blue           = "#458588"
+magenta        = "#b16286"
+cyan           = "#689d6a"
+white          = "#a89984"
+bright_black   = "#928374"
+bright_red     = "#fb4934"
+bright_green   = "#b8bb26"
+bright_yellow  = "#fabd2f"
+bright_blue    = "#83a598"
+bright_magenta = "#d3869b"
+bright_cyan    = "#8ec07c"
+bright_white   = "#ebdbb2"
+
+[style]
+rounding = 6
+border_width = 2
+surface_opacity = 0.92
+scrim_opacity = 0.50
+shadow_opacity = 0.40
+blur = true
+blur_size = 8
+blur_passes = 2

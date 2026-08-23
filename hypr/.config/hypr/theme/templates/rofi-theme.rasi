@@ -1,0 +1,54 @@
+/**
+ * {{ theme_slug }}.rasi — {{ theme_name }} ({{ theme_mode }})
+ * GENERATED from themes/{{ theme_slug }}/colors.toml — do not edit.
+ *
+ * Layout, dimensions, padding and the module list all live in comet-glass.rasi,
+ * which this imports. Only palette and the structural tokens it exposes are
+ * overridden here, so all 23 themes share one launcher design and differ by
+ * colour, contrast and corner treatment — the same way Quickshell's panels do.
+ */
+
+@theme "~/.config/rofi/comet-glass.rasi"
+
+* {
+    /* surfaces: window, input plate, raised chip */
+    bg0: {{ rgba(background, surface_opacity) }};
+    bg1: {{ rgba(background_alt, min(1.0, surface_opacity + 0.04)) }};
+    bg2: {{ surface_alt }};
+
+    /* text: primary, secondary, placeholder */
+    fg0: {{ foreground_bright }};
+    fg1: {{ foreground }};
+    fg2: {{ muted }};
+
+    accent:     {{ accent }};
+    accent-alt: {{ accent_alt }};
+    border-col: {{ border }};
+    urgent:     {{ urgent }};
+    good:       {{ success }};
+
+    window-border: {{ rgba(border_active, 0.45) }};
+
+    /* Alternate row tint. Derived by mixing toward the theme's own foreground
+     * rather than a hardcoded white, which is what makes the light themes work. */
+    alt-bg: {{ rgba(mix(background, foreground, 0.06), 1.0) }};
+
+    urgent-bg:              {{ rgba(urgent, 0.10) }};
+    urgent-border:          {{ rgba(urgent, 0.18) }};
+    active-bg:              {{ rgba(success, 0.08) }};
+    active-border:          {{ rgba(success, 0.16) }};
+    selected-bg:            {{ rgba(accent, 0.16) }};
+    selected-border:        {{ rgba(accent, 0.38) }};
+    selected-active-bg:     {{ rgba(success, 0.14) }};
+    selected-active-border: {{ rgba(success, 0.32) }};
+    selected-urgent-bg:     {{ rgba(urgent, 0.15) }};
+    selected-urgent-border: {{ rgba(urgent, 0.34) }};
+    button-selected-bg:     {{ rgba(accent_alt, 0.16) }};
+
+    /* Structural tokens. comet-glass.rasi reads these for corner treatment and
+     * border weight, so a squarer theme squares the launcher too. */
+    radius-window: {{ radius_panel }}px;
+    radius-input:  {{ radius_input }}px;
+    radius-row:    {{ radius_row }}px;
+    border-width:  {{ border_width }}px;
+}

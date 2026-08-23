@@ -2,17 +2,17 @@
 # theme-switcher.sh — Select and apply a Hyprland theme via Rofi
 #
 # Bound to: SUPER + T
-# Lists available themes from themes.json, displays in a Rofi menu,
-# and applies the selected theme across all config components.
+# Lists available themes via `theme-generate list --porcelain`, shows them in a
+# Rofi menu, and applies the chosen one via `theme-generate set <slug>`.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-THEMES_DIR="$(dirname "$SCRIPT_DIR")/themes"
-THEMES_JSON="$THEMES_DIR/themes.json"
-APPLY_SCRIPT="$THEMES_DIR/apply.sh"
-STATE_FILE="$THEMES_DIR/current-theme"
 CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+GENERATOR="$CONFIG_HOME/hypr/theme/generate.py"
+if [ ! -f "$GENERATOR" ]; then
+  GENERATOR="$(dirname "$SCRIPT_DIR")/theme/generate.py"
+fi
 ROFI_THEME="$CONFIG_HOME/rofi/current-theme.rasi"
 ROFI_DEFAULT="$CONFIG_HOME/rofi/comet-glass.rasi"
 
@@ -36,43 +36,46 @@ require_cmd() {
   fi
 }
 
-require_cmd jq
 require_cmd rofi
 
 # ── Get current theme ───────────────────────────────────────────────────────
 current_theme() {
-  if [ -f "$STATE_FILE" ]; then
-    cat "$STATE_FILE"
-  else
-    printf 'None'
-  fi
+  python3 "$GENERATOR" current 2>/dev/null || printf 'None'
 }
 
 # ── Build theme list with display names ─────────────────────────────────────
-# We read the "display" field for the menu label and use the raw key as the value
+# `list --porcelain` emits `slug\tname\tmode\tactive`; we render a menu line of
+# `name (slug)` and prefix the active theme with an asterisk.
 build_menu() {
-  jq -r '.themes | to_entries[] | "\(.value.display)  (\(.key))"' "$THEMES_JSON"
+  python3 "$GENERATOR" list --porcelain \
+    | while IFS=$'\t' read -r slug name mode active; do
+        [ -z "$slug" ] && continue
+        if [ -n "$active" ]; then
+          printf '* %s (%s)\n' "$name" "$slug"
+        else
+          printf '  %s (%s)\n' "$name" "$slug"
+        fi
+      done
 }
 
 # ── Validate and apply ──────────────────────────────────────────────────────
 apply_theme() {
   local selection="$1"
+  local slug
 
-  # Extract the actual theme name from the display format:
-  # "Catppuccin Mocha 🟣  (Catppuccin Mocha)" -> "Catppuccin Mocha"
-  local theme_name
-  theme_name=$(printf '%s' "$selection" | sed -n 's/.*(\(.*\))/\1/p')
+  # "Tokyo Night (tokyo-night)" -> "tokyo-night"
+  slug=$(printf '%s' "$selection" | sed -n 's/.*(\([^)]*\))$/\1/p')
 
-  if [ -z "$theme_name" ]; then
+  if [ -z "$slug" ]; then
     notify "Theme Switcher" "Could not parse selection"
     exit 1
   fi
 
-  if [ ! -x "$APPLY_SCRIPT" ]; then
-    die "Apply script not found or not executable: $APPLY_SCRIPT"
+  if [ ! -f "$GENERATOR" ]; then
+    die "Theme generator not found: $GENERATOR"
   fi
 
-  "$APPLY_SCRIPT" "$theme_name"
+  python3 "$GENERATOR" set "$slug"
 }
 
 # ── Main ────────────────────────────────────────────────────────────────────

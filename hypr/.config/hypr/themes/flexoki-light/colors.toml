@@ -1,0 +1,68 @@
+[theme]
+name = "Flexoki Light"
+slug = "flexoki-light"
+mode = "light"
+description = "Warm daylight paper and dark ink — Flexoki Light, readable and calm"
+family = "flexoki"
+wallpaper = "flexoki-light"
+
+[colors]
+# Warm paper, never pure white. Light mode inverts the hierarchy: each step
+# up gets darker. Yellow stays the darker #ad8301 so it reads on paper.
+background       = "#fffcf0"
+background_alt   = "#f2f0e5"
+surface          = "#f2f0e5"
+surface_alt      = "#e6e4d9"
+overlay          = "#b7b5ac"
+
+foreground       = "#100f0f"
+foreground_bright = "#100f0f"
+muted            = "#6f6e69"
+disabled         = "#b7b5ac"
+
+# Strong blue leads; the deep purple backs it up.
+accent           = "#205ea6"
+accent_alt       = "#5e409d"
+
+red              = "#af3029"
+green            = "#66800b"
+yellow           = "#ad8301"
+blue             = "#205ea6"
+magenta          = "#a02f6f"
+cyan             = "#24837b"
+
+selection        = "#e6e4d9"
+border           = "#d1cec0"
+border_active    = "#205ea6"
+urgent           = "#af3029"
+# On a light theme the shadow is a dark neutral at low opacity, not black.
+shadow           = "#57534e"
+
+[ansi]
+# Upstream Flexoki Light terminal palette.
+black          = "#100f0f"
+red            = "#af3029"
+green          = "#66800b"
+yellow         = "#ad8301"
+blue           = "#205ea6"
+magenta        = "#a02f6f"
+cyan           = "#24837b"
+white          = "#f2f0e5"
+bright_black   = "#6f6e69"
+bright_red     = "#d14d41"
+bright_green   = "#879a39"
+bright_yellow  = "#d0a215"
+bright_blue    = "#4385be"
+bright_magenta = "#ce5d97"
+bright_cyan    = "#3aa99f"
+bright_white   = "#fffcf0"
+
+[style]
+rounding = 12
+border_width = 1
+surface_opacity = 0.96
+scrim_opacity = 0.35
+shadow_opacity = 0.16
+blur = true
+blur_size = 6
+blur_passes = 2

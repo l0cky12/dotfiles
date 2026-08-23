@@ -1,0 +1,67 @@
+[theme]
+name = "Tokyo Night"
+slug = "tokyo-night"
+mode = "dark"
+description = "Modern, nighttime, technical, calm — deep navy and electric blue"
+family = "tokyo-night"
+wallpaper = "tokyo-night"
+
+[colors]
+# Deep navy base. The three surface levels are close together on purpose: the
+# hierarchy should be felt, not seen as three unrelated shades.
+background       = "#1a1b26"
+background_alt   = "#16161e"
+surface          = "#24283b"
+surface_alt      = "#2f334d"
+overlay          = "#414868"
+
+foreground       = "#a9b1d6"
+foreground_bright = "#c0caf5"
+muted            = "#6b7394"
+disabled         = "#414868"
+
+# Electric blue, with the Tokyo Night purple as the secondary. No glow.
+accent           = "#7aa2f7"
+accent_alt       = "#bb9af7"
+
+red              = "#f7768e"
+green            = "#9ece6a"
+yellow           = "#e0af68"
+blue             = "#7aa2f7"
+magenta          = "#bb9af7"
+cyan             = "#7dcfff"
+
+selection        = "#283457"
+border           = "#292e42"
+border_active    = "#7aa2f7"
+urgent           = "#f7768e"
+shadow           = "#000000"
+
+[ansi]
+# Upstream Tokyo Night (night variant) terminal palette.
+black          = "#15161e"
+red            = "#f7768e"
+green          = "#9ece6a"
+yellow         = "#e0af68"
+blue           = "#7aa2f7"
+magenta        = "#bb9af7"
+cyan           = "#7dcfff"
+white          = "#a9b1d6"
+bright_black   = "#414868"
+bright_red     = "#ff7a93"
+bright_green   = "#b9f27c"
+bright_yellow  = "#ff9e64"
+bright_blue    = "#7da6ff"
+bright_magenta = "#bb9af7"
+bright_cyan    = "#0db9d7"
+bright_white   = "#c0caf5"
+
+[style]
+rounding = 10
+border_width = 2
+surface_opacity = 0.92
+scrim_opacity = 0.50
+shadow_opacity = 0.40
+blur = true
+blur_size = 8
+blur_passes = 2

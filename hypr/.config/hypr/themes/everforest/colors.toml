@@ -1,0 +1,69 @@
+[theme]
+name = "Everforest"
+slug = "everforest"
+mode = "dark"
+description = "Natural and comfortable — forest charcoal, muted aqua, warm cream"
+family = "everforest"
+wallpaper = "everforest"
+
+[colors]
+# Everforest Dark (medium). The warm cream foreground against cool green-grey
+# surfaces is the whole point of the palette.
+background       = "#2d353b"
+background_alt   = "#272e33"
+surface          = "#343f44"
+surface_alt      = "#3d484d"
+overlay          = "#4f585e"
+
+foreground       = "#d3c6aa"
+foreground_bright = "#e8e2d0"
+muted            = "#9da9a0"
+disabled         = "#7a8478"
+
+accent           = "#7fbbb3"
+accent_alt       = "#d699b6"
+
+red              = "#e67e80"
+green            = "#a7c080"
+yellow           = "#dbbc7f"
+blue             = "#7fbbb3"
+magenta          = "#d699b6"
+cyan             = "#83c092"
+
+selection        = "#3d484d"
+border           = "#3d484d"
+border_active    = "#7fbbb3"
+urgent           = "#e67e80"
+shadow           = "#1e2529"
+
+# Everforest's orange, which reads as a warning better than its soft yellow.
+warning          = "#e69875"
+
+[ansi]
+# Everforest's earthy set. Deliberately low-chroma: nothing here is neon.
+black          = "#343f44"
+red            = "#e67e80"
+green          = "#a7c080"
+yellow         = "#dbbc7f"
+blue           = "#7fbbb3"
+magenta        = "#d699b6"
+cyan           = "#83c092"
+white          = "#d3c6aa"
+bright_black   = "#868d80"
+bright_red     = "#ec9394"
+bright_green   = "#b8cd97"
+bright_yellow  = "#e4ca9a"
+bright_blue    = "#99cac3"
+bright_magenta = "#e0aec6"
+bright_cyan    = "#9acda7"
+bright_white   = "#e8e2d0"
+
+[style]
+rounding = 10
+border_width = 2
+surface_opacity = 0.95
+scrim_opacity = 0.48
+shadow_opacity = 0.35
+blur = true
+blur_size = 7
+blur_passes = 2

@@ -1,0 +1,68 @@
+[theme]
+name = "Nord"
+slug = "nord"
+mode = "dark"
+description = "Scandinavian, cold blue-grey, icy and low saturation"
+family = "nord"
+wallpaper = "nord"
+
+[colors]
+# Polar Night for the surfaces, Snow Storm for the text, Frost for the accents.
+background       = "#2e3440"
+background_alt   = "#272c36"
+surface          = "#3b4252"
+surface_alt      = "#434c5e"
+overlay          = "#4c566a"
+
+foreground       = "#d8dee9"
+foreground_bright = "#eceff4"
+muted            = "#8b98ad"
+disabled         = "#4c566a"
+
+accent           = "#81a1c1"
+accent_alt       = "#88c0d0"
+
+red              = "#bf616a"
+green            = "#a3be8c"
+yellow           = "#ebcb8b"
+blue             = "#81a1c1"
+magenta          = "#b48ead"
+cyan             = "#8fbcbb"
+
+selection        = "#434c5e"
+border           = "#3b4252"
+border_active    = "#81a1c1"
+urgent           = "#bf616a"
+shadow           = "#1c2029"
+
+[ansi]
+# Nord's Aurora and Frost sets. Brights are lifted a little because upstream
+# duplicates most of them onto their normals.
+black          = "#3b4252"
+red            = "#bf616a"
+green          = "#a3be8c"
+yellow         = "#ebcb8b"
+blue           = "#81a1c1"
+magenta        = "#b48ead"
+cyan           = "#88c0d0"
+white          = "#e5e9f0"
+bright_black   = "#5b6779"
+bright_red     = "#cf7982"
+bright_green   = "#b5cc9f"
+bright_yellow  = "#f0d8a3"
+bright_blue    = "#9ab5d0"
+bright_magenta = "#c5a3bd"
+bright_cyan    = "#9fd0dd"
+bright_white   = "#eceff4"
+
+[style]
+# Restrained: Nord is about low distraction, so it stays nearly solid with a
+# thin border and modest corners.
+rounding = 8
+border_width = 1
+surface_opacity = 0.96
+scrim_opacity = 0.45
+shadow_opacity = 0.32
+blur = true
+blur_size = 6
+blur_passes = 2

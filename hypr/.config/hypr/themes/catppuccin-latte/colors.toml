@@ -1,0 +1,67 @@
+[theme]
+name = "Catppuccin Latte"
+slug = "catppuccin-latte"
+mode = "light"
+description = "Soft modern daylight — cream, light lavender and a strong blue"
+family = "catppuccin"
+
+[colors]
+# Light mode inverts the direction of the hierarchy: each step "up" gets
+# darker, not lighter. Nothing here is pure white.
+background       = "#eff1f5"
+background_alt   = "#e6e9ef"
+surface          = "#e6e9ef"
+surface_alt      = "#ccd0da"
+overlay          = "#9ca0b0"
+
+foreground       = "#5c5f77"
+foreground_bright = "#4c4f69"
+muted            = "#7c7f93"
+disabled         = "#9ca0b0"
+
+accent           = "#1e66f5"
+accent_alt       = "#8839ef"
+
+red              = "#d20f39"
+green            = "#40a02b"
+yellow           = "#df8e1d"
+blue             = "#1e66f5"
+magenta          = "#8839ef"
+cyan             = "#179299"
+
+selection        = "#ccd0da"
+border           = "#bcc0cc"
+border_active    = "#1e66f5"
+urgent           = "#d20f39"
+# On a light theme the shadow is a dark neutral at low opacity, not black.
+shadow           = "#4c4f69"
+
+[ansi]
+# Catppuccin Latte's own terminal palette. Yellow is the darker #df8e1d rather
+# than a pastel, because pale yellow on cream is unreadable.
+black          = "#5c5f77"
+red            = "#d20f39"
+green          = "#40a02b"
+yellow         = "#df8e1d"
+blue           = "#1e66f5"
+magenta        = "#8839ef"
+cyan           = "#179299"
+white          = "#acb0be"
+bright_black   = "#6c6f85"
+bright_red     = "#de293e"
+bright_green   = "#49af3d"
+bright_yellow  = "#eea02d"
+bright_blue    = "#456eff"
+bright_magenta = "#fe85d8"
+bright_cyan    = "#2d9fa8"
+bright_white   = "#bcc0cc"
+
+[style]
+rounding = 14
+border_width = 1
+surface_opacity = 0.96
+scrim_opacity = 0.35
+shadow_opacity = 0.16
+blur = true
+blur_size = 6
+blur_passes = 2

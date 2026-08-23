@@ -1,0 +1,66 @@
+[theme]
+name = "Kanagawa Wave"
+slug = "kanagawa"
+mode = "dark"
+description = "Deep ink navy and warm beige — Kanagawa Wave, a storm over the sea"
+family = "kanagawa"
+wallpaper = "kanagawa"
+
+[colors]
+# Kanagawa Wave. Deep ink navy base; surfaces step up toward a cooler slate.
+background       = "#1f1f28"
+background_alt   = "#16161d"
+surface          = "#2a2a37"
+surface_alt      = "#363646"
+overlay          = "#54546d"
+
+foreground       = "#dcd7ba"
+foreground_bright = "#e6e0c8"
+muted            = "#938aa9"
+disabled         = "#54546d"
+
+# Desaturated spring blue leads; the ink purple backs it up.
+accent           = "#7e9cd8"
+accent_alt       = "#957fb8"
+
+red              = "#c34043"
+green            = "#76946a"
+yellow           = "#c0a36e"
+blue             = "#7e9cd8"
+magenta          = "#957fb8"
+cyan             = "#6a9589"
+
+selection        = "#2d4f67"
+border           = "#363646"
+border_active    = "#7e9cd8"
+urgent           = "#e82424"
+shadow           = "#000000"
+
+[ansi]
+# Upstream Kanagawa Wave terminal palette.
+black          = "#090618"
+red            = "#c34043"
+green          = "#76946a"
+yellow         = "#c0a36e"
+blue           = "#7e9cd8"
+magenta        = "#957fb8"
+cyan           = "#6a9589"
+white          = "#c8c093"
+bright_black   = "#727169"
+bright_red     = "#e82424"
+bright_green   = "#98bb6c"
+bright_yellow  = "#e6c384"
+bright_blue    = "#7fb4ca"
+bright_magenta = "#938aa9"
+bright_cyan    = "#7aa89f"
+bright_white   = "#dcd7ba"
+
+[style]
+rounding = 7
+border_width = 2
+surface_opacity = 0.92
+scrim_opacity = 0.50
+shadow_opacity = 0.40
+blur = true
+blur_size = 8
+blur_passes = 2

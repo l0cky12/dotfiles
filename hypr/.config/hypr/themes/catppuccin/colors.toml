@@ -1,0 +1,71 @@
+[theme]
+name = "Catppuccin Mocha"
+slug = "catppuccin"
+mode = "dark"
+description = "Soft, polished, pastel — dark lavender-charcoal with a blue accent"
+family = "catppuccin"
+wallpaper = "catppuccin-mocha"
+
+[colors]
+# Softer surface separation than Tokyo Night: the steps between base, surface0
+# and surface1 are what carry the hierarchy, so they stay gentle.
+background       = "#1e1e2e"
+background_alt   = "#181825"
+surface          = "#313244"
+surface_alt      = "#45475a"
+overlay          = "#6c7086"
+
+foreground       = "#bac2de"
+foreground_bright = "#cdd6f4"
+muted            = "#9399b2"
+disabled         = "#6c7086"
+
+accent           = "#89b4fa"
+accent_alt       = "#cba6f7"
+
+red              = "#f38ba8"
+green            = "#a6e3a1"
+yellow           = "#f9e2af"
+blue             = "#89b4fa"
+magenta          = "#cba6f7"
+cyan             = "#94e2d5"
+
+selection        = "#45475a"
+border           = "#313244"
+border_active    = "#89b4fa"
+urgent           = "#f38ba8"
+shadow           = "#11111b"
+
+# Peach rather than yellow for warnings — Catppuccin's own semantic choice.
+warning          = "#fab387"
+
+[ansi]
+# Catppuccin Mocha. Upstream maps most brights identically to their normals;
+# they are lifted slightly here so the terminal keeps a visible normal/bright
+# distinction without leaving the palette.
+black          = "#45475a"
+red            = "#f38ba8"
+green          = "#a6e3a1"
+yellow         = "#f9e2af"
+blue           = "#89b4fa"
+magenta        = "#f5c2e7"
+cyan           = "#94e2d5"
+white          = "#bac2de"
+bright_black   = "#585b70"
+bright_red     = "#f5a0b6"
+bright_green   = "#b8e8b4"
+bright_yellow  = "#fceac4"
+bright_blue    = "#a3c6fb"
+bright_magenta = "#f9d3ee"
+bright_cyan    = "#a9e9df"
+bright_white   = "#cdd6f4"
+
+[style]
+rounding = 14
+border_width = 2
+surface_opacity = 0.90
+scrim_opacity = 0.50
+shadow_opacity = 0.38
+blur = true
+blur_size = 8
+blur_passes = 2

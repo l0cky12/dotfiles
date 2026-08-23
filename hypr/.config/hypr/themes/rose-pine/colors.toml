@@ -1,0 +1,66 @@
+[theme]
+name = "Rosé Pine"
+slug = "rose-pine"
+mode = "dark"
+description = "Elegant plum and soft rose — Rosé Pine, gentle and refined"
+family = "rose-pine"
+wallpaper = "rose-pine"
+
+[colors]
+# Plum base. Surfaces step up through soft violet; warm, never harsh.
+background       = "#191724"
+background_alt   = "#131018"
+surface          = "#1f1d2e"
+surface_alt      = "#26233a"
+overlay          = "#6e6a86"
+
+foreground       = "#e0def4"
+foreground_bright = "#e0def4"
+muted            = "#6e6a86"
+disabled         = "#6e6a86"
+
+# Iris leads; rose is the softer companion.
+accent           = "#c4a7e7"
+accent_alt       = "#ebbcba"
+
+red              = "#eb6f92"
+green            = "#31748f"
+yellow           = "#f6c177"
+blue             = "#9ccfd8"
+magenta          = "#c4a7e7"
+cyan             = "#ebbcba"
+
+selection        = "#26233a"
+border           = "#26233a"
+border_active    = "#c4a7e7"
+urgent           = "#eb6f92"
+shadow           = "#000000"
+
+[ansi]
+# Upstream Rosé Pine terminal palette.
+black          = "#191724"
+red            = "#eb6f92"
+green          = "#31748f"
+yellow         = "#f6c177"
+blue           = "#9ccfd8"
+magenta        = "#c4a7e7"
+cyan           = "#ebbcba"
+white          = "#e0def4"
+bright_black   = "#6e6a86"
+bright_red     = "#eb6f92"
+bright_green   = "#31748f"
+bright_yellow  = "#f6c177"
+bright_blue    = "#9ccfd8"
+bright_magenta = "#c4a7e7"
+bright_cyan    = "#ebbcba"
+bright_white   = "#e0def4"
+
+[style]
+rounding = 12
+border_width = 2
+surface_opacity = 0.92
+scrim_opacity = 0.45
+shadow_opacity = 0.35
+blur = true
+blur_size = 8
+blur_passes = 2

@@ -1,0 +1,67 @@
+[theme]
+name = "Osaka Jade"
+slug = "osaka-jade"
+mode = "dark"
+description = "Calm charcoal-green, desaturated jade accent, quiet and refined"
+family = "osaka-jade"
+wallpaper = "osaka-jade"
+
+[colors]
+# Charcoal with a green cast. Surfaces step up in desaturated jade-grey;
+# nothing is loud.
+background       = "#141a17"
+background_alt   = "#0f1411"
+surface          = "#1c2420"
+surface_alt      = "#253028"
+overlay          = "#303c35"
+
+foreground       = "#d8e0da"
+foreground_bright = "#ecf2ed"
+muted            = "#8a988f"
+disabled         = "#55605a"
+
+# Jade leads; a lighter jade sits behind it. Elegant, not bright.
+accent           = "#509475"
+accent_alt       = "#6aa58c"
+
+red              = "#d07070"
+green            = "#6aa582"
+yellow           = "#c9b878"
+blue             = "#6a8fa5"
+magenta          = "#a58aa5"
+cyan             = "#6aa5a5"
+
+selection        = "#253028"
+border           = "#1c2420"
+border_active    = "#509475"
+urgent           = "#d07070"
+shadow           = "#000000"
+
+[ansi]
+# Desaturated jade terminal palette.
+black          = "#141a17"
+red            = "#d07070"
+green          = "#6aa582"
+yellow         = "#c9b878"
+blue           = "#6a8fa5"
+magenta        = "#a58aa5"
+cyan           = "#6aa5a5"
+white          = "#d8e0da"
+bright_black   = "#55605a"
+bright_red     = "#e89898"
+bright_green   = "#8cc0a0"
+bright_yellow  = "#e0d498"
+bright_blue    = "#8ab0c4"
+bright_magenta = "#c4a8c4"
+bright_cyan    = "#8ac0c0"
+bright_white   = "#ecf2ed"
+
+[style]
+rounding = 8
+border_width = 2
+surface_opacity = 0.92
+scrim_opacity = 0.50
+shadow_opacity = 0.40
+blur = true
+blur_size = 8
+blur_passes = 2

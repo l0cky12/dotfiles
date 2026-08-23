@@ -1,0 +1,65 @@
+/* ~/.config/wofi/style.css
+ * GENERATED from themes/{{ theme_slug }}/colors.toml — do not edit.
+ * Theme: {{ theme_name }} ({{ theme_mode }})
+ *
+ * Layout, padding and font are unchanged from the previous generator; the
+ * palette and corner treatment now follow the theme. The selected-row text is
+ * chosen by contrast rather than hardcoded white, which is what the old
+ * template got wrong on light themes.
+ */
+
+window {
+  margin: 0px;
+  border: {{ border_width }}px solid {{ css_rgba(border_active, 0.35) }};
+  border-radius: {{ radius_panel }}px;
+  background-color: {{ css_rgba(background, surface_opacity) }};
+  font-family: "JetBrainsMono Nerd Font";
+  font-size: 14px;
+  color: {{ foreground_bright }};
+}
+
+#outer-box {
+  margin: 0px;
+  padding: 14px;
+  border-radius: {{ radius_panel }}px;
+  background-color: {{ css_rgba(background, max(0.0, surface_opacity - 0.06)) }};
+}
+
+#input {
+  margin: 0px 0px 12px 0px;
+  padding: 12px 14px;
+  border: none;
+  border-radius: {{ radius_input }}px;
+  background-color: {{ css_rgba(surface, 0.55) }};
+  color: {{ foreground_bright }};
+}
+
+#input:focus {
+  outline: none;
+  box-shadow: none;
+  border: {{ border_width }}px solid {{ css_rgba(accent, 0.45) }};
+}
+
+#entry {
+  padding: 10px 12px;
+  border-radius: {{ radius_row }}px;
+  background-color: transparent;
+}
+
+#entry:selected {
+  background: linear-gradient(
+    90deg,
+    {{ css_rgba(accent, 0.24) }},
+    {{ css_rgba(accent_alt, 0.20) }}
+  );
+  border: {{ border_width }}px solid {{ css_rgba(accent, 0.32) }};
+}
+
+#text {
+  color: {{ foreground }};
+}
+
+#entry:selected #text {
+  color: {{ foreground_bright }};
+  font-weight: 600;
+}

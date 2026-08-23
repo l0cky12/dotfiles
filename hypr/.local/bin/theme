@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# theme — thin user-facing wrapper around the theme generator.
+#
+#   theme list             list themes
+#   theme current          print the active theme slug
+#   theme mode             print the active theme's mode (dark|light)
+#   theme set <slug>       apply a theme
+#   theme next             cycle to the next theme
+#   theme previous         cycle to the previous theme
+#
+# The generator lives at ~/.config/hypr/theme/generate.py (this repo is stowed).
+# We resolve it there first and fall back to the repo path relative to this
+# script, so the wrapper works before the first `stow` too.
+
+set -euo pipefail
+
+usage() {
+  printf 'usage: theme <list|current|mode|set SLUG|next|previous>\n' >&2
+  exit 2
+}
+
+GENERATOR="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/theme/generate.py"
+if [ ! -f "$GENERATOR" ]; then
+  # Repo layout: hypr/.local/bin/theme -> hypr/.config/hypr/theme/generate.py
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  GENERATOR="$(dirname "$(dirname "$SCRIPT_DIR")")/.config/hypr/theme/generate.py"
+fi
+if [ ! -f "$GENERATOR" ]; then
+  printf 'theme: generator not found at %s\n' "$GENERATOR" >&2
+  exit 1
+fi
+
+[ $# -ge 1 ] || usage
+cmd="$1"
+shift
+
+case "$cmd" in
+  list)     exec python3 "$GENERATOR" list "$@" ;;
+  current)  exec python3 "$GENERATOR" current "$@" ;;
+  mode)     exec python3 "$GENERATOR" mode "$@" ;;
+  set)      exec python3 "$GENERATOR" set "$@" ;;
+  next)     exec python3 "$GENERATOR" cycle next "$@" ;;
+  previous) exec python3 "$GENERATOR" cycle previous "$@" ;;
+  -h|--help|help) usage ;;
+  *) usage ;;
+esac

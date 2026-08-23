@@ -1,0 +1,68 @@
+[theme]
+name = "Hackerman"
+slug = "hackerman"
+mode = "dark"
+description = "Near-black terminal — phosphor green accent, minimal and terminal-centric"
+family = "hackerman"
+wallpaper = "hackerman"
+
+[colors]
+# Near-black, almost no depth. Surfaces are barely lighter than the void;
+# this is a terminal, not a room.
+background       = "#050505"
+background_alt   = "#000000"
+surface          = "#0d0d0d"
+surface_alt      = "#161616"
+overlay          = "#1f1f1f"
+
+foreground       = "#c8c8c8"
+foreground_bright = "#f0f0f0"
+muted            = "#787878"
+disabled         = "#3c3c3c"
+
+# Phosphor green leads. Red and yellow stay their own colours for warnings —
+# nothing is tinted green.
+accent           = "#82fb9c"
+accent_alt       = "#4cc9f0"
+
+red              = "#ff5c5c"
+green            = "#82fb9c"
+yellow           = "#ffd866"
+blue             = "#4cc9f0"
+magenta          = "#c792ea"
+cyan             = "#7fdbca"
+
+selection        = "#1f1f1f"
+border           = "#161616"
+border_active    = "#82fb9c"
+urgent           = "#ff5c5c"
+shadow           = "#000000"
+
+[ansi]
+# Classic terminal palette over pure black.
+black          = "#050505"
+red            = "#ff5c5c"
+green          = "#82fb9c"
+yellow         = "#ffd866"
+blue           = "#4cc9f0"
+magenta        = "#c792ea"
+cyan           = "#7fdbca"
+white          = "#c8c8c8"
+bright_black   = "#454545"
+bright_red     = "#ff8080"
+bright_green   = "#a8ffc0"
+bright_yellow  = "#ffe08a"
+bright_blue    = "#6fd6f5"
+bright_magenta = "#dbb2f5"
+bright_cyan    = "#9ee8d8"
+bright_white   = "#f0f0f0"
+
+[style]
+rounding = 2
+border_width = 1
+surface_opacity = 1.0
+scrim_opacity = 0.60
+shadow_opacity = 0.50
+blur = true
+blur_size = 6
+blur_passes = 2

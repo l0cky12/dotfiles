@@ -1,0 +1,67 @@
+[theme]
+name = "Vantablack"
+slug = "vantablack"
+mode = "dark"
+description = "Extremely black, monochrome with tiny luminance steps and one restrained accent"
+family = "vantablack"
+wallpaper = "vantablack"
+
+[colors]
+# Near-absolute black. Surfaces differ by the smallest luminance steps; the
+# hierarchy is felt as pressure, not as colour.
+background       = "#010101"
+background_alt   = "#000000"
+surface          = "#0a0a0a"
+surface_alt      = "#121212"
+overlay          = "#1a1a1a"
+
+foreground       = "#c9c9c9"
+foreground_bright = "#f2f2f2"
+muted            = "#8a8a8a"
+disabled         = "#454545"
+
+# A single restrained steel blue is the only hue in the room.
+accent           = "#6aa2cc"
+accent_alt       = "#a0a0a0"
+
+red              = "#d66a6a"
+green            = "#7aa87a"
+yellow           = "#c0b06a"
+blue             = "#6aa2cc"
+magenta          = "#b08ab0"
+cyan             = "#6aa8a8"
+
+selection        = "#1a1a1a"
+border           = "#121212"
+border_active    = "#6aa2cc"
+urgent           = "#d66a6a"
+shadow           = "#000000"
+
+[ansi]
+# Monochrome terminal palette; colour is desaturated and sparse.
+black          = "#010101"
+red            = "#d66a6a"
+green          = "#7aa87a"
+yellow         = "#c0b06a"
+blue           = "#6aa2cc"
+magenta        = "#b08ab0"
+cyan           = "#6aa8a8"
+white          = "#c9c9c9"
+bright_black   = "#454545"
+bright_red     = "#ec9090"
+bright_green   = "#9cc49c"
+bright_yellow  = "#d8ca88"
+bright_blue    = "#8cc0e0"
+bright_magenta = "#cca8cc"
+bright_cyan    = "#8cc4c4"
+bright_white   = "#f2f2f2"
+
+[style]
+rounding = 3
+border_width = 1
+surface_opacity = 0.99
+scrim_opacity = 0.60
+shadow_opacity = 0.55
+blur = true
+blur_size = 6
+blur_passes = 2

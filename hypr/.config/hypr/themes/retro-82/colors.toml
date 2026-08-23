@@ -1,0 +1,66 @@
+[theme]
+name = "Retro 82"
+slug = "retro-82"
+mode = "dark"
+description = "Retro science fiction — deep navy, amber focus and teal for secondary info"
+family = "retro-82"
+wallpaper = "retro-82"
+
+[colors]
+# Deep navy straight out of an 80s cockpit. Surfaces step up in cool slate.
+background       = "#0a1020"
+background_alt   = "#060a16"
+surface          = "#101830"
+surface_alt      = "#182440"
+overlay          = "#203050"
+
+foreground       = "#d8dee8"
+foreground_bright = "#f0f4f8"
+muted            = "#8898b0"
+disabled         = "#506080"
+
+# Amber is the primary focus colour; teal carries secondary information.
+accent           = "#ffb000"
+accent_alt       = "#20c0b0"
+
+red              = "#e06060"
+green            = "#60c080"
+yellow           = "#ffb000"
+blue             = "#4080e0"
+magenta          = "#c080e0"
+cyan             = "#20c0b0"
+
+selection        = "#182440"
+border           = "#101830"
+border_active    = "#ffb000"
+urgent           = "#e06060"
+shadow           = "#000000"
+
+[ansi]
+# High-contrast sci-fi terminal palette: amber and teal on navy.
+black          = "#0a1020"
+red            = "#e06060"
+green          = "#60c080"
+yellow         = "#ffb000"
+blue           = "#4080e0"
+magenta        = "#c080e0"
+cyan           = "#20c0b0"
+white          = "#d8dee8"
+bright_black   = "#506080"
+bright_red     = "#f08080"
+bright_green   = "#80e0a0"
+bright_yellow  = "#ffc840"
+bright_blue    = "#60a0f0"
+bright_magenta = "#e0a0f0"
+bright_cyan    = "#40e0d0"
+bright_white   = "#f0f4f8"
+
+[style]
+rounding = 4
+border_width = 2
+surface_opacity = 0.95
+scrim_opacity = 0.50
+shadow_opacity = 0.40
+blur = true
+blur_size = 6
+blur_passes = 2

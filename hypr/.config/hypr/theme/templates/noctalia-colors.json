@@ -1,0 +1,18 @@
+{
+  "mError": "{{ red }}",
+  "mHover": "{{ accent_alt }}",
+  "mOnError": "{{ fg_on(red) }}",
+  "mOnHover": "{{ fg_on(accent_alt) }}",
+  "mOnPrimary": "{{ fg_on(accent) }}",
+  "mOnSecondary": "{{ fg_on(accent_alt) }}",
+  "mOnSurface": "{{ foreground_bright }}",
+  "mOnSurfaceVariant": "{{ foreground }}",
+  "mOnTertiary": "{{ fg_on(cyan) }}",
+  "mOutline": "{{ overlay }}",
+  "mPrimary": "{{ accent }}",
+  "mSecondary": "{{ accent_alt }}",
+  "mShadow": "{{ shadow }}",
+  "mSurface": "{{ background }}",
+  "mSurfaceVariant": "{{ surface }}",
+  "mTertiary": "{{ cyan }}"
+}

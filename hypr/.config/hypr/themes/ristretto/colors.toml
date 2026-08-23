@@ -1,0 +1,66 @@
+[theme]
+name = "Ristretto"
+slug = "ristretto"
+mode = "dark"
+description = "Espresso and cream — Monokai Pro Ristretto, warm coffee with orange and coral"
+family = "monokai"
+wallpaper = "ristretto"
+
+[colors]
+# Espresso brown base. Surfaces step up through warm coffee tones, never cool.
+background       = "#2c2520"
+background_alt   = "#242020"
+surface          = "#332b26"
+surface_alt      = "#3a312b"
+overlay          = "#463a32"
+
+foreground       = "#efe3df"
+foreground_bright = "#fff5f0"
+muted            = "#a89890"
+disabled         = "#6b5f58"
+
+# Warm orange leads; coral red is its sharper companion.
+accent           = "#fd9353"
+accent_alt       = "#fd6883"
+
+red              = "#fd6883"
+green            = "#adda78"
+yellow           = "#f9cc6c"
+blue             = "#78dce8"
+magenta          = "#f8b8c2"
+cyan             = "#85dacc"
+
+selection        = "#3a312b"
+border           = "#332b26"
+border_active    = "#fd9353"
+urgent           = "#fd6883"
+shadow           = "#000000"
+
+[ansi]
+# Warm Monokai-family terminal palette (Ristretto filter).
+black          = "#2c2520"
+red            = "#fd6883"
+green          = "#adda78"
+yellow         = "#f9cc6c"
+blue           = "#78dce8"
+magenta        = "#f8b8c2"
+cyan           = "#85dacc"
+white          = "#efe3df"
+bright_black   = "#6b5f58"
+bright_red     = "#ff7a9c"
+bright_green   = "#c5f09a"
+bright_yellow  = "#ffd580"
+bright_blue    = "#8fd0d6"
+bright_magenta = "#ffcfd6"
+bright_cyan    = "#a5e8dd"
+bright_white   = "#fff5f0"
+
+[style]
+rounding = 8
+border_width = 2
+surface_opacity = 0.93
+scrim_opacity = 0.50
+shadow_opacity = 0.40
+blur = true
+blur_size = 8
+blur_passes = 2

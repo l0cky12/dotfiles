@@ -1,0 +1,67 @@
+[theme]
+name = "Lumon"
+slug = "lumon"
+mode = "dark"
+description = "Institutional navy — sterile blue-gray, fluorescent cyan accent, hard clinical geometry"
+family = "lumon"
+wallpaper = "lumon"
+
+[colors]
+# Deep institutional navy. Surfaces climb through blue-gray without ever
+# warming up; the hierarchy reads as faint panelling, not three separate shades.
+background       = "#0a0d16"
+background_alt   = "#07090f"
+surface          = "#121726"
+surface_alt      = "#1a2033"
+overlay          = "#26304a"
+
+foreground       = "#d6deeb"
+foreground_bright = "#eef2f8"
+muted            = "#8b96ad"
+disabled         = "#5a6478"
+
+# Fluorescent cyan is the only colour that speaks; the cool blue is secondary.
+accent           = "#38d2ff"
+accent_alt       = "#6aa8ff"
+
+red              = "#f26d78"
+green            = "#6fcf97"
+yellow           = "#e5c07b"
+blue             = "#6aa8ff"
+magenta          = "#b48ead"
+cyan             = "#38d2ff"
+
+selection        = "#26304a"
+border           = "#1a2033"
+border_active    = "#38d2ff"
+urgent           = "#f26d78"
+shadow           = "#000000"
+
+[ansi]
+# Cool navy terminal palette, clinical and even.
+black          = "#0a0d16"
+red            = "#f26d78"
+green          = "#6fcf97"
+yellow         = "#e5c07b"
+blue           = "#6aa8ff"
+magenta        = "#b48ead"
+cyan           = "#38d2ff"
+white          = "#d6deeb"
+bright_black   = "#5a6478"
+bright_red     = "#ff8a94"
+bright_green   = "#9be6bc"
+bright_yellow  = "#f2d69b"
+bright_blue    = "#8cc0ff"
+bright_magenta = "#cbb5e6"
+bright_cyan    = "#7de3ff"
+bright_white   = "#eef2f8"
+
+[style]
+rounding = 3
+border_width = 2
+surface_opacity = 0.98
+scrim_opacity = 0.55
+shadow_opacity = 0.35
+blur = true
+blur_size = 6
+blur_passes = 2

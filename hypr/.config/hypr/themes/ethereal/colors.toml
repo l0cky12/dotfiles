@@ -1,0 +1,67 @@
+[theme]
+name = "Ethereal"
+slug = "ethereal"
+mode = "dark"
+description = "Muted dark blue-purple, soft lavender accent, airy transparency"
+family = "ethereal"
+wallpaper = "ethereal"
+
+[colors]
+# Soft indigo-purple base. The surfaces are close and slightly translucent;
+# the hierarchy should feel like mist, not solid steps.
+background       = "#14141f"
+background_alt   = "#101019"
+surface          = "#1e1e2e"
+surface_alt      = "#28283c"
+overlay          = "#33334d"
+
+foreground       = "#d9d9e8"
+foreground_bright = "#f0f0fa"
+muted            = "#8b8ba8"
+disabled         = "#55556b"
+
+# Lavender leads; a brighter violet sits behind it. Gentle, never glowing.
+accent           = "#7d82d9"
+accent_alt       = "#a899e6"
+
+red              = "#e07080"
+green            = "#8fd6a0"
+yellow           = "#d8c88f"
+blue             = "#7d82d9"
+magenta          = "#b49ae6"
+cyan             = "#7fd0d0"
+
+selection        = "#2a2a3f"
+border           = "#26263a"
+border_active    = "#7d82d9"
+urgent           = "#e07080"
+shadow           = "#000000"
+
+[ansi]
+# Soft lavender terminal palette.
+black          = "#14141f"
+red            = "#e07080"
+green          = "#8fd6a0"
+yellow         = "#d8c88f"
+blue           = "#7d82d9"
+magenta        = "#b49ae6"
+cyan           = "#7fd0d0"
+white          = "#d9d9e8"
+bright_black   = "#55556b"
+bright_red     = "#f08a98"
+bright_green   = "#b0e8c0"
+bright_yellow  = "#efe0ab"
+bright_blue    = "#9ba0e8"
+bright_magenta = "#cdb8f0"
+bright_cyan    = "#a0e8e8"
+bright_white   = "#f0f0fa"
+
+[style]
+rounding = 14
+border_width = 1
+surface_opacity = 0.88
+scrim_opacity = 0.40
+shadow_opacity = 0.30
+blur = true
+blur_size = 8
+blur_passes = 2

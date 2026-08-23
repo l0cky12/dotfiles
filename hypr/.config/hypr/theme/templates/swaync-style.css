@@ -1,0 +1,118 @@
+/* ~/.config/swaync/style.css
+ * GENERATED from themes/{{ theme_slug }}/colors.toml -- do not edit.
+ * Theme: {{ theme_name }} ({{ theme_mode }})
+ *
+ * The structural CSS below is shared by every theme; only these colour
+ * definitions change. Notification urgency keeps its semantic meaning.
+ */
+
+@define-color base        {{ background }};
+@define-color surface     {{ surface }};
+@define-color card        {{ surface_alt }};
+@define-color border      {{ overlay }};
+@define-color text        {{ foreground_bright }};
+@define-color muted       {{ muted }};
+@define-color accent      {{ accent }};
+@define-color accent_soft {{ accent_alt }};
+@define-color low         {{ muted }};
+@define-color urgent      {{ critical }};
+
+* {
+  font-family: "JetBrainsMono Nerd Font", "Inter", sans-serif;
+  font-size: 14px;
+  --notification-icon-size: 54px;
+  --notification-group-icon-size: 42px;
+  --mpris-album-art-icon-size: 72px;
+  --widget-volume-row-icon-size: 20px;
+}
+
+.blank-window { background: alpha(@base, 0.20); }
+.floating-notifications, .control-center, .control-center-list { background: transparent; }
+
+.control-center {
+  background: alpha(@base, 0.80);
+  border: 1px solid alpha(@border, 0.78);
+  border-radius: 24px;
+  box-shadow: 0 18px 40px 0 rgba(0, 0, 0, 0.35);
+  color: @text;
+  padding: 18px;
+}
+
+.widget-title, .widget-dnd, .widget-volume, .widget-backlight,
+.widget-mpris, .widget-buttons-grid, .widget-inhibitors, .widget-label {
+  background: alpha(@surface, 0.88);
+  border: 1px solid alpha(@border, 0.70);
+  border-radius: 18px;
+  box-shadow: none;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.widget-title { background: transparent; border: none; padding: 4px 4px 12px 4px; }
+.widget-title label { color: @text; font-size: 18px; font-weight: 700; }
+.widget-title > button {
+  background: alpha(@surface, 0.88); color: @text;
+  border: 1px solid alpha(@border, 0.72); border-radius: 14px; padding: 7px 14px;
+}
+.widget-title > button:hover { background: alpha(@accent_soft, 0.22); border-color: alpha(@accent, 0.60); }
+
+.widget-dnd label, .widget-volume label, .widget-backlight label {
+  color: @text; font-weight: 600;
+}
+
+.widget-dnd switch { background: alpha(@card, 0.95); border: 1px solid alpha(@border, 0.72); border-radius: 999px; }
+.widget-dnd switch slider { background: @text; border-radius: 999px; min-width: 18px; min-height: 18px; }
+.widget-dnd switch:checked { background: alpha(@accent, 0.92); border-color: alpha(@accent, 0.92); }
+
+.widget-volume trough, .widget-backlight trough, scale trough {
+  background: alpha(@muted, 0.16); border: none; border-radius: 999px; min-height: 10px;
+}
+.widget-volume highlight, .widget-backlight highlight, scale highlight {
+  background: @accent; border-radius: 999px; min-height: 10px;
+}
+.widget-volume slider, .widget-backlight slider, scale slider {
+  background: @text; border-radius: 999px; min-width: 16px; min-height: 16px;
+  box-shadow: 0 0 0 4px alpha(@accent, 0.18);
+}
+
+.control-center-list-placeholder > label { color: @muted; font-style: italic; }
+.notification-row { outline: none; margin: 0 0 12px 0; padding: 0; }
+.notification-row:hover, .notification-row:focus { background: transparent; }
+
+.control-center .notification-background, .floating-notifications .notification-background {
+  background: alpha(@surface, 0.90); border: 1px solid alpha(@border, 0.72);
+  border-radius: 20px; box-shadow: 0 12px 28px 0 rgba(0, 0, 0, 0.28);
+}
+.control-center .notification-background { padding: 16px; }
+.floating-notifications .notification-background { padding: 16px; margin: 8px 12px 0 12px; }
+
+.notification { background: transparent; color: @text; }
+.notification-content { background: transparent; padding: 0; margin: 0; }
+.notification-default-action { background: transparent; border: none; box-shadow: none; padding: 0; margin: 0; }
+.notification-default-action:hover { background: transparent; }
+
+.notification.low { border-left: 3px solid alpha(@low, 0.88); padding-left: 10px; }
+.notification.normal { border-left: 3px solid alpha(@accent, 0.88); padding-left: 10px; }
+.notification.critical { border-left: 3px solid alpha(@urgent, 0.92); padding-left: 10px; }
+
+.summary { color: @text; font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.time { color: @muted; font-size: 12px; font-weight: 600; margin-right: 38px; }
+.body { color: @muted; font-size: 13px; }
+.notification image { margin-right: 14px; }
+
+.close-button {
+  background: alpha(@card, 0.96); color: @muted;
+  border: 1px solid alpha(@border, 0.72); border-radius: 999px;
+  min-width: 32px; min-height: 32px; box-shadow: none;
+}
+.close-button:hover { background: alpha(@urgent, 0.18); color: @text; border-color: alpha(@urgent, 0.56); }
+
+.notification-action, .notification-alt-actions button {
+  background: alpha(@card, 0.92); color: @text;
+  border: 1px solid alpha(@border, 0.68); border-radius: 12px;
+  box-shadow: none; padding: 8px 12px; margin: 10px 8px 0 0;
+}
+.notification-action:hover, .notification-alt-actions button:hover {
+  background: alpha(@accent_soft, 0.22); border-color: alpha(@accent, 0.56);
+}
+.notification-group { margin-top: 6px; }

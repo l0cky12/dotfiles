@@ -67,107 +67,110 @@ stow --simulate hypr
 
 ---
 
-## Theme Switcher
+## Theme System
 
-This repo includes a **10-theme system** with a Rofi menu switcher. Press **`SUPER + T`** to open the theme selector.
+This repo includes a **semantic, switchable theme system** with **18 themes**. Press **`SUPER + T`** for the Rofi selector, or use the `theme` CLI.
 
 ### How It Works
 
-1. **`hypr/.config/hypr/themes/themes.json`** — Central database of all 10 themes with complete color palettes, Hyprland decoration settings, and per-component color mappings.
-2. **`hypr/.config/hypr/themes/apply.sh`** — Reads `themes.json`, generates all per-component config files, copies the theme wallpaper, and reloads services.
-3. **`hypr/.config/hypr/scripts/theme-switcher.sh`** — Rofi menu that lists available themes and calls `apply.sh`.
+1. **`hypr/.config/hypr/themes/<slug>/colors.toml`** — One palette per theme. This is the single source of truth: semantic colour roles (`background`, `surface`, `accent`, `red`, …), a complete 16-colour ANSI terminal palette, and optional `[style]` overrides (rounding, border width, opacity, blur).
+2. **`hypr/.config/hypr/theme/generate.py`** (+ `themelib.py`) — Validates the palette (including WCAG AA contrast checks), renders every application's config from `hypr/.config/hypr/theme/templates/*`, and installs it atomically. A broken theme leaves the previous one running.
+3. **`hypr/.config/hypr/scripts/theme-switcher.sh`** — Rofi menu (Super+T) that lists themes and applies the selection.
+
+### `theme` CLI
+
+```bash
+theme list              # list themes (active marked *)
+theme current           # print the active slug
+theme mode              # print dark|light
+theme set <slug>        # apply a theme
+theme next              # cycle to the next theme
+theme previous          # cycle to the previous theme
+```
 
 ### Available Themes
 
-| Theme | Vibe | Accent Colors |
+| Slug | Theme | Mode |
 |---|---|---|
-| Catppuccin Mocha 🟣 | Warm purple-pink pastel on deep dark | Mauve + Blue |
-| Tokyo Night 🌃 | Deep blue-black with vibrant electric | Blue + Purple |
-| Gruvbox Dark 🟤 | Warm retro amber-brown | Orange + Yellow |
-| Nord ❄️ | Cool arctic blue-grey with icy teal | Teal + Blue |
-| Rose Pine 🌹 | Soft dusty rose and pine | Rose + Pine |
-| Everforest 🌲 | Soft earthy greens and warm browns | Green + Teal |
-| Cyberpunk Neon 🌆 | Dark base with blazing neon | Magenta + Cyan |
-| Monochrome Minimal ⚪ | Clean greyscale with soft blue | Blue + Grey |
-| Solarized Dark ☀️ | Warm scientific balanced palette | Blue + Teal |
-| Warm Pastel 🎨 | Soft warm pastels — peach, mint, lavender | Pink + Green |
+| tokyo-night | Tokyo Night | dark |
+| catppuccin | Catppuccin Mocha | dark |
+| lumon | Lumon | dark |
+| ethereal | Ethereal | dark |
+| everforest | Everforest | dark |
+| gruvbox | Gruvbox Dark | dark |
+| miasma | Miasma | dark |
+| hackerman | Hackerman | dark |
+| osaka-jade | Osaka Jade | dark |
+| kanagawa | Kanagawa Wave | dark |
+| nord | Nord | dark |
+| matte-black | Matte Black | dark |
+| vantablack | Vantablack | dark |
+| ristretto | Ristretto | dark |
+| retro-82 | Retro 82 | dark |
+| flexoki-light | Flexoki Light | light |
+| rose-pine | Rosé Pine | dark |
+| catppuccin-latte | Catppuccin Latte | light |
 
 ### What Changes Per Theme
 
 Each theme consistently updates:
 
-- **Hyprland** — Active/inactive border colors, gaps, rounding, opacity, shadow, blur
-- **Hyprlock** — Lock screen colors (time, date, input field, accent highlights)
-- **Rofi** — Full color theme (bg, fg, accent, selection, urgency)
-- **Wofi** — Window, input, entry, and text colors
-- **Kitty** — Terminal 16-color ANSI palette, foreground, background, selection, cursor
-- **SwayNC** — Notification center CSS (base, surface, accent, border, urgency)
-- **Noctalia** — QML shell color scheme (primary, surface, error, hover)
-- **Fastfetch** — Section key icon colors (distro, system, audio groups)
-- **Zsh/Powerlevel10k** — OS icon foreground color
-- **Wallpaper** — Theme-specific wallpaper from `Wallpapers/theme/`
+- **Hyprland** — active/inactive border colours, rounding, gaps, opacity, shadow, blur
+- **Waybar** — bar/module colours via generated `colors.css`
+- **Quickshell** — shell palette via generated `themes/.active/theme.json`
+- **Kitty** — 16-colour ANSI palette, foreground/background, selection, cursor
+- **Rofi** — launcher colours via generated `current.rasi`
+- **Zsh / Powerlevel10k** — prompt colours via generated `current-theme.zsh`
+- **Hyprlock** — lock screen colours
+- **SwayNC** — notification CSS
+- **Wofi** — launcher CSS
+- **Noctalia** — shell colour scheme
+- **Fastfetch** — section key colours
+- **Wallpaper** — theme-specific wallpaper (where configured)
 
 ### Dependencies
 
-The theme switcher requires:
+The theme system requires:
 
-- `jq` — JSON parsing (reads `themes.json`)
-- `rofi` — Theme selection menu
-- `sed` — Fastfetch config patching
+- `python3` (3.11+, for `tomllib`)
+- `rofi` — theme selection menu
 
 Optional (for live reload):
 
-- `hyprctl` — Reloads Hyprland decorations
-- `kitty` — Live-applies theme to running terminals
-- `swaync` / `swaync-client` — Reloads notification CSS
-- `qs` (quickshell) — Reloads Noctalia color scheme
+- `hyprctl` — reloads Hyprland decorations
+- `kitty` — live-applies colours to running terminals
+- `swaync` / `swaync-client` — reloads notification CSS
 
 ### Switching Manually
 
 ```bash
 # Apply a specific theme
-~/.config/hypr/themes/apply.sh "Catppuccin Mocha"
+theme set tokyo-night
 
-# Check current theme
-cat ~/.config/hypr/themes/current-theme
+# Check the current theme
+theme current
 ```
 
-### Rollback
+### First Run / Bootstrap
 
-Each theme application writes generated config files. To revert:
+Generated config files (decorations, colours, themes) are gitignored. After `stow`, generate them once:
 
 ```bash
-# Restore the default stash
-stow -D hypr && stow hypr
-
-# Or manually re-source a known-good theme
-~/.config/hypr/themes/apply.sh "Catppuccin Mocha"
+theme set <slug>
 ```
 
 ### Adding a New Theme
 
-1. Add your color palette and Hyprland settings to `hypr/.config/hypr/themes/themes.json`
-2. Place a wallpaper at `Wallpapers/theme/<your-theme-slug>.jpg`
-3. Run `apply.sh "Your Theme Name"`
+1. Create `hypr/.config/hypr/themes/<slug>/colors.toml` (copy `tokyo-night/colors.toml` for the format and required keys).
+2. Run `theme set <slug>`.
 
-### Troubleshooting
+No per-application config changes are needed — every app is generated from the palette.
 
-**Theme doesn't apply:**
-- Verify `jq` is installed
-- Check the theme name is exactly right (case-sensitive)
-- Run `apply.sh` directly to see error output
+### Validation
 
-**Kitty colors don't update:**
-- Open a new terminal window or restart kitty
-- The live `kitty @ set-colors` only affects existing windows
-
-**Hyprland borders don't change:**
-- The apply script calls `hyprctl reload` — this should reload decorations.conf
-- If it doesn't, toggle a window or restart Hyprland
-
-**SwayNC doesn't update:**
-- Run `swaync-client --reload-config`
-- Or restart swaync: `pkill swaync && swaync &`
+```bash
+python3 hypr/.config/hypr/theme/generate.py validate --all
+```
 
 ---
 
@@ -175,12 +178,12 @@ stow -D hypr && stow hypr
 
 | Package | Tool | Description |
 |---|---|---|
-| `hypr` | [Hyprland](https://hyprland.org/) | Wayland compositor — keybinds, decorations, autostart, monitor profiles, theme switcher |
+| `hypr` | [Hyprland](https://hyprland.org/) | Wayland compositor — keybinds, decorations, autostart, monitor profiles, theme system |
 | `hyprlock` | [Hyprlock](https://github.com/hyprwm/hyprlock) | Lock screen with music widget, weather, and multiple layouts |
-| `kitty` | [Kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator with 10 theme colorsets |
-| `rofi` | [Rofi](https://github.com/davatorium/rofi) | App launcher with 10 color themes on comet-glass layout |
+| `kitty` | [Kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator with generated theme palette |
+| `rofi` | [Rofi](https://github.com/davatorium/rofi) | App launcher with generated colour theme on comet-glass layout |
 | `wofi` | [Wofi](https://hg.sr.ht/~scoopta/wofi) | Wayland-native app launcher with themed colors |
-| `swaync` | [SwayNC](https://github.com/ErikReider/SwayNotificationCenter) | Notification center with 10 themed stylesheets |
+| `swaync` | [SwayNC](https://github.com/ErikReider/SwayNotificationCenter) | Notification center with generated stylesheet |
 | `fastfetch` | [Fastfetch](https://github.com/fastfetch-cli/fastfetch) | System info with themed key colors |
 | `noctalia` | Noctalia | Custom plugin system with themed color scheme |
 | `zsh` | Zsh | Shell config — Oh My Zsh, Powerlevel10k, fzf-tab, eza aliases |
@@ -203,8 +206,8 @@ stow -D hypr && stow hypr
 - `eza` (ls replacement)
 - `powerlevel10k`
 
-**Theme switcher:**
-- `jq`
+**Theme system:**
+- `python3` (3.11+, for `tomllib`)
 - `rofi`
 
 **Utilities used in scripts:**

@@ -1,0 +1,67 @@
+[theme]
+name = "Miasma"
+slug = "miasma"
+mode = "dark"
+description = "Dense, earthy charcoal — brown-green, olive and a lone gold accent"
+family = "miasma"
+wallpaper = "miasma"
+
+[colors]
+# Low-saturation charcoal with an earthy green cast. Surfaces are dense and
+# close together; the theme reads as one dim, fertile room.
+background       = "#141312"
+background_alt   = "#101010"
+surface          = "#1c1c1a"
+surface_alt      = "#242421"
+overlay          = "#30302c"
+
+foreground       = "#c2c2b0"
+foreground_bright = "#e0e0d0"
+muted            = "#8a8a76"
+disabled         = "#55554a"
+
+# Gold is the only thing that glows; olive-green is its muted shadow.
+accent           = "#c9a554"
+accent_alt       = "#a8b07a"
+
+red              = "#c97a6a"
+green            = "#8a9a6a"
+yellow           = "#c9a554"
+blue             = "#7a8a9a"
+magenta          = "#a98a9a"
+cyan             = "#7a9a8a"
+
+selection        = "#2a2a24"
+border           = "#242421"
+border_active    = "#c9a554"
+urgent           = "#c97a6a"
+shadow           = "#000000"
+
+[ansi]
+# Earthy, desaturated terminal palette.
+black          = "#141312"
+red            = "#c97a6a"
+green          = "#8a9a6a"
+yellow         = "#c9a554"
+blue           = "#7a8a9a"
+magenta        = "#a98a9a"
+cyan           = "#7a9a8a"
+white          = "#c2c2b0"
+bright_black   = "#55554a"
+bright_red     = "#e09888"
+bright_green   = "#a8b07a"
+bright_yellow  = "#e0bd6a"
+bright_blue    = "#94a6b8"
+bright_magenta = "#c4a6b4"
+bright_cyan    = "#94b4a2"
+bright_white   = "#e0e0d0"
+
+[style]
+rounding = 5
+border_width = 2
+surface_opacity = 0.94
+scrim_opacity = 0.55
+shadow_opacity = 0.45
+blur = true
+blur_size = 8
+blur_passes = 2
