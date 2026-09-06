@@ -59,7 +59,7 @@ Most top-level components are Stow packages whose contents mirror paths below
 | `cliphist/` | Clipboard-history limits |
 | `noctalia/` | Retained Noctalia settings and plugin data |
 | `xdg/` | MIME defaults and a Kitty/Neovim desktop entry |
-| `Wallpapers/` | Tracked wallpaper assets; its current Stow layout needs special handling |
+| `wallpaper/` | Tracked wallpaper assets; stow into `~/Pictures/wallpapers` |
 | `tests/` | Browser native-tool fixture tests |
 
 ## Documentation

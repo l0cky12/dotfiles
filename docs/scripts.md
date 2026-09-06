@@ -8,6 +8,8 @@ These scripts are below `hypr/.config/hypr/scripts/`.
 | --- | --- | --- | --- |
 | `Dropterminal.sh` | `SUPER+SHIFT+Return` | toggles a Kitty scratchpad on a special workspace | `hyprctl`, Kitty |
 | `calculator.sh` | `SUPER+CTRL+Q`, `SUPER+SHIFT+C` | evaluates a `qalc` expression and copies the selected answer | Rofi, `qalc`, `wl-copy` |
+| `quick-search.sh` | `SUPER+A`, `SUPER+SHIFT+A` | starts in apps or an Omakub-style root menu and uses `Tab` to cycle windows, apps, and commands; `quick-search-everything.sh` supplies category navigation plus confirmed reboot and shutdown | Rofi, `systemctl` |
+| `docker-dev-env` | `SUPER+SHIFT+A` → Development → Docker environments | starts, stops, inspects, and tails logs for local MySQL, PostgreSQL, MariaDB, and Redis services | Docker Engine, Docker Compose, OpenSSL; optional notifications and Kitty |
 | `transcode-menu.sh` | `SUPER+CTRL+.` | fuzzy media/format/size picker; delegates conversion and clipboard work to `transcode` | Rofi, `file`, `transcode` |
 | `RofiEmoji.sh` | `SUPER+ALT+E` | fuzzy-searches emoji data with the active application-menu theme and copies the chosen glyph | Rofi, `wl-copy` |
 | `universal-clipboard.sh` | `SUPER+C/X/V` | detects terminal classes and sends the correct copy/cut/paste shortcut | `hyprctl` |
@@ -280,7 +282,7 @@ rest were removed — recoverable from Git history if ever wanted.
 ## AI launcher
 
 `ai/.local/bin/ai-agent` preserves the caller's working directory and launches
-Claude, Codex, or OpenCode. Selection precedence is an explicit `--agent`, then
+Claude, Codex, OpenCode, or T3 Code. Selection precedence is an explicit `--agent`, then
 `AI_AGENT_DEFAULT`, then the configured value in `AI_AGENT_CONFIG` (defaulting to
 `~/.config/ai-agent/config`). Shell aliases in `zsh/.zshrc` call this launcher.
 

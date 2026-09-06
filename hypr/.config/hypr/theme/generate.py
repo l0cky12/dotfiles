@@ -488,7 +488,7 @@ def cmd_index(args: argparse.Namespace) -> int:
     if missing:
         print(f"\n{len(missing)} theme(s) with no wallpaper asset: "
               + ", ".join(missing))
-        print(DIM("  drop an image at Wallpapers/theme/<name>.jpg to fill one in"))
+        print(DIM("  drop an image at wallpaper/theme/<name>.jpg to fill one in"))
     for err in index["errors"]:
         print(f" {RED('FAIL')} {err['slug']}: {err['error']}", file=sys.stderr)
     return 1 if index["errors"] else 0

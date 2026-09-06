@@ -5,12 +5,25 @@ import QtQuick
 
 Scope {
   id: bar
+  property bool barVisible: true
+  property bool barTransparent: false
+  property bool barAtBottom: false
 
   // Panels opened from a keybind rather than a click target the focused
   // monitor, so they land where the user is looking.
   function focusedScreen(): string {
     const f = Hyprland.focusedMonitor
     return f ? f.name : ""
+  }
+  IpcHandler {
+    target: "bar"
+    function toggle(): string {
+      bar.barVisible = !bar.barVisible
+      return JSON.stringify({visible: bar.barVisible})
+    }
+    function statusJson(): string {
+      return JSON.stringify({visible: bar.barVisible})
+    }
   }
 
   IpcHandler {
@@ -19,7 +32,14 @@ Scope {
       NetworkState.togglePanel(bar.focusedScreen())
     }
     function manage(): void {
-      NetworkState.openNmtui()
+      NetworkState.togglePanel(bar.focusedScreen())
+    }
+  }
+
+  IpcHandler {
+    target: "speedtest"
+    function toggle(): void {
+      SpeedTestState.togglePanel(bar.focusedScreen())
     }
   }
 
@@ -171,6 +191,15 @@ Scope {
   Variants {
     model: Quickshell.screens
 
+    SpeedTestOverlay {
+      required property var modelData
+      output: modelData
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+
     CavaEdgeVisualizer {
       required property var modelData
       output: modelData
@@ -194,9 +223,11 @@ Scope {
       id: panel
       required property var modelData
       screen: modelData
+      visible: bar.barVisible
 
       anchors {
-        top: true
+        top: !bar.barAtBottom
+        bottom: bar.barAtBottom
         left: true
         right: true
       }
@@ -212,7 +243,25 @@ Scope {
 
       Rectangle {
         anchors.fill: parent
-        color: Theme.bg
+        color: bar.barTransparent ? "transparent" : Theme.bg
+      }
+
+      // Empty bar space toggles transparency on double click. Dragging it
+      // down/up moves the bar between screen edges without stealing clicks
+      // from any widget layered above this area.
+      MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        property real pressedY: 0
+        onPressed: mouse => pressedY = mouse.y
+        onReleased: mouse => {
+          const distance = mouse.y - pressedY
+          if (distance > Theme.fs(12))
+            bar.barAtBottom = true
+          else if (distance < -Theme.fs(12))
+            bar.barAtBottom = false
+        }
+        onDoubleClicked: bar.barTransparent = !bar.barTransparent
       }
 
       // Arch button first, then workspaces.
@@ -227,32 +276,40 @@ Scope {
         WorkspacesModule { id: workspaces; barScale: panel.barScale }
       }
 
+      // The clock itself is the center anchor. Indicators grow left while
+      // keyboard/weather grow right, so changing either side never nudges it.
       Item {
-        id: barSummary
-        anchors.centerIn: parent
-        implicitWidth: summary.implicitWidth
-        implicitHeight: summary.implicitHeight
+        id: centerGroup
+        anchors.fill: parent
+
+        Text {
+          id: clockLabel
+          anchors.centerIn: parent
+          text: Qt.formatDateTime(ClockState.zonedDate(), "h:mm AP")
+          color: Theme.text
+          font.family: Theme.uiFamily
+          font.bold: true
+          font.pixelSize: Theme.fs(14 * panel.barScale)
+        }
 
         Row {
-          id: summary
-          spacing: Theme.fs(8 * panel.barScale)
+          anchors.right: clockLabel.left
+          anchors.rightMargin: Theme.fs(8 * panel.barScale)
+          anchors.verticalCenter: parent.verticalCenter
+          spacing: Theme.fs(3 * panel.barScale)
 
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: Qt.formatDateTime(ClockState.zonedDate(), "ddd, MMM d")
-            color: Theme.textDim
-            font.family: Theme.uiFamily
-            font.pixelSize: Theme.fs(12 * panel.barScale)
-          }
+          RecordIcon { barScale: panel.barScale }
+          ModeIndicators { screenName: panel.modelData.name; barScale: panel.barScale }
+          UpdatesIcon { barScale: panel.barScale }
+        }
 
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: Qt.formatDateTime(ClockState.zonedDate(), "h:mm AP")
-            color: Theme.text
-            font.family: Theme.uiFamily
-            font.bold: true
-            font.pixelSize: Theme.fs(14 * panel.barScale)
-          }
+        Row {
+          anchors.left: clockLabel.right
+          anchors.leftMargin: Theme.fs(8 * panel.barScale)
+          anchors.verticalCenter: parent.verticalCenter
+          spacing: Theme.fs(7 * panel.barScale)
+
+          KeyboardLayoutWidget { barScale: panel.barScale }
 
           Text {
             anchors.verticalCenter: parent.verticalCenter
@@ -274,20 +331,19 @@ Scope {
           }
         }
 
-        // Keep the existing media IPC panel available without showing media
-        // metadata in the bar itself.
+        // Clicking the centered clock keeps the dashboard behavior.
         MediaPanel {
-          anchorItem: barSummary
+          anchorItem: clockLabel
           ownerScreen: panel.modelData.name
         }
 
         DashboardPanel {
-          anchorItem: barSummary
+          anchorItem: clockLabel
           ownerScreen: panel.modelData.name
         }
 
         MouseArea {
-          anchors.fill: parent
+          anchors.fill: clockLabel
           hoverEnabled: true
           cursorShape: Qt.PointingHandCursor
           acceptedButtons: Qt.LeftButton
@@ -302,15 +358,14 @@ Scope {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.fs(2 * panel.barScale)
 
-        // Only rendered while a screen recording is running.
-        RecordIcon { barScale: panel.barScale }
-
-        // Amber while Windows is installing/booting, accent when RDP is ready.
+        SystemTrayWidget { parentWindow: panel; barScale: panel.barScale }
+        AgentIcon { barScale: panel.barScale }
         WindowsVmIcon { barScale: panel.barScale }
-
-        // Active temporary modes share one controller and open one focused-
-        // monitor panel; notification history remains owned by NotifyState.
-        ModeIndicators { screenName: panel.modelData.name; barScale: panel.barScale }
+        ClipboardIcon { screenName: panel.modelData.name; barScale: panel.barScale }
+        BluetoothIcon { screenName: panel.modelData.name; barScale: panel.barScale }
+        NetworkIcon { screenName: panel.modelData.name; barScale: panel.barScale }
+        AudioIcon { screenName: panel.modelData.name; barScale: panel.barScale }
+        DisplayIcon { screenName: panel.modelData.name; barScale: panel.barScale }
 
         IconButton {
           anchors.verticalCenter: parent.verticalCenter

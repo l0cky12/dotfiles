@@ -1,0 +1,291 @@
+#!/usr/bin/env bash
+# lmenu-reminder — countdown reminders that fire a desktop notification.
+#
+#   lmenu-reminder set [DURATION NAME...]     schedule one (prompts if no args)
+#   lmenu-reminder list                       show what is pending
+#   lmenu-reminder clear                      cancel every pending reminder
+#   lmenu-reminder count                      how many are pending
+#   lmenu-reminder menu                       Set / Show / Clear picker
+#   lmenu-reminder fire NAME                  post the notification (timers use this)
+#
+# DURATION is 45s, 10m, 2h, 1h30m, or a bare number meaning minutes.
+#
+# Each reminder is a transient systemd user timer, so they survive this script
+# exiting and are cancelled by systemd rather than by tracking pids. Two pieces
+# of state ride along with the unit itself, which is why no state file is
+# needed: the unit name carries the due time, and the unit description carries
+# the message.
+set -euo pipefail
+
+unit_prefix=lmenu-reminder
+systemctl_command=${SYSTEMCTL:-systemctl}
+systemd_run_command=${SYSTEMD_RUN:-systemd-run}
+rofi_command=${ROFI:-rofi}
+config_home=${XDG_CONFIG_HOME:-$HOME/.config}
+dry_run=0
+
+usage() {
+  printf 'usage: %s [--dry-run] {set [DURATION MESSAGE...]|list|clear|count|menu}\n' \
+    "${0##*/}" >&2
+  exit 2
+}
+
+die() {
+  printf 'lmenu-reminder: %s\n' "$*" >&2
+  exit 1
+}
+
+run() {
+  if ((dry_run)); then
+    printf '+ '
+    printf '%q ' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+# Post a desktop notification.
+#
+# notify-send is tried first, but it is not dependable: a libnotify upgrade can
+# leave the binary with an undefined symbol, in which case it dies with 127
+# before sending anything. A reminder that cannot notify is useless, so fall
+# back to speaking to the notification daemon over D-Bus directly.
+notify_user() {
+  local title=$1 body=$2
+  if command -v notify-send >/dev/null 2>&1 &&
+    notify-send --app-name=Reminder "$title" "$body" >/dev/null 2>&1; then
+    return 0
+  fi
+  command -v gdbus >/dev/null 2>&1 || return 0
+  gdbus call --session \
+    --dest org.freedesktop.Notifications \
+    --object-path /org/freedesktop/Notifications \
+    --method org.freedesktop.Notifications.Notify \
+    "Reminder" 0 "" "$title" "$body" "[]" "{}" 8000 >/dev/null 2>&1 || true
+}
+
+# Where this script lives, for the timer to call back into. Prefer the stowed
+# path so a scheduled reminder does not depend on how it was invoked.
+self_path() {
+  local stowed="$HOME/.local/bin/${0##*/}"
+  if [[ -x $stowed ]]; then
+    printf '%s' "$stowed"
+  else
+    printf '%s/%s' "$(cd -- "$(dirname -- "$0")" && pwd)" "${0##*/}"
+  fi
+}
+
+theme_file() {
+  local theme
+  for theme in "$config_home/rofi/lmenu.rasi" \
+               "$config_home/rofi/current-theme.rasi" \
+               "$config_home/rofi/comet-glass.rasi"; do
+    [[ -f $theme ]] && { printf '%s' "$theme"; return; }
+  done
+}
+
+# "45s", "10m", "2h", "1h30m", or a bare number of minutes, to seconds.
+parse_duration() {
+  local input=$1 total=0 rest num unit
+  [[ -n $input ]] || return 1
+  if [[ $input =~ ^[0-9]+$ ]]; then
+    ((input > 0)) || return 1
+    printf '%s' $((input * 60))
+    return 0
+  fi
+  rest=${input,,}
+  while [[ $rest =~ ^([0-9]+)([smhd])(.*)$ ]]; do
+    num=${BASH_REMATCH[1]}
+    unit=${BASH_REMATCH[2]}
+    rest=${BASH_REMATCH[3]}
+    case "$unit" in
+      s) total=$((total + num)) ;;
+      m) total=$((total + num * 60)) ;;
+      h) total=$((total + num * 3600)) ;;
+      d) total=$((total + num * 86400)) ;;
+    esac
+  done
+  [[ -z $rest ]] || return 1
+  ((total > 0)) || return 1
+  printf '%s' "$total"
+}
+
+# Seconds to a short human string: "2h 5m", "9m", "30s".
+humanise() {
+  local seconds=$1 hours minutes
+  ((seconds < 0)) && seconds=0
+  if ((seconds < 60)); then
+    printf '%ds' "$seconds"
+    return
+  fi
+  hours=$((seconds / 3600))
+  minutes=$(((seconds % 3600) / 60))
+  if ((hours > 0)); then
+    printf '%dh %dm' "$hours" "$minutes"
+  else
+    printf '%dm' "$minutes"
+  fi
+}
+
+pending_units() {
+  "$systemctl_command" --user list-units --no-legend --all "$unit_prefix-*.timer" 2>/dev/null |
+    awk '{ print $1 }' | grep -E "^$unit_prefix-[0-9]+-[a-z0-9]+\.timer$" || true
+}
+
+# One "<seconds left>\t<message>" line per pending reminder, soonest first.
+pending_rows() {
+  local unit epoch now message
+  now=$(date +%s)
+  while read -r unit; do
+    [[ -n $unit ]] || continue
+    epoch=${unit#"$unit_prefix"-}
+    epoch=${epoch%%-*}
+    [[ $epoch =~ ^[0-9]+$ ]] || continue
+    message=$("$systemctl_command" --user show "$unit" -p Description --value 2>/dev/null)
+    [[ -n $message ]] || message="Reminder"
+    printf '%s\t%s\n' "$((epoch - now))" "$message"
+  done < <(pending_units) | sort -n
+}
+
+cmd_count() {
+  pending_rows | grep -c . || true
+}
+
+# Ask for one line of free text. Rofi is given an empty list, so whatever is
+# typed comes back as the custom entry.
+#
+# The "Search…" placeholder the shared theme uses is wrong here - nothing is
+# being searched - so it is cleared, leaving the prompt widget to carry the
+# field name.
+prompt_line() {
+  local prompt=$1 hint=$2
+  printf '' | "$rofi_command" -dmenu -p "$prompt" -lines 0 \
+    -mesg "$hint" -theme "$(theme_file)" \
+    -theme-str 'entry { placeholder: ""; }'
+}
+
+trim() {
+  local value=$1
+  value=${value#"${value%%[![:space:]]*}"}
+  printf '%s' "${value%"${value##*[![:space:]]}"}"
+}
+
+cmd_set() {
+  local duration name seconds epoch unit interactive=0
+  if (($#)); then
+    # Command-line form stays one line: "<duration> <name...>".
+    duration=$(trim "$1")
+    shift || true
+    name=$(trim "$*")
+  else
+    interactive=1
+    # Interactive form asks separately, so the name is a field of its own
+    # rather than something to remember to append to the duration.
+    # Capture rofi's status directly. Wrapping the call in trim "$(...)" would
+    # mask a cancel, and cancelling a prompt would then quietly schedule a
+    # reminder instead of aborting.
+    local raw
+    raw=$(prompt_line "Name" "Shown when it goes off, e.g. Stand up and stretch") || exit 0
+    name=$(trim "$raw")
+    raw=$(prompt_line "Time" "45s, 10m, 2h, 1h30m — a bare number means minutes") || exit 0
+    duration=$(trim "$raw")
+  fi
+  # An empty duration means the prompt was dismissed, which is not an error -
+  # but asking for one on the command line with no duration is.
+  if [[ -z $duration ]]; then
+    ((interactive)) && exit 0
+    die 'a reminder needs a duration, e.g. 10m'
+  fi
+
+  if ! seconds=$(parse_duration "$duration"); then
+    notify_user "Reminder" "Could not read a duration from \"$duration\". Try 10m, 45s or 1h30m."
+    die "could not parse duration: $duration"
+  fi
+  [[ -n $name ]] || name="Reminder"
+
+  epoch=$(($(date +%s) + seconds))
+  # A pipe-free suffix on purpose: `tr </dev/urandom | head -c4` makes head
+  # close the pipe, tr dies of SIGPIPE, and pipefail turns that into a failure.
+  unit=$(printf '%s-%s-%04x' "$unit_prefix" "$epoch" $((RANDOM % 65536)))
+
+  run "$systemd_run_command" --user --quiet \
+    --unit="$unit" \
+    --description="$name" \
+    --on-active="$seconds" \
+    --timer-property=AccuracySec=1s \
+    --timer-property=RemainAfterElapse=no \
+    -- "$(self_path)" fire "$name" ||
+    die 'systemd refused to schedule the reminder'
+
+  ((dry_run)) || notify_user "Reminder set" "In $(humanise "$seconds"): $name"
+}
+
+cmd_list() {
+  local rows count
+  rows=$(pending_rows)
+  count=$(printf '%s' "$rows" | grep -c . || true)
+  if ((count == 0)); then
+    notify_user "Reminders" "Nothing pending."
+    return 0
+  fi
+  # The seconds column is only for sorting; show it humanised.
+  local display
+  display=$(printf '%s\n' "$rows" | while IFS=$'\t' read -r left message; do
+    [[ -n $message ]] || continue
+    printf '󰀠  in %s — %s\n' "$(humanise "$left")" "$message"
+  done)
+  if ((dry_run)); then
+    printf '%s\n' "$display"
+    return 0
+  fi
+  printf '%s\n' "$display" | "$rofi_command" -dmenu -i -no-custom \
+    -p "Reminders" -theme "$(theme_file)" >/dev/null || true
+}
+
+cmd_clear() {
+  local units count
+  units=$(pending_units)
+  count=$(printf '%s' "$units" | grep -c . || true)
+  if ((count == 0)); then
+    notify_user "Reminders" "Nothing to clear."
+    return 0
+  fi
+  # shellcheck disable=SC2086
+  run "$systemctl_command" --user stop $units
+  ((dry_run)) || notify_user "Reminders cleared" \
+    "$count reminder$([[ $count == 1 ]] || printf s) cancelled."
+}
+
+cmd_menu() {
+  local choice count
+  count=$(cmd_count)
+  choice=$(printf '%s\n' \
+    "󰃭  Set a reminder" \
+    "󰋚  Show reminders ($count)" \
+    "󰅚  Clear all reminders" |
+    "$rofi_command" -dmenu -i -no-custom -p "Reminder" -theme "$(theme_file)") || exit 0
+  case "$choice" in
+    *"Set a reminder") cmd_set ;;
+    *"Show reminders"*) cmd_list ;;
+    *"Clear all reminders") cmd_clear ;;
+  esac
+}
+
+while (($#)); do
+  case "$1" in
+    --dry-run) dry_run=1; shift ;;
+    -h|--help) usage ;;
+    *) break ;;
+  esac
+done
+
+case "${1:-menu}" in
+  fire)  shift || true; notify_user "${*:-Reminder}" "Reminder" ;;
+  set)   shift || true; cmd_set "$@" ;;
+  list)  cmd_list ;;
+  clear) cmd_clear ;;
+  count) cmd_count ;;
+  menu)  cmd_menu ;;
+  *)     usage ;;
+esac

@@ -1,0 +1,107 @@
+/**
+ * Compact vertical launcher inspired by Omakub's root menu.
+ * Palette tokens come from the generated active desktop theme.
+ */
+@theme "~/.config/rofi/current-theme.rasi"
+
+configuration {
+    show-icons: true;
+    hover-select: true;
+    me-select-entry: "";
+    me-accept-entry: "MousePrimary";
+}
+
+window {
+    transparency: "real";
+    location: center;
+    anchor: center;
+    width: 380px;
+    height: 72%;
+    padding: 0px;
+    border: 2px;
+    border-radius: 0px;
+    border-color: @window-border;
+    background-color: @bg0;
+}
+
+mainbox {
+    spacing: 0px;
+    background-color: transparent;
+    children: [ "inputbar", "listview" ];
+}
+
+inputbar {
+    spacing: 10px;
+    padding: 18px 22px;
+    border: 0px 0px 1px 0px;
+    border-radius: 0px;
+    border-color: @border-col;
+    background-color: transparent;
+    children: [ "textbox-prompt-colon", "entry" ];
+}
+
+textbox-prompt-colon {
+    expand: false;
+    str: "";
+    background-color: transparent;
+}
+
+entry {
+    placeholder: "Go...";
+    placeholder-color: @fg2;
+    text-color: @fg0;
+    background-color: transparent;
+    cursor: text;
+}
+
+listview {
+    columns: 1;
+    lines: 10;
+    cycle: true;
+    dynamic: true;
+    fixed-height: true;
+    layout: vertical;
+    scrollbar: false;
+    spacing: 4px;
+    padding: 10px 20px 18px 20px;
+    background-color: transparent;
+}
+
+element {
+    spacing: 14px;
+    padding: 13px 18px;
+    border: 0px;
+    border-radius: 0px;
+    background-color: transparent;
+    text-color: @fg1;
+    cursor: pointer;
+}
+
+element normal.normal,
+element alternate.normal {
+    background-color: transparent;
+    text-color: @fg1;
+}
+
+element selected.normal,
+element selected.active,
+element selected.urgent {
+    background-color: @selected-bg;
+    text-color: @accent;
+}
+
+element-icon {
+    size: 20px;
+    background-color: transparent;
+    vertical-align: 0.5;
+}
+
+element-text {
+    background-color: transparent;
+    text-color: inherit;
+    vertical-align: 0.5;
+}
+
+mode-switcher {
+    enabled: false;
+}

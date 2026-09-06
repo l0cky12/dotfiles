@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+# lmenu — data-driven rofi menu over ~/.config/lmenu/menu.jsonc.
+#
+#   lmenu                  toggle the root menu
+#   lmenu toggle [route]   open at a route, or close it if it is already shown
+#   lmenu summon [route]   always open at a route
+#   lmenu close            close the running instance
+#   lmenu refresh          discard cached state so the next open re-runs guards
+#   lmenu --dry-run ROUTE  print the rows a route would show, without rofi
+#   lmenu --dry-run-display ROUTE
+#                          print the exact lines rofi would be given
+#   lmenu parent ROUTE     print the route one level up
+#
+# Inside the menu, Backspace goes back up a level and closes lmenu at the root.
+# Shift+Backspace and Ctrl+H still delete a character in the search box.
+#
+# A route is a dotted id ("style.theme") or an alias ("themes"). Guards run
+# batched, one bash process per render, in lmenu-parse.py.
+set -euo pipefail
+
+config_home=${XDG_CONFIG_HOME:-$HOME/.config}
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/lmenu
+parser=${LMENU_PARSER:-$config_home/lmenu/lmenu-parse.py}
+rofi_command=${ROFI:-rofi}
+pid_file=$state_dir/instance.pid
+route_file=$state_dir/route
+
+# Fall back to the repo layout so lmenu works before the first `stow`.
+if [[ ! -f $parser ]]; then
+  script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  parser=$script_dir/../../.config/lmenu/lmenu-parse.py
+fi
+
+usage() {
+  printf 'usage: %s [--dry-run ROUTE | toggle [ROUTE] | summon [ROUTE] | close | refresh]\n' \
+    "${0##*/}" >&2
+  exit 2
+}
+
+theme_file() {
+  local theme
+  for theme in "$config_home/rofi/lmenu.rasi" \
+               "$config_home/rofi/current-theme.rasi" \
+               "$config_home/rofi/comet-glass.rasi"; do
+    if [[ -f $theme ]]; then
+      printf '%s' "$theme"
+      return
+    fi
+  done
+}
+
+parse() {
+  python3 "$parser" "$@"
+}
+
+# Split one "icon<TAB>label<TAB>suffix<TAB>id" row into the globals row_icon,
+# row_label, row_suffix and row_id.
+#
+# This deliberately avoids `IFS=$'\t' read`: tab is an IFS whitespace
+# character, so bash collapses a run of tabs into a single delimiter and an
+# empty suffix field would silently shift the id one column left.
+split_row() {
+  local rest=$1
+  row_icon=${rest%%$'\t'*}; rest=${rest#*$'\t'}
+  row_label=${rest%%$'\t'*}; rest=${rest#*$'\t'}
+  row_suffix=${rest%%$'\t'*}
+  row_id=${rest#*$'\t'}
+}
+
+# The exact string rofi shows for a row. Suffixes (a chevron for rows that
+# descend, a tick for rows reporting state) are padded into a column of their
+# own, which only lines up because the launcher font is monospace - the same
+# approach quick-search-everything.sh uses for its chevrons.
+row_display() {
+  local pad=${1:-0}
+  if [[ -n $row_suffix ]]; then
+    printf '%s%-*s  %s' "${row_icon:+$row_icon  }" "$pad" "$row_label" "$row_suffix"
+  else
+    printf '%s%s' "${row_icon:+$row_icon  }" "$row_label"
+  fi
+}
+
+# Width of the widest label in a view, so the suffix column clears every row.
+label_width() {
+  local line width=0 row_icon row_label row_suffix row_id
+  while IFS= read -r line; do
+    [[ -z $line || $line == '#urgent:'* ]] && continue
+    split_row "$line"
+    ((${#row_label} > width)) && width=${#row_label}
+  done <<<"$1"
+  printf '%s' "$width"
+}
+
+running_pid() {
+  local pid
+  [[ -f $pid_file ]] || return 1
+  pid=$(<"$pid_file")
+  [[ $pid =~ ^[0-9]+$ ]] || return 1
+  kill -0 "$pid" 2>/dev/null || return 1
+  printf '%s' "$pid"
+}
+
+close_menu() {
+  local pid
+  if pid=$(running_pid); then
+    kill "$pid" 2>/dev/null || true
+  fi
+  rm -f -- "$pid_file" "$route_file"
+}
+
+# The route one level up. A route with no dot is a top-level section, whose
+# parent is the root; the root itself has no parent and reports as empty.
+parent_route() {
+  local route=$1
+  if [[ $route == *.* ]]; then
+    printf '%s' "${route%.*}"
+  else
+    printf ''
+  fi
+}
+
+# Detach a leaf action so the menu can exit without owning the process.
+launch() {
+  setsid bash -c "$1" >/dev/null 2>&1 &
+}
+
+# Result of the last show(). Globals rather than stdout because navigate()
+# needs both the chosen id and how rofi was dismissed, and a command
+# substitution would run show() in a subshell where the state is lost.
+sel_state=cancel
+sel_id=
+
+# One rofi round. Sets sel_state to ok, back or cancel, and sel_id when ok.
+show() {
+  local route=$1 rows urgent=() lines=() display=() choice index theme rc=0
+  sel_state=cancel
+  sel_id=
+  rows=$(parse rows "$route") || return 1
+  theme=$(theme_file)
+
+  local line
+  while IFS= read -r line; do
+    if [[ $line == '#urgent:'* ]]; then
+      IFS=, read -r -a urgent <<<"${line#\#urgent:}"
+      continue
+    fi
+    lines+=("$line")
+  done <<<"$rows"
+
+  ((${#lines[@]})) || return 1
+
+  local row_icon row_label row_suffix row_id pad
+  pad=$(label_width "$rows")
+  for line in "${lines[@]}"; do
+    split_row "$line"
+    display+=("$(row_display "$pad")")
+  done
+
+  # Backspace walks back up the tree, so it has to be taken off character
+  # deletion; Shift+Backspace and Ctrl+H still delete, as rofi's own defaults
+  # already list all three. custom-1 makes rofi exit with status 10.
+  local -a rofi_args=(
+    -dmenu -i -no-custom -p "$(parse title "$route")"
+    -format i -theme "$theme"
+    -kb-custom-1 "BackSpace"
+    -kb-remove-char-back "Shift+BackSpace,Control+h"
+  )
+  local joined
+  joined=$(IFS=,; printf '%s' "${urgent[*]}")
+  [[ -n $joined ]] && rofi_args+=(-u "$joined")
+
+  choice=$(printf '%s\n' "${display[@]}" | "$rofi_command" "${rofi_args[@]}") || rc=$?
+  case $rc in
+    0)  ;;
+    10) sel_state=back; return 0 ;;
+    *)  sel_state=cancel; return 0 ;;
+  esac
+  [[ $choice =~ ^[0-9]+$ ]] || return 0
+  index=$choice
+  split_row "${lines[$index]}"
+  sel_state=ok
+  sel_id=$row_id
+}
+
+# Walk the tree until a leaf runs or the user dismisses rofi.
+navigate() {
+  local route=$1 kind payload resolved
+  while true; do
+    printf '%s' "$route" >"$route_file"
+    show "$route" || break
+    case $sel_state in
+      back)
+        # Backspace on the root menu closes lmenu rather than going nowhere.
+        [[ -n $route ]] || break
+        route=$(parent_route "$route")
+        continue
+        ;;
+      ok) ;;
+      *) break ;;
+    esac
+    resolved=$(parse resolve "$route" "$sel_id") || break
+    IFS=$'\t' read -r kind payload <<<"$resolved"
+    case "$kind" in
+      leaf)
+        launch "$payload"
+        break
+        ;;
+      link)
+        route=$(parse route "$payload")
+        ;;
+      submenu|provider)
+        route=$sel_id
+        ;;
+      disabled)
+        : # dimmed rows are not selectable; redraw the same view
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
+  rm -f -- "$pid_file" "$route_file"
+}
+
+# Print the rows exactly as rofi would receive them, for tests and eyeballing.
+dry_run_display() {
+  local route rows line
+  route=$(parse route "${1:-}")
+  rows=$(parse rows "$route") || return 1
+  local row_icon row_label row_suffix row_id pad
+  pad=$(label_width "$rows")
+  while IFS= read -r line; do
+    [[ $line == '#urgent:'* ]] && continue
+    split_row "$line"
+    printf '%s\n' "$(row_display "$pad")"
+  done <<<"$rows"
+}
+
+open_menu() {
+  local route
+  route=$(parse route "${1:-}")
+  mkdir -p -- "$state_dir"
+  close_menu
+  printf '%s' "$$" >"$pid_file"
+  navigate "$route"
+}
+
+toggle_menu() {
+  local route current
+  route=$(parse route "${1:-}")
+  if current=$(cat "$route_file" 2>/dev/null) && running_pid >/dev/null; then
+    if [[ $current == "$route" ]]; then
+      close_menu
+      return 0
+    fi
+  fi
+  open_menu "$route"
+}
+
+case "${1:-toggle}" in
+  --dry-run) shift; parse --dry-run "${1:-}" ;;
+  --dry-run-display) shift; dry_run_display "${1:-}" ;;
+  parent)    shift || true; parent_route "$(parse route "${1:-}")"; printf '\n' ;;
+  toggle)    shift || true; toggle_menu "${1:-}" ;;
+  summon)    shift || true; open_menu "${1:-}" ;;
+  close)     close_menu ;;
+  refresh)   rm -f -- "$route_file" ;;
+  -h|--help) usage ;;
+  *)         toggle_menu "$1" ;;
+esac

@@ -15,3 +15,7 @@ fi
 if ! whence -w -- ai-opencode >/dev/null 2>&1; then
   alias ai-opencode='ai-agent --agent opencode'
 fi
+
+if ! whence -w -- ai-t3code >/dev/null 2>&1; then
+  alias ai-t3code='ai-agent --agent t3code'
+fi

@@ -36,7 +36,7 @@ contents into `~`.
 
 ```bash
 stow ai browser cliphist fastfetch hypr hyprlock kitty modes noctalia quickshell \
-     rofi screensaver security swaync systemd windows Wallpapers wofi xdg zsh
+     rofi screensaver security swaync systemd windows wallpaper wofi xdg zsh
 ```
 
 **Or deploy packages individually:**
@@ -123,7 +123,7 @@ before installing Hyprlock PAM. See [installation and recovery](docs/installatio
 [installation](docs/installation.md#optional-packages) before deploying):
 
 ```bash
-stow Wallpapers
+stow --target="$HOME/Pictures/wallpapers" wallpaper
 ```
 
 **Remove a package:**
@@ -142,14 +142,14 @@ stow --simulate hypr
 
 ## AI Agent Launcher
 
-The standalone `ai` package provides one launcher for Claude Code, Codex, and
-OpenCode. It does not install or authenticate any agent and has no Omarchy
+The standalone `ai` package provides one launcher for Claude Code, Codex,
+OpenCode, and T3 Code. It does not install or authenticate any agent and has no Omarchy
 dependency.
 
 The default is configured in `ai/.config/ai-agent/config`:
 
 ```text
-default_agent=codex
+default_agent=t3code
 ```
 
 Selection priority is `--agent`, then `AI_AGENT_DEFAULT`, then the config file.
@@ -163,6 +163,7 @@ ai                         # configured default
 ai-claude                  # Claude Code directly
 ai-codex                   # Codex directly
 ai-opencode                # OpenCode directly
+ai-t3code                  # T3 Code directly
 ai-agent --agent claude    # one-invocation override
 ai-agent --agent codex -- --help  # pass --help to the selected agent
 ```
@@ -171,8 +172,8 @@ The aliases are only defined when their names are otherwise unused. The
 launcher preserves the current working directory and passes agent arguments
 through unchanged.
 
-`SUPER + I` opens the configured default in the terminal defined by Hyprland's
-`terminal` value from `conf/variables.lua`. Change or remove that binding in
+`SUPER + I` opens the configured default. T3 Code is assigned to workspace 4
+by its `t3code` window class. Change or remove that binding in
 `hypr/.config/hypr/conf/keybindings.lua` to alter or disable it. It is not active
 until the relevant packages are stowed and Hyprland is reloaded by the user.
 
@@ -216,7 +217,6 @@ This repo includes a **semantic, switchable theme system** with **23 themes**.
 | Open with | What you get |
 |---|---|
 | **`SUPER + CTRL + SHIFT + SPACE`** | Fullscreen cover-flow picker — one large preview, skewed slices either side |
-| **`SUPER + T`** | The same visual picker, on an easier chord |
 | **`SUPER + CTRL + D`** → THEME | The Display panel's launcher row, opens the same visual picker |
 | `theme set <slug>` | The CLI, and what everything above ends up calling |
 
@@ -225,8 +225,8 @@ This repo includes a **semantic, switchable theme system** with **23 themes**.
 1. **`hypr/.config/hypr/themes/<slug>/colors.toml`** — One palette per theme. This is the single source of truth: semantic colour roles (`background`, `surface`, `accent`, `red`, …), a complete 16-colour ANSI terminal palette, and optional `[style]` overrides (rounding, border width, opacity, blur).
 2. **`hypr/.config/hypr/theme/generate.py`** (+ `themelib.py`) — Validates the palette (including WCAG AA contrast checks), renders every application's config from `hypr/.config/hypr/theme/templates/*`, and installs it atomically. A broken theme leaves the previous one running.
 3. **`quickshell/.config/quickshell/ThemePicker.qml`** — the fullscreen cover-flow
-   picker, reached from `Super+T`, `Super+Ctrl+Shift+Space`, or the Display
-   panel's THEME row. Every entry point is only a front-end: they all hand a slug
+   picker, reached from `Super+Ctrl+Shift+Space` or the Display panel's THEME
+   row. Every entry point is only a front-end: they both hand a slug
    to `theme set`, which stays the single source of truth for what is active.
 
 ### `theme` CLI
@@ -306,7 +306,7 @@ Each tile is drawn in QML from the theme's palette — a simulated bar, a simula
 terminal showing the semantic colours, and the theme's wallpaper behind it if one
 exists. No thumbnails are generated or cached, and no processes are spawned per
 tile. A theme with no wallpaper (12 of the 23) falls back to a palette gradient;
-drop an image at `Wallpapers/theme/<name>.jpg` and it starts being used with no
+drop an image at `wallpaper/theme/<name>.jpg` and it starts being used with no
 config change.
 
 ### What Changes Per Theme
@@ -655,6 +655,4 @@ Install AUR packages with your preferred helper (e.g. `paru` or `yay`).
 
 ## Wallpaper Licensing
 
-Wallpapers in `Wallpapers/theme/` are sourced from [Unsplash](https://unsplash.com/license) — free for commercial and non-commercial use (Unsplash License). Each is a unique image selected to match its theme's color palette.
-
-Wallpapers in `Wallpapers/static/` and `Wallpapers/dynamic/` are sourced from various free wallpaper communities. If you are the copyright holder of any image and would like it removed, please open an issue.
+Wallpapers in `wallpaper/theme/` are sourced from [Unsplash](https://unsplash.com/license) — free for commercial and non-commercial use (Unsplash License). Each is a unique image selected to match its theme's color palette.

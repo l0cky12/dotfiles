@@ -21,7 +21,8 @@ Workspace buttons switch to their numbered workspace. Other interactions include
 - Arch button: dashboard.
 - Media: media panel.
 - Display: display panel; wheel adjusts DDC/CI brightness.
-- Network: panel, or `kitty -e nmtui` for the Wi-Fi path.
+- Network: themed NetworkManager panel; secured Wi-Fi connections use an
+  interactive `nmtui` prompt so the password never crosses the panel boundary.
 - Bluetooth: enable/disable, scan, pair, connect, disconnect, trust, and forget
   devices. The list is keyboard navigable (arrows/Home/End/PageUp/PageDown to
   select, Enter for the primary action, `CTRL+T` trust, `CTRL+Delete` forget,
@@ -39,7 +40,7 @@ Workspace buttons switch to their numbered workspace. Other interactions include
 
 | Panel | Implementation / external interfaces |
 | --- | --- |
-| Network | `nmcli`, `ping`, IP/gateway/DNS queries; `pkexec` for DNS changes |
+| Network | `network-control` over NetworkManager `nmcli`; Wi-Fi scan/connect, profile DNS/IPv4 changes, asynchronous curl speed test, and runtime-only `qrencode` Wi-Fi sharing |
 | Bluetooth | Hyprland script backend over `bluetoothctl` |
 | Audio | Quickshell PipeWire API |
 | Media | Quickshell MPRIS; recent/pinned players; lyrics from `lrclib.net` |
@@ -101,7 +102,12 @@ terminal applications.
 
 ## Application launchers
 
-Rofi is active. `SUPER+A` opens `drun` using generated
+Rofi is active. `SUPER+A` starts in the installed-applications view, while
+`SUPER+SHIFT+A` opens a root menu for windows, applications, commands, reboot,
+shutdown, and local development services. Its Development section can start or
+stop MySQL, PostgreSQL, MariaDB, and Redis through Docker Compose. `Tab` and
+`Shift+Tab` cycle the searchable modes, and
+`SUPER+ALT+A` opens the separate web-app manager. Both Rofi views use generated
 `rofi/.config/rofi/current-theme.rasi`, which imports the main Comet Glass layout
 and current palette. The launcher uses Papirus icons, Nerd Font glyphs, fuzzy
 matching, an approximately 42% width, and eight visible rows.
@@ -163,8 +169,8 @@ Search order is intentional:
 The backend caches previews, downloads the full selected image, validates it with
 ImageMagick, restarts Hyprpaper, and applies the image in cover mode. By default,
 it reads `~/Pictures/wallpapers`. Standard Stow deployment of the tracked
-`Wallpapers/` package places its contents directly below `$HOME`, so it is not
-the picker's default directory. Set `HYPR_WALLPAPER_DIR` to use another location.
+`wallpaper/` package deploys its contents directly into `~/Pictures/wallpapers`,
+which is the picker's default directory.
 
 Older `WallpaperSwitch.sh` and `WallpaperEffects.sh` scripts are retained but are
 not used by the current binding.

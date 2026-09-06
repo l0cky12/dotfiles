@@ -367,7 +367,7 @@ def repo_root() -> Path:
     """The dotfiles checkout this generator lives in.
 
     Derived from this file's own resolved location rather than hardcoded, so a
-    clone to a different directory still finds its own Wallpapers/.
+    clone to a different directory still finds its own wallpaper/ package.
     ~/.config/hypr is a stow symlink into the repo, and .resolve() follows it.
     """
     return Path(__file__).resolve().parents[4]
@@ -378,10 +378,8 @@ def wallpaper_roots() -> list[Path]:
     home = Path.home()
     root = repo_root()
     return [
-        home / "Wallpapers" / "theme",
-        home / "Wallpapers" / "static",
-        root / "Wallpapers" / "theme",
-        root / "Wallpapers" / "static",
+        home / "Pictures" / "wallpapers" / "theme",
+        root / "wallpaper" / "theme",
     ]
 
 

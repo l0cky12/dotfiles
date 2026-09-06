@@ -1,0 +1,39 @@
+// lmenu user extensions.
+//
+// This file overlays ~/.config/lmenu/menu.jsonc. Merging happens per key:
+//
+//   * An entry whose id already exists replaces only the fields it declares
+//     and keeps its original position in the menu.
+//   * An entry with a new id is appended. Its parent is inferred from the
+//     dotted id, so "trigger.mine" lands inside Trigger with no other wiring.
+//
+// A syntax error here is not fatal: lmenu warns on stderr and falls back to
+// the shipped menu.
+//
+// Uncomment to retitle a shipped row without touching anything else about it:
+//
+//   { "id": "system.lock", "label": "Lock the screen" },
+//
+// Uncomment to add a row of your own:
+//
+//   {
+//     "id": "trigger.notes",
+//     "icon": "󰠮",
+//     "label": "Notes",
+//     "aliases": ["obsidian", "journal"],
+//     "action": "obsidian"
+//   },
+//
+// Guards are bash conditions. "when" hides the row, "checked" ticks it, and
+// "disabled" dims and ticks it while making it unselectable:
+//
+//   {
+//     "id": "trigger.vpn",
+//     "icon": "󰖂",
+//     "label": "VPN",
+//     "when": "command -v tailscale >/dev/null",
+//     "checked": "tailscale status >/dev/null 2>&1",
+//     "action": "tailscale up"
+//   },
+[
+]

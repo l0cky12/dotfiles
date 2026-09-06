@@ -179,7 +179,7 @@ honor feature-specific variables:
 | `HYPR_WALLPAPER_DIR` | wallpaper directory; defaults to `~/Pictures/wallpapers` |
 | `HYPR_WALLPAPER_RUNTIME_DIR` | wallpaper search/download runtime data |
 | `CHROMIUM_YTDLP_DIR` | browser video destination; `~/Videos` |
-| `AI_AGENT_DEFAULT`, `AI_AGENT_CONFIG` | default AI CLI and config path |
+| `AI_AGENT_DEFAULT`, `AI_AGENT_CONFIG` | default AI CLI (including T3 Code) and config path |
 | `XDG_RUNTIME_DIR` | transient locks, sockets, and monitor/capture state |
 | `XDG_STATE_HOME` | notification state, with `~/.local/state` fallback |
 | `DESKTOP_MODE_CONFIG`, `DESKTOP_MODE_RUNTIME_DIR` | mode configuration and fixture/runtime overrides |

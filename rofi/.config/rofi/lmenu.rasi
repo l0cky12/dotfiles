@@ -1,0 +1,69 @@
+/**
+ * lmenu overlay — a narrow vertical list of icon, label and chevron.
+ *
+ * The active generated theme supplies the palette, so this file only overrides
+ * layout. Rows are built by bin/lmenu as plain text: "<icon>  <label>  <›|✓>",
+ * with the suffix padded into a column of its own. That padding only lines up
+ * because the launcher font is monospace, so keep the font here monospace too.
+ */
+
+@theme "~/.config/rofi/current-theme.rasi"
+
+configuration {
+    show-icons: false;
+}
+
+* {
+    font: "JetBrainsMono Nerd Font 13";
+}
+
+window {
+    width: 380px;
+}
+
+mainbox {
+    children: [ "inputbar", "listview" ];
+}
+
+/* The prompt widget is what renders rofi's -p text, so lmenu can name the view
+ * you are in ("Capture", "System") and lmenu-reminder can label its fields
+ * ("Name", "Time"). Leave it out and every prompt silently reads "Search…". */
+inputbar {
+    children: [ "prompt", "entry" ];
+    spacing:  10px;
+}
+
+prompt {
+    text-color:       @accent;
+    background-color: transparent;
+    vertical-align:   0.5;
+}
+
+entry {
+    placeholder: "Search…";
+}
+
+listview {
+    columns:      1;
+    lines:        10;
+    dynamic:      true;
+    fixed-height: false;
+    scrollbar:    false;
+    spacing:      4px;
+}
+
+/* Full-width rows: the highlight should span the list, as in a menu bar. */
+element {
+    orientation:   horizontal;
+    children:      [ "element-text" ];
+    padding:       11px 14px;
+    spacing:       0px;
+    border-radius: @radius-row;
+}
+
+element-text {
+    horizontal-align: 0.0;
+    vertical-align:   0.5;
+    background-color: transparent;
+    text-color:       inherit;
+}

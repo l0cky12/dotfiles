@@ -194,10 +194,9 @@ Alternative or retained desktop components may be deployed separately:
 stow swaync wofi noctalia
 ```
 
-The wallpaper package is unusual. It contains `static/`, `dynamic/`, `theme/`,
-and image files directly at its package root. Standard `stow Wallpapers`
-therefore targets `~/static`, `~/dynamic`, `~/theme`, and individual files in
-`~`, not a containing `~/Wallpapers` directory. The active picker defaults to
+The wallpaper package is unusual. It contains `theme/` and image files
+directly at its package root. Use `stow --target="$HOME/Pictures/wallpapers" wallpaper`
+to deploy it directly into the picker's default directory. The active picker defaults to
 `~/Pictures/wallpapers`; create that directory and place your wallpaper files
 there, or set `HYPR_WALLPAPER_DIR` to use another durable location.
 

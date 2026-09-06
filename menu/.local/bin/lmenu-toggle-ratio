@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# lmenu-toggle-ratio — toggle the master layout's single-window ratio.
+#
+# The configured mfact is read live from hyprctl and saved before it is
+# overridden, so the restored value always matches the running config rather
+# than a number baked into this script.
+set -euo pipefail
+
+dry_run=0
+if [[ ${1:-} == "--dry-run" ]]; then
+  dry_run=1
+  shift
+fi
+
+hyprctl_command=${HYPRCTL:-hyprctl}
+jq_command=${JQ:-jq}
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/lmenu
+state_file=$state_dir/mfact-default
+
+run() {
+  if ((dry_run)); then
+    printf '+ '
+    printf '%q ' "$@"
+    printf '\n'
+  else
+    "$@"
+  fi
+}
+
+current_mfact() {
+  "$hyprctl_command" getoption master:mfact -j | "$jq_command" -er '.float'
+}
+
+set_mfact() {
+  run "$hyprctl_command" eval "hl.config({ master = { mfact = $1 } })"
+}
+
+case "${1:-toggle}" in
+  status)
+    [[ -e $state_file ]] && printf '1\n' || printf '0\n'
+    ;;
+  toggle)
+    if [[ -e $state_file ]]; then
+      mfact=$(<"$state_file")
+      [[ $mfact =~ ^[0-9]+([.][0-9]+)?$ ]] || {
+        printf 'lmenu-toggle-ratio: saved ratio %q is not numeric\n' "$mfact" >&2
+        exit 1
+      }
+      set_mfact "$mfact"
+      run rm -f -- "$state_file"
+    else
+      mfact=$(current_mfact)
+      [[ $mfact =~ ^[0-9]+([.][0-9]+)?$ ]] || {
+        printf 'lmenu-toggle-ratio: hyprctl reported a non-numeric ratio\n' >&2
+        exit 1
+      }
+      if ((dry_run)); then
+        printf '+ save master:mfact=%s\n' "$mfact"
+      else
+        mkdir -p -- "$state_dir"
+        printf '%s' "$mfact" >"$state_file"
+      fi
+      set_mfact 1.0
+    fi
+    ;;
+  *)
+    printf 'usage: %s [--dry-run] [toggle|status]\n' "${0##*/}" >&2
+    exit 2
+    ;;
+esac

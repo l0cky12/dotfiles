@@ -14,20 +14,22 @@ opened with `SUPER+K`.
 | `SUPER+Return` | terminal | `kitty` |
 | `SUPER+SHIFT+Return` | drop-down terminal | `Dropterminal.sh kitty` |
 | `SUPER+Q` | close active window | `killactive` |
+| `CTRL+ALT+Delete` | close all windows | close every address returned by `hyprctl clients` |
 | `SUPER+L` | lock screen | start Hyprlock if not already running |
 | `SUPER+P` | power menu | `scripts/power-menu.sh`, launcher-neutral |
 | `SUPER+ALT+P` | monitor profiles | themed Rofi menu; includes the next-profile cycle |
 | `SUPER+K` | searchable bindings | Quickshell keybinding panel |
 | `SUPER+I` | coding agent | `ai-agent` in Kitty, via `run-if-deployed.sh` |
-| `SUPER+CTRL+T` | activity | `btop` in the configured terminal |
+| `SUPER+CTRL+T` | activity | floating `btop` in the configured terminal |
 | `SUPER+SHIFT+G` | start Gaming VM | starts `Gaming-VM`, waits 15 seconds, then Looking Glass |
 
 ## Applications and panels
 
 | Keys | Action | Command / behavior |
 | --- | --- | --- |
-| `SUPER+A` | application menu | Rofi `drun` with current generated theme |
-| `SUPER+SHIFT+A` | web-app manager | Quickshell web-app panel |
+| `SUPER+A` | application launcher | installed desktop applications; `Tab` cycles launcher modes |
+| `SUPER+SHIFT+A` | quick search | windows, apps, commands, reboot, and shutdown; `Tab` cycles modes |
+| `SUPER+ALT+A` | web-app manager | Quickshell web-app panel |
 | `SUPER+W` | browser | `brave` |
 | `SUPER+ALT+W` | Windows VM | start/connect through `windows-vm launch` |
 | `SUPER+CTRL+ALT+W` | stop Windows VM | graceful stop through `windows-vm stop` |
@@ -42,7 +44,7 @@ opened with `SUPER+K`.
 | `SUPER+SHIFT+D` | Disks | `gnome-disks` through `disks` |
 | `SUPER+U` | eject removable drives | `eject-drive.sh` picker; confirms, unmounts, and powers off the drive |
 | `SUPER+CTRL+I` | network status panel | Quickshell IPC |
-| `SUPER+CTRL+W` | Wi-Fi/network manager | existing `kitty -e nmtui` action |
+| `SUPER+CTRL+W` | network panel | Quickshell NetworkManager controls: Wi-Fi, DNS, IPv4 overrides, speed test, and Wi-Fi QR sharing |
 | `SUPER+CTRL+A` | audio panel | Quickshell IPC |
 | `SUPER+CTRL+B` | Bluetooth panel | Quickshell IPC |
 | `SUPER+SHIFT+B` | power profile menu | Rofi picker over `powerprofilesctl` profiles |
@@ -103,12 +105,14 @@ The implementation and optional features are described in
 
 | Keys | Action |
 | --- | --- |
-| `SUPER+T` | open cover-flow theme picker |
 | `SUPER+CTRL+SHIFT+Space` | open the same theme picker |
 | `SUPER+SHIFT+W` | open wallpaper picker/search |
 | `SUPER+CTRL+N` | toggle night light between 1000 K and 6500 K |
+| `SUPER+CTRL+O` | open the desktop toggles menu |
 | `SUPER+ALT+M` | open desktop modes panel |
 | `SUPER+SHIFT+I` | toggle selective stay-awake |
+| `SUPER+Backspace` | toggle window transparency on all workspaces |
+| `SUPER+SHIFT+Backspace` | toggle gaps and borders on all workspaces |
 | `SUPER+CTRL+Escape` | start the ASCII screensaver immediately |
 | `SUPER+CTRL+SHIFT+Escape` | toggle automatic ASCII screensaver launch |
 | `SUPER+CTRL+,` | toggle Quickshell Do Not Disturb |
@@ -148,6 +152,8 @@ Output placement for these numbered workspaces is profile-dependent; see
 | --- | --- |
 | `SUPER+SHIFT+F` | true fullscreen (Hyprland mode 0) |
 | `SUPER+CTRL+F` | maximize while retaining bar/gaps (mode 1) |
+| `SUPER+T` | toggle the active window between floating and tiled |
+| `SUPER+J` | toggle the next dwindle split between horizontal and vertical |
 | `SUPER+Arrow` | move focus in that direction |
 | `SUPER+CTRL+Arrow` | move window in that direction |
 | `SUPER+SHIFT+Arrow` | swap window in that direction |

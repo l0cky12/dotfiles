@@ -85,3 +85,7 @@ fi
 
 # Guarded YubiKey/PAM helpers from the `security` Stow package.
 [[ -r ~/.config/yubikey-auth/shell.zsh ]] && source ~/.config/yubikey-auth/shell.zsh
+
+# >>> Codex installer >>>
+export PATH="/home/liam/.local/bin:$PATH"
+# <<< Codex installer <<<

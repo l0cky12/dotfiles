@@ -25,16 +25,18 @@ can run without it, but that feature cannot.
 | `cliphist` | required for history | startup watchers and panel |
 | `libnotify` / `notify-send` | required by several scripts | desktop feedback |
 | Python 3.11+ | required by generated/theme/backends | theme, wallpaper, web apps, notification helper |
-| `ascii-screensaver` package | optional configured autostart | terminal screensaver scheduler/runtime |
+| `ascii-screensaver` package | optional Hypridle action | `ttfx` terminal screensaver commands and assets |
 | `desktop-mode` package | configured mode controls | night light, DND, selective stay-awake, mode panel |
 | `curl` | active network helpers | wallpaper, lyrics, weather, art |
 | `playerctl` | media integration | bindings and Spotify/lock helpers |
 | `udiskie` | configured startup tool | removable media |
 | PipeWire/WirePlumber tools | configured audio path | `wpctl`, Quickshell PipeWire |
-| NetworkManager | configured network path | `nmcli`, `nmtui` |
+| NetworkManager | configured network path | `nmcli`, `nmtui`, Network panel connection/DNS/IPv4 controls |
+| `qrencode` | network-panel Wi-Fi sharing | renders the runtime-only Wi-Fi QR SVG; never stores a plaintext secret |
+| `curl` | network-panel speed test fallback | asynchronous Cloudflare download/upload probes when no dedicated speed-test CLI is installed |
 | `bluez-utils` | configured Bluetooth widget | `bluetoothctl` |
 | `iputils` | dashboard/network checks | `ping` |
-| `polkit` provider / `pkexec` | privileged panel action | DNS changes |
+| polkit provider | NetworkManager authorization | persistent DNS and IPv4 profile changes when the active policy requires confirmation |
 
 The system also needs a working Wayland session, D-Bus user bus, font stack, PAM
 Hyprlock service, and ordinary core utilities (`bash`, `sh`, `realpath`, `flock`,
@@ -106,6 +108,14 @@ Hypridle, Hyprland IPC, Hyprlock, and the selected supported terminal (Kitty,
 Foot, Ghostty, or Alacritty). ImageMagick 7 is required only for PNG/SVG logo
 conversion. The included installer tries `paru` or `yay`, then builds `ttfx`
 from source with Cargo when no package exists.
+
+### Docker development environments
+
+The Development menu requires Docker Engine, Docker Compose, and OpenSSL. Its
+Compose stack binds only to `127.0.0.1`: MySQL uses port 3306, PostgreSQL 5432,
+MariaDB 3307, and Redis 6379. The first start writes generated credentials to
+`$XDG_STATE_HOME/docker-dev-env/environment.env` with mode 0600. Stopping a
+service or the whole stack keeps its named volume.
 
 ### Windows VM
 

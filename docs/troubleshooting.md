@@ -25,7 +25,8 @@ QML parse/runtime errors and verify the generated active theme JSON exists.
 
 Panel-specific failures often indicate a missing external command:
 
-- network: `nmcli`, `nmtui`, `ping`, and for DNS changes `pkexec`;
+- network: `nmcli`, `nmtui`, `qrencode`, and `curl`; NetworkManager/Polkit
+  prompts for profile changes when the active policy requires authorization;
 - display brightness: `ddcutil` and permission to access the DDC/I²C device;
 - clipboard: `cliphist`, `wl-paste`, and `wl-copy`;
 - keybinding palette: a responsive `hyprctl` socket;
@@ -112,9 +113,8 @@ browser processes.
 ## Wallpaper picker shows no local results
 
 The tool defaults to `~/Pictures/wallpapers`. Create that directory and put
-JPEG/PNG files there. Standard `stow Wallpapers` targets the package's children
-directly below `$HOME`, rather than creating `~/Wallpapers`; set
-`HYPR_WALLPAPER_DIR` to use that deployed layout or another directory. Local
+JPEG/PNG files there. Standard `stow --target="$HOME/Pictures/wallpapers" wallpaper`
+deploys the package directly into the picker's default directory. Local
 matching uses filenames and recognizes JPEG/PNG files.
 Empty remote results additionally require `curl`,
 `jq`, DNS/network access, and a successful Wallhaven API response.

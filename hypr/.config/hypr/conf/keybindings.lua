@@ -23,24 +23,25 @@ end
 exec(mod .. " + Return", "terminal", cfg.terminal)
 exec(mod .. " + SHIFT + Return", "drop-down terminal", cfg.scripts_dir .. "/Dropterminal.sh kitty")
 bind(mod .. " + Q", "close window", hl.dsp.window.close())
+exec("CTRL + ALT + Delete", "close all windows", cfg.scripts_dir .. "/close-all-windows.sh")
 exec(mod .. " + L", "lock screen", [[if test -x "$HOME/.local/bin/screensaver-lock"; then "$HOME/.local/bin/screensaver-lock"; else pidof hyprlock || hyprlock --config "$HOME/.config/hypr/hyprlock.conf"; fi]])
 exec(mod .. " + P", "power menu", "bash " .. cfg.scripts_dir .. "/power-menu.sh")
 exec(mod .. " + ALT + P", "monitor profiles", cfg.scripts_dir .. "/monitor-profile-menu.sh")
 exec(mod .. " + ALT + E", "emoji menu", cfg.scripts_dir .. "/RofiEmoji.sh")
 exec(mod .. " + K", "keybindings", "quickshell ipc call keybinds toggle")
 exec(mod .. " + I", "coding agent",
-    cfg.terminal .. " -e " .. cfg.scripts_dir .. "/run-if-deployed.sh ai ai-agent")
+    cfg.scripts_dir .. "/run-if-deployed.sh ai ai-agent")
 
 exec(mod .. " + C", "universal copy", cfg.scripts_dir .. "/universal-clipboard.sh copy")
 exec(mod .. " + X", "universal cut", cfg.scripts_dir .. "/universal-clipboard.sh cut")
 exec(mod .. " + V", "universal paste", cfg.scripts_dir .. "/universal-clipboard.sh paste")
 exec(mod .. " + CTRL + V", "clipboard history", "quickshell ipc call clipboard toggle")
-exec(mod .. " + SHIFT + V", "toggle audio visualizer", "quickshell ipc call visualizer toggle")
+exec(mod .. " + ALT + V", "toggle audio visualizer", "quickshell ipc call visualizer toggle")
 exec(mod .. " + SHIFT + C", "calculator", cfg.scripts_dir .. "/calculator.sh")
 exec(mod .. " + CTRL + Q", "calculator", cfg.scripts_dir .. "/calculator.sh")
 exec(mod .. " + CTRL + period", "transcode media", cfg.scripts_dir .. "/transcode-menu.sh")
 exec(mod .. " + CTRL + S", "share with LocalSend", "localsend")
-exec(mod .. " + CTRL + T", "activity", cfg.terminal .. " -e btop")
+exec(mod .. " + CTRL + T", "activity (btop, floating)", cfg.scripts_dir .. "/btop-float.sh")
 exec(mod .. " + CTRL + I", "toggle network panel", "quickshell ipc call network toggle")
 exec(mod .. " + CTRL + D", "toggle display panel", "quickshell ipc call display toggle")
 exec(mod .. " + CTRL + M", "toggle media panel", "quickshell ipc call media toggle")
@@ -49,6 +50,8 @@ exec(mod .. " + CTRL + B", "toggle Bluetooth panel", "quickshell ipc call blueto
 exec(mod .. " + SHIFT + B", "power profile menu", cfg.scripts_dir .. "/power-profile.sh menu")
 exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")
 exec(mod .. " + CTRL + SHIFT + SPACE", "theme picker", "quickshell ipc call theme toggle")
+exec(mod .. " + Backspace", "toggle window transparency on all workspaces", cfg.scripts_dir .. "/toggle-transparency.sh")
+exec(mod .. " + SHIFT + Backspace", "toggle window gaps on all workspaces", cfg.scripts_dir .. "/toggle-gaps.sh")
 bind(mod .. " + CTRL + N", "night light", function()
     hl.dispatch(hl.dsp.exec_cmd(cfg.scripts_dir .. "/night-light.sh toggle"))
 end)
@@ -61,6 +64,12 @@ exec(mod .. " + SHIFT + ALT + comma", "notification history", "$HOME/.local/bin/
 exec(mod .. " + D", "toggle do not disturb", "$HOME/.local/bin/notificationctl dnd-toggle")
 package_exec(mod .. " + ALT + M", "desktop modes", "modes", "desktop-mode menu")
 package_exec(mod .. " + SHIFT + I", "stay awake", "modes", "desktop-mode toggle stay-awake")
+-- Countdown reminders. Backed by transient systemd user timers, so they
+-- outlive the launching process and are cancelled by systemd.
+exec(mod .. " + CTRL + R", "set a reminder", "$HOME/.local/bin/lmenu-reminder set")
+exec(mod .. " + CTRL + ALT + R", "show reminders", "$HOME/.local/bin/lmenu-reminder list")
+exec(mod .. " + CTRL + SHIFT + R", "clear all reminders", "$HOME/.local/bin/lmenu-reminder clear")
+exec(mod .. " + CTRL + O", "toggle menu (night light, DND, stay awake, etc)", cfg.scripts_dir .. "/toggles-menu.sh")
 package_exec(mod .. " + CTRL + Escape", "start ASCII screensaver", "screensaver", "ascii-screensaver force")
 package_exec(mod .. " + CTRL + SHIFT + Escape", "toggle automatic ASCII screensaver", "screensaver", "toggle-screensaver")
 exec(mod .. " + SHIFT + G", "start Gaming VM", [[bash -lc 'virsh -c qemu:///system start Gaming-VM && sleep 15 && looking-glass-client -F -f /dev/shm/looking-glass']])
@@ -117,8 +126,9 @@ exec(mod .. " + SHIFT + E", "files", cfg.file_manager)
 exec(mod .. " + SHIFT + ALT + F", "files here (terminal cwd)", cfg.scripts_dir .. "/files-here.sh")
 exec(mod .. " + SHIFT + D", "disks", cfg.disks)
 exec(mod .. " + U", "eject removable drives", cfg.scripts_dir .. "/eject-drive.sh")
-exec(mod .. " + A", "application menu", "rofi -show drun -theme ~/.config/rofi/current-theme.rasi")
-exec(mod .. " + SHIFT + A", "web app manager", "quickshell ipc call webapps toggle")
+exec(mod .. " + A", "application launcher", cfg.scripts_dir .. "/quick-search.sh drun")
+exec(mod .. " + SHIFT + A", "lmenu root", "$HOME/.local/bin/lmenu toggle")
+exec(mod .. " + ALT + A", "web app manager", "quickshell ipc call webapps toggle")
 exec(mod .. " + W", "browser", "helium-browser")
 exec(mod .. " + ALT + W", "Windows VM", "$HOME/.local/bin/windows-vm launch")
 exec(mod .. " + CTRL + ALT + W", "stop Windows VM", "$HOME/.local/bin/windows-vm stop")
@@ -126,7 +136,7 @@ exec(mod .. " + SHIFT + ALT + W", "default browser private window", cfg.scripts_
 exec(mod .. " + S", "spotify", "spotify")
 exec(mod .. " + O", "obsidian", "obsidian")
 exec(mod .. " + R", "voice dictation", "hyprvoice toggle")
-exec(mod .. " + T", "theme picker", "quickshell ipc call theme toggle")
+bind(mod .. " + T", "toggle window floating / tiling", hl.dsp.window.float({ action = "toggle" }))
 exec(mod .. " + SHIFT + H", "hermes", "hermes")
 exec(mod .. " + SHIFT + W", "wallpaper picker", "~/.local/bin/hypr-wallpaper-picker")
 
@@ -167,6 +177,11 @@ exec("XF86MonBrightnessUp", "brightness up", "brightnessctl set +5%", { repeatin
 exec("XF86MonBrightnessDown", "brightness down", "brightnessctl set 5%-", { repeating = true })
 
 -- Resize, move, and focus.
+-- Tiling direction for the next window to open. dwindle's `preselect` is a
+-- one-time override, so each press affects only the next window.
+-- Horizontal = the new window opens beside this one; vertical = below it.
+bind(mod .. " + J", "split horizontally (next window opens to the right)", hl.dsp.layout("preselect r"))
+bind(mod .. " + SHIFT + V", "split vertically (next window opens below)", hl.dsp.layout("preselect d"))
 local resize_binds = {
     { mod .. " + minus", "expand window left", -100, 0 },
     { mod .. " + equal", "shrink window left", 100, 0 },

@@ -47,6 +47,12 @@ end
 hl.dsp.window.move = function(args)
     return { kind = "window.move", args = args }
 end
+hl.dsp.window.float = function(args)
+    return { kind = "window.float", args = args }
+end
+hl.dsp.layout = function(action)
+    return { kind = "layout", action = action }
+end
 hl.dsp.focus = function(args)
     return { kind = "focus", args = args }
 end
@@ -95,6 +101,63 @@ local function expect_move(keys, description, workspace, follow)
     error("missing move binding: " .. keys .. " -> " .. description)
 end
 
+local function expect_exec(keys, description, command)
+    for _, capture in ipairs(captures) do
+        if capture.keys == keys and capture.description == description and
+                capture.dispatcher.kind == "exec_cmd" and capture.dispatcher.command == command then
+            return
+        end
+    end
+    error("missing exec binding: " .. keys .. " -> " .. description)
+end
+
+expect_exec("SUPER + CTRL + Escape", "start ASCII screensaver",
+    "/home/liam/.config/hypr/scripts/run-if-deployed.sh screensaver ascii-screensaver force")
+expect_exec("SUPER + CTRL + SHIFT + Escape", "toggle automatic ASCII screensaver",
+    "/home/liam/.config/hypr/scripts/run-if-deployed.sh screensaver toggle-screensaver")
+expect_exec("CTRL + ALT + Delete", "close all windows",
+    "/home/liam/.config/hypr/scripts/close-all-windows.sh")
+expect_exec("SUPER + A", "application launcher",
+    "/home/liam/.config/hypr/scripts/quick-search.sh drun")
+expect_exec("SUPER + SHIFT + A", "lmenu root", "$HOME/.local/bin/lmenu toggle")
+expect_exec("SUPER + ALT + A", "web app manager",
+    "quickshell ipc call webapps toggle")
+expect_exec("SUPER + CTRL + T", "activity (btop, floating)",
+    "/home/liam/.config/hypr/scripts/btop-float.sh")
+expect_exec("SUPER + SHIFT + Backspace", "toggle window gaps on all workspaces",
+    "/home/liam/.config/hypr/scripts/toggle-gaps.sh")
+expect_exec("SUPER + Backspace", "toggle window transparency on all workspaces",
+    "/home/liam/.config/hypr/scripts/toggle-transparency.sh")
+expect_exec("SUPER + CTRL + O", "toggle menu (night light, DND, stay awake, etc)",
+    "/home/liam/.config/hypr/scripts/toggles-menu.sh")
+
+-- Tiling direction. `preselect` is a one-time override for the next window,
+-- unlike `togglesplit`, which needs dwindle.preserve_split to do anything.
+local function expect_layout(keys, description, action)
+    for _, capture in ipairs(captures) do
+        if capture.keys == keys and capture.description == description and
+                capture.dispatcher.kind == "layout" and capture.dispatcher.action == action then
+            return
+        end
+    end
+    error("missing layout binding: " .. keys .. " -> " .. action)
+end
+
+expect_layout("SUPER + J", "split horizontally (next window opens to the right)",
+    "preselect r")
+expect_layout("SUPER + SHIFT + V", "split vertically (next window opens below)",
+    "preselect d")
+
+local floating_toggle_found = false
+for _, capture in ipairs(captures) do
+    if capture.keys == "SUPER + T" and capture.description == "toggle window floating / tiling" and
+            capture.dispatcher.kind == "window.float" and capture.dispatcher.args.action == "toggle" then
+        floating_toggle_found = true
+        break
+    end
+end
+assert(floating_toggle_found, "missing native Lua floating toggle binding")
+
 for workspace = 1, 10 do
     expect_move("SUPER + SHIFT + " .. number_keys[workspace], "move to workspace " .. workspace,
         workspace, true)
@@ -108,6 +171,17 @@ for workspace = 1, 4 do
         workspace, false)
 end
 LUA
+
+grep -Fqx 'bindd = $mainMod CTRL, Escape, start ASCII screensaver, exec, $scriptsDir/run-if-deployed.sh screensaver ascii-screensaver force' \
+  "$hypr_root/conf/keybinding.conf" ||
+  fail 'legacy screensaver binding does not use the screensaver package'
+
+grep -Fqx 'hl.window_rule({ match = { class = "^t3code$" }, workspace = "4 silent" })' \
+  "$hypr_root/conf/window_rules.lua" ||
+  fail 'Lua config does not assign T3 Code to workspace 4'
+grep -Fqx 'windowrule = match:class ^t3code$, workspace 4 silent' \
+  "$hypr_root/conf/windows-rules.conf" ||
+  fail 'legacy config does not assign T3 Code to workspace 4'
 
 mkdir -p "$test_root/config" "$test_root/home" "$test_root/runtime"
 cp -a "$hypr_root/." "$test_root/config/hypr/"

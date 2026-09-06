@@ -40,18 +40,12 @@ hl.window_rule({
     border_color = "rgb(89B4FA) rgb(CBA6F7)",
 })
 
-hl.window_rule({
-    -- Wayland app_id is lowercase; "Brave-browser" is the XWayland WM_CLASS, so
-    -- the unanchored capitalised form matched nothing and this rule was dead.
-    match = { class = "^[Bb]rave-browser$" },
-    opacity = "1.0 override 0.95 override 1.0 override",
-})
-
 hl.window_rule({ match = { class = "^(obsidian|Obsidian)$" }, workspace = "3 silent" })
 hl.window_rule({ match = { class = "^(virt-manager)$" }, workspace = "6 silent" })
 hl.window_rule({ match = { class = "^(org.kde.neochat)$" }, workspace = "7 silent" })
 hl.window_rule({ match = { class = "^(Spotify|spotify)$" }, workspace = "9 silent" })
 hl.window_rule({ match = { class = "^([Bb]rave-browser|helium|firefox)$" }, workspace = "2 silent" })
+hl.window_rule({ match = { class = "^t3code$" }, workspace = "4 silent" })
 
 hl.window_rule({
     name = "ascii-screensaver",

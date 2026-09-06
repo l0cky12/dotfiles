@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+backend="$repo_root/hypr/.config/hypr/scripts/network-control"
+panel="$repo_root/quickshell/.config/quickshell/NetworkPanel.qml"
+state="$repo_root/quickshell/.config/quickshell/NetworkState.qml"
+test_root=$(mktemp -d -t network-control-test.XXXXXX)
+trap 'rm -rf -- "$test_root"' EXIT
+
+fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
+assert() { "$@" || fail "$*"; }
+mkdir -p "$test_root/bin" "$test_root/runtime"
+
+cat > "$test_root/bin/nmcli" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$NMCLI_CALLS"
+case "$*" in
+  '-t -f WIFI general status') printf 'enabled\n' ;;
+  '-t -f DEVICE,TYPE,STATE device status') printf 'wlp2s0:wifi:connected\nenp1s0:ethernet:disconnected\n' ;;
+  '-t -f DEVICE,TYPE device status') printf 'wlp2s0:wifi\nenp1s0:ethernet\n' ;;
+  '-g GENERAL.TYPE device show wlp2s0') printf '802-11-wireless\n' ;;
+  '-g GENERAL.CONNECTION device show wlp2s0') printf 'Cafe;Net\n' ;;
+  '-g IP4.ADDRESS device show wlp2s0') printf '192.0.2.22/24\n' ;;
+  '-g IP4.GATEWAY device show wlp2s0') printf '192.0.2.1\n' ;;
+  '-t -f IP4.DNS device show wlp2s0') printf 'IP4.DNS[1]:1.1.1.1\nIP4.DNS[2]:1.0.0.1\n' ;;
+  '-g ipv4.method connection show Cafe;Net') printf 'auto\n' ;;
+  '-t -f IN-USE,SIGNAL,SSID device wifi list ifname wlp2s0 --rescan no') printf '*:71:Cafe;Net\n' ;;
+  'device wifi rescan ifname wlp2s0') : ;;
+  '-t -f BSSID,SSID,SIGNAL,SECURITY device wifi list ifname wlp2s0 --rescan no') printf 'AA:BB:CC:DD:EE:FF:Open Cafe:84:--\n11:22:33:44:55:66:Secure Cafe:62:WPA2\n' ;;
+  '-g 802-11-wireless.ssid connection show Cafe;Net') printf 'Cafe;Net\n' ;;
+  '-s -g 802-11-wireless-security.key-mgmt connection show Cafe;Net') printf 'wpa-psk\n' ;;
+  '-s -g 802-11-wireless-security.psk connection show Cafe;Net') printf 'fixture:secret;\\value\n' ;;
+  *) : ;;
+esac
+SH
+chmod +x "$test_root/bin/nmcli"
+
+cat > "$test_root/bin/qrencode" <<'SH'
+#!/usr/bin/env bash
+while (($#)); do
+  if [[ $1 == -o ]]; then output=$2; shift 2; continue; fi
+  shift
+done
+cat > "$output"
+SH
+chmod +x "$test_root/bin/qrencode"
+
+export NMCLI_CALLS="$test_root/nmcli.calls"
+run() { NMCLI="$test_root/bin/nmcli" QRENCODE="$test_root/bin/qrencode" XDG_RUNTIME_DIR="$test_root/runtime" "$backend" "$@"; }
+
+# Read-only panel status deliberately exposes addresses and DNS, never a PSK.
+status=$(run status)
+jq -e '.wifiEnabled and .connectionType == "wifi" and .ssid == "Cafe;Net" and .signal == 71 and .ipv4 == "192.0.2.22" and .dns == ["1.1.1.1", "1.0.0.1"] and .ipv4Method == "auto"' <<<"$status" >/dev/null || fail 'status JSON omitted active connection information'
+! grep -Fq 'fixture:secret' <<<"$status" || fail 'status leaked a Wi-Fi secret'
+
+scan=$(run scan)
+jq -e 'length == 2 and .[0].ssid == "Open Cafe" and .[0].security == "--" and .[1].security == "WPA2"' <<<"$scan" >/dev/null || fail 'scan JSON did not preserve connection options'
+
+: > "$NMCLI_CALLS"
+run --dry-run dns custom '1.1.1.1 1.0.0.1' >/dev/null
+run --dry-run ipv4 manual 192.0.2.44 24 192.0.2.1 '9.9.9.9' >/dev/null
+! grep -E '^(connection modify|connection up|radio wifi|device disconnect|device wifi connect)' "$NMCLI_CALLS" \
+  || fail 'dry-run made a NetworkManager mutation'
+
+if run --dry-run ipv4 manual not-an-ip 24 192.0.2.1 '' >/dev/null 2>&1; then
+  fail 'manual IPv4 accepted an invalid address'
+fi
+if run --dry-run ipv4 manual 192.0.2.44 33 192.0.2.1 '' >/dev/null 2>&1; then
+  fail 'manual IPv4 accepted an invalid prefix'
+fi
+if run --dry-run dns custom bad.ip >/dev/null 2>&1; then
+  fail 'DNS accepted an invalid address'
+fi
+
+qr_json=$(run qr)
+jq -e '.ssid == "Cafe;Net" and .security == "WPA" and (.path | endswith("/wifi.svg"))' <<<"$qr_json" >/dev/null || fail 'QR output did not limit itself to metadata'
+! grep -Fq 'fixture:secret' <<<"$qr_json" || fail 'QR JSON leaked a Wi-Fi secret'
+qr_file=$(jq -r .path <<<"$qr_json")
+[[ $(stat -c '%a' "$qr_file") == 600 ]] || fail 'QR SVG is not owner-readable only'
+grep -Fq 'WIFI:T:WPA;S:Cafe\;Net;P:fixture\:secret\;\\value;;' "$qr_file" || fail 'QR payload is not standards escaped'
+! grep -Fq 'fixture:secret' "$NMCLI_CALLS" || fail 'Wi-Fi secret was passed to NetworkManager as an argument'
+
+# The panel and state must remain theme-driven and must not contain a password
+# input, a raw resolv.conf write, or a shell command assembled from UI text.
+! sed '/^[[:space:]]*\/\//d' "$panel" "$state" | grep -nE '"#[0-9a-fA-F]{3,8}"|resolv\.conf|password|pkexec|sudo|sh", "-c' \
+  || fail 'panel bypasses theme or credential boundaries'
+grep -Fq 'NetworkState.applyManual' "$panel" || fail 'manual IPv4 control is not wired to the state'
+grep -Fq 'NetworkState.shareWifi' "$panel" || fail 'Wi-Fi QR action is not wired to the state'
+grep -Fq 'speedProc' "$state" || fail 'speed test is not asynchronous'
+grep -Fq 'NetworkState.togglePanel(bar.focusedScreen())' "$repo_root/quickshell/.config/quickshell/Bar.qml" || fail 'network manage IPC does not open the panel'
+grep -Fqx 'exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")' \
+  "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Lua Super+Ctrl+W binding is missing or changed'
+# shellcheck disable=SC2016 # The legacy binding must contain a literal $mainMod.
+grep -Fqx 'bindd = $mainMod CTRL, W, manage Wi-Fi and network, exec, quickshell ipc call network manage' \
+  "$repo_root/hypr/.config/hypr/conf/keybinding.conf" || fail 'legacy Super+Ctrl+W binding is missing or changed'
+
+if command -v quickshell >/dev/null 2>&1; then
+  smoke_log="$test_root/network-smoke.log"
+  QT_QPA_PLATFORM=offscreen NETWORK_CONTROL="$backend" NMCLI="$test_root/bin/nmcli" \
+    timeout 30 quickshell -p "$repo_root/quickshell/.config/quickshell/NetworkSmoke.qml" >"$smoke_log" 2>&1 || true
+  grep -Fq 'ok: NetworkState logic' "$smoke_log" \
+    || { sed -n '1,120p' "$smoke_log" >&2; fail 'NetworkSmoke.qml did not parse and run'; }
+  ! grep -Fq 'FAIL' "$smoke_log" || fail 'NetworkSmoke.qml reported a failing assertion'
+fi
+
+printf 'ok: network-control fixtures\n'

@@ -6,17 +6,47 @@ if [[ ! -r "$rofi_theme" ]]; then
   rofi_theme="$HOME/.config/rofi/current-theme.rasi"
 fi
 
-selection=$(
-  sed -n '/^# # DATA # #$/,/^# # END DATA # #$/p' "$0" | sed '1d;$d' |
-    rofi -dmenu -i -no-custom \
-      -matching fuzzy -sorting-method fzf \
-      -p "Emoji" \
-      -mesg "Search by name, then press Enter to copy" \
-      -theme "$rofi_theme"
-) || exit 0
+# Each data line is "<emoji> <name and keywords>". The grid shows the glyph
+# alone, so the keywords move into rofi's per-row `meta` option: invisible
+# search terms that still match when typing. See rofi-script(5); rofi-dmenu(5)
+# states the row-option syntax is identical for dmenu.
+data() {
+  sed -n '/^# # DATA # #$/,/^# # END DATA # #$/p' "$0" | sed '1d;$d' | awk 'NF >= 2'
+}
 
-[[ -n "$selection" ]] || exit 0
-emoji=${selection%% *}
+# What rofi displays and searches: "<glyph>\0meta\x1f<keywords>".
+rows() {
+  data | awk '
+    {
+      glyph = $1
+      $1 = ""
+      sub(/^[[:space:]]+/, "")
+      printf "%s%cmeta%c%s\n", glyph, 0, 31, $0
+    }
+  '
+}
+
+# The glyphs alone, in the same order, so a selected index maps straight back to
+# an emoji. Selection goes by index rather than by rofi's echoed string: with
+# row options in play the echoed text is not worth relying on, and a NUL cannot
+# survive a shell variable anyway.
+glyphs() {
+  data | awk '{ print $1 }'
+}
+
+if [[ ${1:-} == "--dry-run" ]]; then
+  rows | tr '\0\037' '@|'
+  exit 0
+fi
+
+index=$(rows | rofi -dmenu -i -no-custom \
+  -matching fuzzy -sorting-method fzf \
+  -p "" -format i \
+  -theme "$rofi_theme") || exit 0
+
+[[ $index =~ ^[0-9]+$ ]] || exit 0
+emoji=$(glyphs | sed -n "$((index + 1))p")
+[[ -n $emoji ]] || exit 0
 printf '%s' "$emoji" | wl-copy
 exit 0
 

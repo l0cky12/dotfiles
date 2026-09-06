@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Stow-managed CLI facade for the Hyprland toggles menu.
+set -euo pipefail
+
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+exec "$script_dir/../../.config/hypr/scripts/toggles-menu.sh" "$@"

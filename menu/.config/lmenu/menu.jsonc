@@ -1,0 +1,1459 @@
+// lmenu default menu tree.
+//
+// The dotted id is the tree: "style.bar.position" is a child of "style.bar".
+// Kind is inferred - "action" makes a leaf, "target" makes a link, "provider"
+// makes a generated submenu, anything else is a plain submenu.
+//
+// Guards are bash conditions, evaluated in one batched bash process per render:
+//   when      - hide the row unless the condition succeeds
+//   disabled  - keep the row, dim it and tick it, but make it unselectable
+//   checked   - tick the row when the condition succeeds
+//
+// Override or extend any of this from ~/.config/lmenu/extensions/menu.jsonc.
+// Same-id entries there replace only the fields they declare and keep their
+// position; new ids append.
+[
+  // ---------------------------------------------------------------- Apps ---
+  {
+    "id": "apps",
+    "icon": "󰀻",
+    "label": "Apps",
+    "title": "Apps",
+    "provider": "apps",
+    "aliases": ["applications", "launcher", "drun"],
+    "description": "Every installed desktop application"
+  },
+
+  // -------------------------------------------------------- Development ---
+  {
+    "id": "development",
+    "icon": "󰅩",
+    "label": "Development",
+    "title": "Development",
+    "aliases": ["developer", "dev", "coding"]
+  },
+  {
+    "id": "development.docker",
+    "icon": "󰡨",
+    "label": "Docker environments",
+    "title": "Docker environments",
+    "aliases": ["containers", "compose", "databases"],
+    "when": "command -v docker >/dev/null && docker compose version >/dev/null 2>&1"
+  },
+  {
+    "id": "development.docker.mysql",
+    "icon": "󰆼",
+    "label": "MySQL",
+    "aliases": ["database", "sql"],
+    "checked": "~/.config/hypr/scripts/docker-dev-env status mysql >/dev/null 2>&1",
+    "action": "~/.config/hypr/scripts/docker-dev-env toggle mysql"
+  },
+  {
+    "id": "development.docker.postgres",
+    "icon": "󰆼",
+    "label": "PostgreSQL",
+    "aliases": ["postgres", "database", "sql"],
+    "checked": "~/.config/hypr/scripts/docker-dev-env status postgres >/dev/null 2>&1",
+    "action": "~/.config/hypr/scripts/docker-dev-env toggle postgres"
+  },
+  {
+    "id": "development.docker.mariadb",
+    "icon": "󰆼",
+    "label": "MariaDB",
+    "aliases": ["mysql", "database", "sql"],
+    "checked": "~/.config/hypr/scripts/docker-dev-env status mariadb >/dev/null 2>&1",
+    "action": "~/.config/hypr/scripts/docker-dev-env toggle mariadb"
+  },
+  {
+    "id": "development.docker.redis",
+    "icon": "󰆼",
+    "label": "Redis",
+    "aliases": ["cache", "key value"],
+    "checked": "~/.config/hypr/scripts/docker-dev-env status redis >/dev/null 2>&1",
+    "action": "~/.config/hypr/scripts/docker-dev-env toggle redis"
+  },
+  {
+    "id": "development.docker.info",
+    "icon": "󰋼",
+    "label": "Connection details",
+    "when": "[[ -f ${XDG_STATE_HOME:-$HOME/.local/state}/docker-dev-env/environment.env ]]",
+    "action": "kitty --title 'Development connections' -e bash -lc '~/.config/hypr/scripts/docker-dev-env info; read -rp \"Press Enter to close…\"'"
+  },
+  {
+    "id": "development.docker.stop-all",
+    "icon": "󰓛",
+    "label": "Stop all",
+    "when": "~/.config/hypr/scripts/docker-dev-env list 2>/dev/null | grep -q running",
+    "action": "~/.config/hypr/scripts/docker-dev-env stop-all"
+  },
+
+  // --------------------------------------------------------------- Learn ---
+  {
+    "id": "learn",
+    "icon": "󰋗",
+    "label": "Learn",
+    "title": "Learn",
+    "aliases": ["help", "docs"]
+  },
+  {
+    "id": "learn.keybindings",
+    "icon": "󰌌",
+    "label": "Keybindings",
+    "aliases": ["binds", "shortcuts"],
+    "action": "quickshell ipc call keybinds toggle"
+  },
+  {
+    "id": "learn.hyprland",
+    "icon": "󰖟",
+    "label": "Hyprland wiki",
+    "aliases": ["hypr", "compositor"],
+    "action": "xdg-open https://wiki.hypr.land/"
+  },
+  {
+    "id": "learn.arch",
+    "icon": "󰣇",
+    "label": "Arch wiki",
+    "aliases": ["archlinux", "arch"],
+    "action": "xdg-open https://wiki.archlinux.org/"
+  },
+  {
+    "id": "learn.neovim",
+    "icon": "󰈙",
+    "label": "LazyVim docs",
+    "aliases": ["neovim", "nvim", "lazyvim"],
+    "action": "xdg-open https://www.lazyvim.org/"
+  },
+  {
+    "id": "learn.bash",
+    "icon": "󰅩",
+    "label": "Bash",
+    "aliases": ["shell", "devhints", "rico"],
+    "action": "xdg-open https://devhints.io/bash"
+  },
+
+  // ------------------------------------------------------------- Trigger ---
+  {
+    "id": "trigger",
+    "icon": "󱐋",
+    "label": "Trigger",
+    "title": "Trigger",
+    "aliases": ["do", "actions"]
+  },
+  {
+    "id": "trigger.emoji",
+    "icon": "󰞅",
+    "label": "Emoji",
+    "action": "~/.config/hypr/scripts/RofiEmoji.sh"
+  },
+
+  // Countdown reminders, backed by transient systemd user timers.
+  {
+    "id": "trigger.reminder",
+    "icon": "󰀠",
+    "label": "Reminder",
+    "title": "Reminder",
+    "aliases": ["timer", "alarm", "remind"]
+  },
+  {
+    "id": "trigger.reminder.set",
+    "icon": "󰃭",
+    "label": "Set a reminder",
+    "aliases": ["new reminder", "countdown"],
+    "action": "~/.local/bin/lmenu-reminder set"
+  },
+  {
+    "id": "trigger.reminder.show",
+    "icon": "󰋚",
+    "label": "Show reminders",
+    "aliases": ["pending", "list reminders"],
+    "action": "~/.local/bin/lmenu-reminder list"
+  },
+  {
+    "id": "trigger.reminder.clear",
+    "icon": "󰅚",
+    "label": "Clear all reminders",
+    "aliases": ["cancel reminders"],
+    "when": "[[ $(~/.local/bin/lmenu-reminder count) -gt 0 ]]",
+    "action": "~/.local/bin/lmenu-reminder clear"
+  },
+
+  {
+    "id": "trigger.capture",
+    "icon": "󰄄",
+    "label": "Capture",
+    "title": "Capture",
+    "aliases": ["screenshot", "record"]
+  },
+  {
+    "id": "trigger.capture.screenshot",
+    "icon": "󰆞",
+    "label": "Screenshot (smart)",
+    "action": "~/.config/hypr/scripts/capture/capture.sh screenshot smart"
+  },
+  {
+    "id": "trigger.capture.region",
+    "icon": "󰩬",
+    "label": "Screenshot region",
+    "action": "~/.config/hypr/scripts/capture/capture.sh screenshot region"
+  },
+  {
+    "id": "trigger.capture.window",
+    "icon": "󰖯",
+    "label": "Screenshot window",
+    "action": "~/.config/hypr/scripts/capture/capture.sh screenshot window"
+  },
+  {
+    "id": "trigger.capture.monitor",
+    "icon": "󰍹",
+    "label": "Screenshot monitor",
+    "action": "~/.config/hypr/scripts/capture/capture.sh screenshot monitor"
+  },
+  {
+    "id": "trigger.capture.record",
+    "icon": "󰑊",
+    "label": "Start screen recording",
+    "when": "! ~/.config/hypr/scripts/capture/record.sh status | grep -qx recording",
+    "action": "~/.config/hypr/scripts/capture/capture.sh record menu"
+  },
+  {
+    "id": "trigger.capture.record-stop",
+    "icon": "󰙧",
+    "label": "Stop screen recording",
+    "when": "~/.config/hypr/scripts/capture/record.sh status | grep -qx recording",
+    "action": "~/.config/hypr/scripts/capture/capture.sh record stop"
+  },
+  {
+    "id": "trigger.capture.ocr",
+    "icon": "󰦥",
+    "label": "Extract text (OCR)",
+    "when": "command -v tesseract >/dev/null",
+    "action": "~/.config/hypr/scripts/capture/capture.sh ocr"
+  },
+  {
+    "id": "trigger.capture.color",
+    "icon": "󰸱",
+    "label": "Colour picker",
+    "when": "command -v hyprpicker >/dev/null && ! pgrep -x hyprpicker >/dev/null",
+    "action": "~/.config/hypr/scripts/capture/capture.sh color"
+  },
+  {
+    "id": "trigger.capture.qr",
+    "icon": "󰐲",
+    "label": "QR code from clipboard",
+    "when": "command -v qrencode >/dev/null",
+    "action": "wl-paste | qrencode -o - -t PNG | wl-copy --type image/png && notify-send 'lmenu' 'QR code copied to the clipboard'"
+  },
+
+  {
+    "id": "trigger.transcode",
+    "icon": "󰈫",
+    "label": "Transcode",
+    "aliases": ["convert", "ffmpeg", "media"],
+    "action": "~/.config/hypr/scripts/transcode-menu.sh"
+  },
+  {
+    "id": "trigger.share",
+    "icon": "󰒖",
+    "label": "Share",
+    "title": "Share",
+    "aliases": ["send"]
+  },
+  {
+    "id": "trigger.share.clipboard",
+    "icon": "󰅎",
+    "label": "Copy selection to clipboard",
+    "action": "~/.config/hypr/scripts/universal-clipboard.sh copy"
+  },
+  {
+    "id": "trigger.share.file",
+    "icon": "󰈔",
+    "label": "Send a file",
+    "when": "command -v localsend >/dev/null",
+    "action": "localsend"
+  },
+  {
+    "id": "trigger.share.receive",
+    "icon": "󰇚",
+    "label": "Receive a file",
+    "when": "command -v localsend >/dev/null",
+    "action": "localsend"
+  },
+  {
+    "id": "trigger.share.wifi",
+    "icon": "󰖩",
+    "label": "Share Wi-Fi as a QR code",
+    "when": "command -v qrencode >/dev/null && nmcli -t -f TYPE connection show --active | grep -q wireless",
+    "action": "~/.config/hypr/scripts/network-control qr"
+  },
+
+  {
+    "id": "trigger.toggle",
+    "icon": "󰔡",
+    "label": "Toggle",
+    "title": "Toggle",
+    "aliases": ["toggles", "switches"]
+  },
+  // Toggle rows use the existing repo commands and their established state.
+  {
+    "id": "trigger.toggle.stay-awake",
+    "icon": "󰅶",
+    "label": "Stay awake",
+    "checked": "~/.config/hypr/scripts/toggles-menu.sh status | jq -e '.\"stay-awake\" == \"on\"' >/dev/null",
+    "action": "~/.config/hypr/scripts/toggles-menu.sh stay-awake"
+  },
+  {
+    "id": "trigger.toggle.notifications",
+    "icon": "󰂛",
+    "label": "Do not disturb",
+    "checked": "~/.config/hypr/scripts/toggles-menu.sh status | jq -e '.dnd == \"on\"' >/dev/null",
+    "action": "~/.config/hypr/scripts/toggles-menu.sh dnd"
+  },
+  {
+    "id": "trigger.toggle.screensaver",
+    "icon": "󰶐",
+    "label": "Screensaver",
+    "checked": "~/.local/bin/toggle-screensaver status | grep -qx 'screensaver: on'",
+    "action": "~/.local/bin/toggle-screensaver"
+  },
+  {
+    "id": "trigger.toggle.nightlight",
+    "icon": "󰖔",
+    "label": "Night light",
+    "when": "command -v hyprsunset >/dev/null",
+    "checked": "~/.config/hypr/scripts/toggles-menu.sh status | jq -e '.nightlight == \"on\"' >/dev/null",
+    "action": "~/.config/hypr/scripts/toggles-menu.sh nightlight"
+  },
+  {
+    "id": "trigger.toggle.bar",
+    "icon": "󰍜",
+    "label": "Menu bar",
+    "checked": "~/.config/hypr/scripts/toggles-menu.sh status | jq -e '.bar == \"on\"' >/dev/null",
+    "action": "~/.config/hypr/scripts/toggles-menu.sh bar"
+  },
+  {
+    "id": "trigger.toggle.touchpad",
+    "icon": "󰟸",
+    "label": "Touchpad",
+    "when": "hyprctl devices -j | jq -e '.touchpads | length > 0' >/dev/null",
+    "checked": "~/.config/hypr/scripts/toggles-menu.sh status | jq -e '.touchpad == \"on\"' >/dev/null",
+    "action": "~/.config/hypr/scripts/toggles-menu.sh touchpad"
+  },
+  {
+    "id": "trigger.toggle.battery",
+    "icon": "󰁹",
+    "label": "Battery percentage [UNRESOLVED]",
+    "when": "compgen -G '/sys/class/power_supply/BAT*' >/dev/null",
+    "action": "notify-send 'lmenu' 'TODO: the Quickshell bar exposes no battery-percentage IPC yet. Point trigger.toggle.battery at one from the extensions file.'"
+  },
+  {
+    "id": "trigger.toggle.layout",
+    "icon": "󰕬",
+    "label": "Workspace layout (dwindle / master)",
+    "checked": "[[ $(hyprctl getoption general:layout -j | jq -r .str) == master ]]",
+    "action": "~/.config/hypr/scripts/LayoutToggle.sh"
+  },
+  {
+    "id": "trigger.toggle.gaps",
+    "icon": "󰘞",
+    "label": "Window gaps",
+    "checked": "[[ ! -e ${XDG_STATE_HOME:-$HOME/.local/state}/hyprland-desktop/gaps-defaults.json ]]",
+    "action": "~/.config/hypr/scripts/toggle-gaps.sh"
+  },
+  {
+    "id": "trigger.toggle.transparency",
+    "icon": "󰡒",
+    "label": "Window transparency",
+    "checked": "[[ ! -e ${XDG_STATE_HOME:-$HOME/.local/state}/hyprland-desktop/opacity-defaults.json ]]",
+    "action": "~/.config/hypr/scripts/toggle-transparency.sh"
+  },
+  {
+    "id": "trigger.toggle.ratio",
+    "icon": "󰥃",
+    "label": "1-window ratio",
+    "checked": "~/.local/bin/lmenu-toggle-ratio status | grep -qx 1",
+    "action": "~/.local/bin/lmenu-toggle-ratio"
+  },
+
+  {
+    "id": "trigger.speedtest",
+    "icon": "󰓁",
+    "label": "Speed Test",
+    "aliases": ["bandwidth", "network speed"],
+    "when": "command -v curl >/dev/null",
+    "action": "quickshell ipc call speedtest toggle"
+  },
+  {
+    "id": "trigger.calculator",
+    "icon": "󰃬",
+    "label": "Calculator",
+    "action": "~/.config/hypr/scripts/calculator.sh"
+  },
+  {
+    "id": "trigger.clipboard",
+    "icon": "󰅍",
+    "label": "Clipboard history",
+    "action": "quickshell ipc call clipboard toggle"
+  },
+  {
+    "id": "trigger.hardware",
+    "icon": "󰢻",
+    "label": "Hardware",
+    "title": "Hardware",
+    "aliases": ["devices"]
+  },
+  {
+    "id": "trigger.hardware.monitors",
+    "icon": "󰍹",
+    "label": "Monitor profiles",
+    "action": "~/.config/hypr/scripts/monitor-profile-menu.sh"
+  },
+  {
+    "id": "trigger.hardware.network",
+    "icon": "󰖩",
+    "label": "Network panel",
+    "action": "quickshell ipc call network toggle"
+  },
+  {
+    "id": "trigger.hardware.bluetooth",
+    "icon": "󰂯",
+    "label": "Bluetooth panel",
+    "action": "quickshell ipc call bluetooth toggle"
+  },
+  {
+    "id": "trigger.hardware.audio",
+    "icon": "󰕾",
+    "label": "Audio panel",
+    "action": "quickshell ipc call audio toggle"
+  },
+  {
+    "id": "trigger.hardware.power-profile",
+    "icon": "󰓅",
+    "label": "Power profile",
+    "action": "~/.config/hypr/scripts/power-profile.sh menu"
+  },
+  {
+    "id": "trigger.hardware.eject",
+    "icon": "󰇙",
+    "label": "Eject removable drives",
+    "action": "~/.config/hypr/scripts/eject-drive.sh"
+  },
+  {
+    "id": "trigger.hardware.activity",
+    "icon": "󰄨",
+    "label": "Activity (btop)",
+    "action": "~/.config/hypr/scripts/btop-float.sh"
+  },
+
+  // --------------------------------------------------------------- Style ---
+  {
+    "id": "style",
+    "icon": "󰉼",
+    "label": "Style",
+    "title": "Style",
+    "aliases": ["appearance", "look"]
+  },
+  {
+    "id": "style.theme",
+    "icon": "󰸌",
+    "label": "Theme",
+    "title": "Theme",
+    "provider": "themes",
+    "aliases": ["themes", "colours", "colors"]
+  },
+  {
+    "id": "style.background",
+    "icon": "󰸉",
+    "label": "Background",
+    "aliases": ["wallpaper", "wallpapers"],
+    "action": "~/.local/bin/hypr-wallpaper-picker"
+  },
+  {
+    "id": "style.font",
+    "icon": "󰛖",
+    "label": "Font",
+    "title": "Font",
+    "provider": "fonts",
+    "aliases": ["fonts"]
+  },
+  {
+    "id": "style.bar",
+    "icon": "󰍜",
+    "label": "Menu bar",
+    "title": "Menu bar"
+  },
+  {
+    "id": "style.bar.toggle",
+    "icon": "󰔡",
+    "label": "Show or hide the bar",
+    "action": "~/.config/hypr/scripts/toggles-menu.sh bar"
+  },
+  {
+    "id": "style.bar.position",
+    "icon": "󰤻",
+    "label": "Bar position [UNRESOLVED]",
+    "action": "notify-send 'lmenu' 'TODO: the Quickshell bar has no position setting yet. Add one and point style.bar.position at it.'"
+  },
+  {
+    "id": "style.bar.transparency",
+    "icon": "󰡒",
+    "label": "Bar transparency [UNRESOLVED]",
+    "action": "notify-send 'lmenu' 'TODO: the Quickshell bar has no transparency setting yet.'"
+  },
+  {
+    "id": "style.hyprland",
+    "icon": "󰒓",
+    "label": "Hyprland look and feel",
+    "when": "[[ -f ~/.config/hypr/conf/decorations.lua ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/conf/decorations.lua"
+  },
+  {
+    "id": "style.transparency",
+    "icon": "󰡔",
+    "label": "Toggle window transparency",
+    "action": "~/.config/hypr/scripts/toggle-transparency.sh"
+  },
+  {
+    "id": "style.gaps",
+    "icon": "󰘞",
+    "label": "Toggle window gaps",
+    "action": "~/.config/hypr/scripts/toggle-gaps.sh"
+  },
+
+  // --------------------------------------------------------------- Setup ---
+  {
+    "id": "setup",
+    "icon": "󰒓",
+    "label": "Setup",
+    "title": "Setup",
+    "aliases": ["config", "configure", "settings"]
+  },
+  {
+    "id": "setup.monitors",
+    "icon": "󰍹",
+    "label": "Monitors",
+    "when": "[[ -f ~/.config/hypr/monitors.lua ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/monitors.lua"
+  },
+  {
+    "id": "setup.keybindings",
+    "icon": "󰌌",
+    "label": "Keybindings",
+    "when": "[[ -f ~/.config/hypr/conf/keybinding.conf ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/conf/keybinding.conf"
+  },
+  {
+    "id": "setup.input",
+    "icon": "󰌌",
+    "label": "Input",
+    "when": "[[ -f ~/.config/hypr/hyprland.conf ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/hyprland.conf"
+  },
+  {
+    "id": "setup.workspaces",
+    "icon": "󰕰",
+    "label": "Workspaces",
+    "when": "[[ -f ~/.config/hypr/workspaces.lua ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/workspaces.lua"
+  },
+  {
+    "id": "setup.window-rules",
+    "icon": "󰖯",
+    "label": "Window rules",
+    "when": "[[ -f ~/.config/hypr/conf/window_rules.lua ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/conf/window_rules.lua"
+  },
+  {
+    "id": "setup.autostart",
+    "icon": "󰐊",
+    "label": "Autostart",
+    "when": "[[ -f ~/.config/hypr/conf/autostart.lua ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/conf/autostart.lua"
+  },
+
+  {
+    "id": "setup.network",
+    "icon": "󰖩",
+    "label": "Network",
+    "title": "Network"
+  },
+  {
+    "id": "setup.network.manage",
+    "icon": "󰤨",
+    "label": "Manage connections",
+    "action": "quickshell ipc call network manage"
+  },
+  {
+    "id": "setup.network.dns",
+    "icon": "󰇧",
+    "label": "DNS",
+    "title": "DNS"
+  },
+  {
+    "id": "setup.network.dns.dhcp",
+    "icon": "󰇚",
+    "label": "Automatic (DHCP)",
+    "checked": "! resolvectl status 2>/dev/null | grep -q '1.1.1.1\\|8.8.8.8'",
+    "action": "~/.config/hypr/scripts/network-control dns automatic"
+  },
+  {
+    "id": "setup.network.dns.cloudflare",
+    "icon": "󰅟",
+    "label": "Cloudflare (1.1.1.1)",
+    "checked": "resolvectl status 2>/dev/null | grep -q '1.1.1.1'",
+    "action": "~/.config/hypr/scripts/network-control dns custom '1.1.1.1,1.0.0.1'"
+  },
+  {
+    "id": "setup.network.dns.google",
+    "icon": "󰊭",
+    "label": "Google (8.8.8.8)",
+    "checked": "resolvectl status 2>/dev/null | grep -q '8.8.8.8'",
+    "action": "~/.config/hypr/scripts/network-control dns custom '8.8.8.8,8.8.4.4'"
+  },
+  {
+    "id": "setup.network.dns.custom",
+    "icon": "󰏫",
+    "label": "Custom…",
+    "action": "kitty -e ~/.config/hypr/scripts/network-control nmtui"
+  },
+  {
+    "id": "setup.network.wifi-qr",
+    "icon": "󰐲",
+    "label": "Share Wi-Fi as a QR code",
+    "when": "command -v qrencode >/dev/null && nmcli -t -f TYPE connection show --active | grep -q wireless",
+    "action": "~/.config/hypr/scripts/network-control qr"
+  },
+
+  {
+    "id": "setup.defaults",
+    "icon": "󰓾",
+    "label": "Defaults",
+    "title": "Default applications"
+  },
+  {
+    "id": "setup.defaults.browser",
+    "icon": "󰖟",
+    "label": "Browser",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/mimeapps.list"
+  },
+  {
+    "id": "setup.defaults.editor",
+    "icon": "󰏫",
+    "label": "Editor",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.zshrc"
+  },
+  {
+    "id": "setup.defaults.terminal",
+    "icon": "󰄛",
+    "label": "Terminal",
+    "when": "[[ -f ~/.config/hypr/conf/var.conf ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/conf/var.conf"
+  },
+  {
+    "id": "setup.defaults.mime",
+    "icon": "󰈙",
+    "label": "File associations",
+    "when": "[[ -f ~/.config/mimeapps.list ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/mimeapps.list"
+  },
+  {
+    "id": "setup.defaults.agent",
+    "icon": "󰚩",
+    "label": "Coding agent",
+    "when": "[[ -f ~/.config/ai-agent/config ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/ai-agent/config"
+  },
+
+  {
+    "id": "setup.security",
+    "icon": "󰌾",
+    "label": "Security",
+    "title": "Security"
+  },
+  {
+    "id": "setup.security.yubikey",
+    "icon": "󰌆",
+    "label": "YubiKey",
+    "when": "command -v yubikey-auth >/dev/null",
+    "action": "kitty -e yubikey-auth status"
+  },
+  {
+    "id": "setup.security.lock",
+    "icon": "󰍁",
+    "label": "Lock screen settings",
+    "when": "[[ -f ~/.config/hypr/hyprlock.conf ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/hyprlock.conf"
+  },
+  {
+    "id": "setup.security.idle",
+    "icon": "󰒲",
+    "label": "Idle settings",
+    "when": "[[ -f ~/.config/hypr/hypridle.conf ]]",
+    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/hypridle.conf"
+  },
+
+  {
+    "id": "setup.webapps",
+    "icon": "󰀻",
+    "label": "Web apps",
+    "when": "command -v webapp >/dev/null",
+    "action": "quickshell ipc call webapps toggle"
+  },
+
+  // ------------------------------------------------------------- Install ---
+  {
+    "id": "install",
+    "icon": "󰏗",
+    "label": "Install",
+    "title": "Install",
+    "aliases": ["add", "package"]
+  },
+  {
+    "id": "install.package",
+    "icon": "󰏖",
+    "label": "Package (repo)",
+    "action": "kitty -e sudo pacman -S"
+  },
+  {
+    "id": "install.aur",
+    "icon": "󰣇",
+    "label": "Package (AUR)",
+    "when": "command -v yay >/dev/null",
+    "action": "kitty -e yay -S"
+  },
+  {
+    "id": "install.webapp",
+    "icon": "󰖟",
+    "label": "Web app",
+    "when": "command -v webapp >/dev/null",
+    "action": "quickshell ipc call webapps toggle"
+  },
+  {
+    "id": "install.tui",
+    "icon": "󰅩",
+    "label": "TUI [UNRESOLVED]",
+    "action": "notify-send 'lmenu' 'TODO: no curated TUI list exists in this repo. Add install.tui.* rows in the extensions file.'"
+  },
+
+  {
+    "id": "install.browser",
+    "icon": "󰖟",
+    "label": "Browser",
+    "title": "Install a browser"
+  },
+  {
+    "id": "install.browser.firefox",
+    "icon": "󰈹",
+    "label": "Firefox",
+    "disabled": "pacman -Q firefox >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed firefox"
+  },
+  {
+    "id": "install.browser.chromium",
+    "icon": "󰊯",
+    "label": "Chromium",
+    "disabled": "pacman -Q chromium >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed chromium"
+  },
+  {
+    "id": "install.browser.brave",
+    "icon": "󰖟",
+    "label": "Brave",
+    "disabled": "pacman -Q brave-bin >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed brave-bin"
+  },
+  {
+    "id": "install.browser.zen",
+    "icon": "󰺕",
+    "label": "Zen",
+    "disabled": "pacman -Q zen-browser-bin >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed zen-browser-bin"
+  },
+
+  {
+    "id": "install.terminal",
+    "icon": "󰄛",
+    "label": "Terminal",
+    "title": "Install a terminal"
+  },
+  {
+    "id": "install.terminal.kitty",
+    "icon": "󰄛",
+    "label": "Kitty",
+    "disabled": "pacman -Q kitty >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed kitty"
+  },
+  {
+    "id": "install.terminal.alacritty",
+    "icon": "󰄛",
+    "label": "Alacritty",
+    "disabled": "pacman -Q alacritty >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed alacritty"
+  },
+  {
+    "id": "install.terminal.ghostty",
+    "icon": "󰊠",
+    "label": "Ghostty",
+    "disabled": "pacman -Q ghostty >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed ghostty"
+  },
+  {
+    "id": "install.terminal.wezterm",
+    "icon": "󰄛",
+    "label": "WezTerm",
+    "disabled": "pacman -Q wezterm >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed wezterm"
+  },
+
+  {
+    "id": "install.editor",
+    "icon": "󰏫",
+    "label": "Editor",
+    "title": "Install an editor"
+  },
+  {
+    "id": "install.editor.neovim",
+    "icon": "󰏫",
+    "label": "Neovim",
+    "disabled": "pacman -Q neovim >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed neovim"
+  },
+  {
+    "id": "install.editor.helix",
+    "icon": "󰬐",
+    "label": "Helix",
+    "disabled": "pacman -Q helix >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed helix"
+  },
+  {
+    "id": "install.editor.vscode",
+    "icon": "󰨞",
+    "label": "VS Code",
+    "disabled": "pacman -Q visual-studio-code-bin >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed visual-studio-code-bin"
+  },
+  {
+    "id": "install.editor.zed",
+    "icon": "󰵂",
+    "label": "Zed",
+    "disabled": "pacman -Q zed >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed zed"
+  },
+
+  {
+    "id": "install.service",
+    "icon": "󰒋",
+    "label": "Service",
+    "title": "Install a service"
+  },
+  {
+    "id": "install.service.docker",
+    "icon": "󰡨",
+    "label": "Docker",
+    "disabled": "pacman -Q docker >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed docker docker-compose"
+  },
+  {
+    "id": "install.service.postgresql",
+    "icon": "󰆼",
+    "label": "PostgreSQL",
+    "disabled": "pacman -Q postgresql >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed postgresql"
+  },
+  {
+    "id": "install.service.redis",
+    "icon": "󰑯",
+    "label": "Redis",
+    "disabled": "pacman -Q redis >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed redis"
+  },
+  {
+    "id": "install.service.tailscale",
+    "icon": "󰖂",
+    "label": "Tailscale",
+    "disabled": "pacman -Q tailscale >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed tailscale"
+  },
+
+  {
+    "id": "install.ai",
+    "icon": "󰚩",
+    "label": "AI",
+    "title": "Install an AI tool"
+  },
+  {
+    "id": "install.ai.ollama",
+    "icon": "󰄛",
+    "label": "Ollama",
+    "disabled": "pacman -Q ollama >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed ollama"
+  },
+  {
+    "id": "install.ai.claude-code",
+    "icon": "󰚩",
+    "label": "Claude Code",
+    "disabled": "pacman -Q claude-code >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed claude-code"
+  },
+  {
+    "id": "install.ai.aider",
+    "icon": "󰭹",
+    "label": "Aider",
+    "disabled": "pacman -Q aider-chat >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed aider-chat"
+  },
+
+  {
+    "id": "install.gaming",
+    "icon": "󰊴",
+    "label": "Gaming",
+    "title": "Install a gaming tool"
+  },
+  {
+    "id": "install.gaming.steam",
+    "icon": "󰓓",
+    "label": "Steam",
+    "disabled": "pacman -Q steam >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed steam"
+  },
+  {
+    "id": "install.gaming.lutris",
+    "icon": "󰊴",
+    "label": "Lutris",
+    "disabled": "pacman -Q lutris >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed lutris"
+  },
+  {
+    "id": "install.gaming.mangohud",
+    "icon": "󰍹",
+    "label": "MangoHud",
+    "disabled": "pacman -Q mangohud >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed mangohud"
+  },
+
+  {
+    "id": "install.development",
+    "icon": "󰅩",
+    "label": "Development",
+    "title": "Install a development tool"
+  },
+  {
+    "id": "install.development.git-delta",
+    "icon": "󰊢",
+    "label": "git-delta",
+    "disabled": "pacman -Q git-delta >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed git-delta"
+  },
+  {
+    "id": "install.development.lazygit",
+    "icon": "󰊢",
+    "label": "lazygit",
+    "disabled": "pacman -Q lazygit >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed lazygit"
+  },
+  {
+    "id": "install.development.ripgrep",
+    "icon": "󰈞",
+    "label": "ripgrep",
+    "disabled": "pacman -Q ripgrep >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed ripgrep"
+  },
+  {
+    "id": "install.development.shellcheck",
+    "icon": "󰅩",
+    "label": "shellcheck",
+    "disabled": "pacman -Q shellcheck >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed shellcheck"
+  },
+
+  {
+    "id": "install.style",
+    "icon": "󰉼",
+    "label": "Style",
+    "title": "Install a style tool"
+  },
+  {
+    "id": "install.style.nerd-fonts",
+    "icon": "󰛖",
+    "label": "Nerd Fonts (Symbols)",
+    "disabled": "pacman -Q ttf-nerd-fonts-symbols >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed ttf-nerd-fonts-symbols"
+  },
+  {
+    "id": "install.style.hyprsunset",
+    "icon": "󰖔",
+    "label": "hyprsunset",
+    "disabled": "pacman -Q hyprsunset >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed hyprsunset"
+  },
+  {
+    "id": "install.style.hyprpicker",
+    "icon": "󰸱",
+    "label": "hyprpicker",
+    "disabled": "pacman -Q hyprpicker >/dev/null 2>&1",
+    "action": "kitty -e yay -S --needed hyprpicker"
+  },
+
+  // -------------------------------------------------------------- Remove ---
+  {
+    "id": "remove",
+    "icon": "󰩹",
+    "label": "Remove",
+    "title": "Remove",
+    "aliases": ["uninstall", "delete"]
+  },
+  {
+    "id": "remove.package",
+    "icon": "󰏖",
+    "label": "Package",
+    "action": "kitty -e sudo pacman -Rns"
+  },
+  {
+    "id": "remove.orphans",
+    "icon": "󰗨",
+    "label": "Orphaned packages",
+    "when": "[[ -n $(pacman -Qtdq 2>/dev/null) ]]",
+    "action": "kitty -e bash -c 'sudo pacman -Rns $(pacman -Qtdq); read -rp \"Done. Press enter.\"'"
+  },
+  {
+    "id": "remove.webapp",
+    "icon": "󰖟",
+    "label": "Web app",
+    "when": "command -v webapp >/dev/null",
+    "action": "quickshell ipc call webapps toggle"
+  },
+
+  {
+    "id": "remove.browser",
+    "icon": "󰖟",
+    "label": "Browser",
+    "title": "Remove a browser"
+  },
+  {
+    "id": "remove.browser.firefox",
+    "icon": "󰈹",
+    "label": "Firefox",
+    "when": "pacman -Q firefox >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns firefox"
+  },
+  {
+    "id": "remove.browser.chromium",
+    "icon": "󰊯",
+    "label": "Chromium",
+    "when": "pacman -Q chromium >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns chromium"
+  },
+  {
+    "id": "remove.browser.brave",
+    "icon": "󰖟",
+    "label": "Brave",
+    "when": "pacman -Q brave-bin >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns brave-bin"
+  },
+  {
+    "id": "remove.browser.zen",
+    "icon": "󰺕",
+    "label": "Zen",
+    "when": "pacman -Q zen-browser-bin >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns zen-browser-bin"
+  },
+
+  {
+    "id": "remove.terminal",
+    "icon": "󰄛",
+    "label": "Terminal",
+    "title": "Remove a terminal"
+  },
+  {
+    "id": "remove.terminal.alacritty",
+    "icon": "󰄛",
+    "label": "Alacritty",
+    "when": "pacman -Q alacritty >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns alacritty"
+  },
+  {
+    "id": "remove.terminal.ghostty",
+    "icon": "󰊠",
+    "label": "Ghostty",
+    "when": "pacman -Q ghostty >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns ghostty"
+  },
+  {
+    "id": "remove.terminal.wezterm",
+    "icon": "󰄛",
+    "label": "WezTerm",
+    "when": "pacman -Q wezterm >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns wezterm"
+  },
+
+  {
+    "id": "remove.editor",
+    "icon": "󰏫",
+    "label": "Editor",
+    "title": "Remove an editor"
+  },
+  {
+    "id": "remove.editor.helix",
+    "icon": "󰬐",
+    "label": "Helix",
+    "when": "pacman -Q helix >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns helix"
+  },
+  {
+    "id": "remove.editor.vscode",
+    "icon": "󰨞",
+    "label": "VS Code",
+    "when": "pacman -Q visual-studio-code-bin >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns visual-studio-code-bin"
+  },
+  {
+    "id": "remove.editor.zed",
+    "icon": "󰵂",
+    "label": "Zed",
+    "when": "pacman -Q zed >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns zed"
+  },
+
+  {
+    "id": "remove.service",
+    "icon": "󰒋",
+    "label": "Service",
+    "title": "Remove a service"
+  },
+  {
+    "id": "remove.service.docker",
+    "icon": "󰡨",
+    "label": "Docker",
+    "when": "pacman -Q docker >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns docker"
+  },
+  {
+    "id": "remove.service.postgresql",
+    "icon": "󰆼",
+    "label": "PostgreSQL",
+    "when": "pacman -Q postgresql >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns postgresql"
+  },
+  {
+    "id": "remove.service.redis",
+    "icon": "󰑯",
+    "label": "Redis",
+    "when": "pacman -Q redis >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns redis"
+  },
+  {
+    "id": "remove.service.tailscale",
+    "icon": "󰖂",
+    "label": "Tailscale",
+    "when": "pacman -Q tailscale >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns tailscale"
+  },
+
+  {
+    "id": "remove.ai",
+    "icon": "󰚩",
+    "label": "AI",
+    "title": "Remove an AI tool"
+  },
+  {
+    "id": "remove.ai.ollama",
+    "icon": "󰄛",
+    "label": "Ollama",
+    "when": "pacman -Q ollama >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns ollama"
+  },
+  {
+    "id": "remove.ai.claude-code",
+    "icon": "󰚩",
+    "label": "Claude Code",
+    "when": "pacman -Q claude-code >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns claude-code"
+  },
+
+  {
+    "id": "remove.gaming",
+    "icon": "󰊴",
+    "label": "Gaming",
+    "title": "Remove a gaming tool"
+  },
+  {
+    "id": "remove.gaming.steam",
+    "icon": "󰓓",
+    "label": "Steam",
+    "when": "pacman -Q steam >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns steam"
+  },
+  {
+    "id": "remove.gaming.lutris",
+    "icon": "󰊴",
+    "label": "Lutris",
+    "when": "pacman -Q lutris >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns lutris"
+  },
+  {
+    "id": "remove.gaming.mangohud",
+    "icon": "󰍹",
+    "label": "MangoHud",
+    "when": "pacman -Q mangohud >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns mangohud"
+  },
+
+  {
+    "id": "remove.development",
+    "icon": "󰅩",
+    "label": "Development",
+    "title": "Remove a development tool"
+  },
+  {
+    "id": "remove.development.lazygit",
+    "icon": "󰊢",
+    "label": "lazygit",
+    "when": "pacman -Q lazygit >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns lazygit"
+  },
+  {
+    "id": "remove.development.shellcheck",
+    "icon": "󰅩",
+    "label": "shellcheck",
+    "when": "pacman -Q shellcheck >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns shellcheck"
+  },
+
+  {
+    "id": "remove.style",
+    "icon": "󰉼",
+    "label": "Style",
+    "title": "Remove a style tool"
+  },
+  {
+    "id": "remove.style.hyprsunset",
+    "icon": "󰖔",
+    "label": "hyprsunset",
+    "when": "pacman -Q hyprsunset >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns hyprsunset"
+  },
+  {
+    "id": "remove.style.hyprpicker",
+    "icon": "󰸱",
+    "label": "hyprpicker",
+    "when": "pacman -Q hyprpicker >/dev/null 2>&1",
+    "action": "kitty -e sudo pacman -Rns hyprpicker"
+  },
+
+  // -------------------------------------------------------------- Update ---
+  {
+    "id": "update",
+    "icon": "󰚰",
+    "label": "Update",
+    "title": "Update",
+    "aliases": ["upgrade", "sync"]
+  },
+  {
+    "id": "update.system",
+    "icon": "󰣇",
+    "label": "System packages",
+    "action": "kitty -e bash -c 'yay -Syu; read -rp \"Done. Press enter.\"'"
+  },
+  {
+    "id": "update.pending",
+    "icon": "󰀦",
+    "label": "Show pending updates",
+    "when": "[[ -x ~/.config/hypr/scripts/arch-updates ]]",
+    "action": "kitty -e bash -c '~/.config/hypr/scripts/arch-updates; read -rp \"Press enter.\"'"
+  },
+  {
+    "id": "update.firmware",
+    "icon": "󰢻",
+    "label": "Firmware [UNRESOLVED]",
+    "when": "command -v fwupdmgr >/dev/null",
+    "action": "kitty -e bash -c 'fwupdmgr refresh && fwupdmgr get-updates; read -rp \"Press enter.\"'"
+  },
+  {
+    "id": "update.timezone",
+    "icon": "󰥔",
+    "label": "Timezone",
+    "title": "Timezone",
+    "provider": "timezones"
+  },
+  {
+    "id": "update.theme",
+    "icon": "󰸌",
+    "label": "Regenerate theme output",
+    "when": "[[ -x ~/.local/bin/theme ]]",
+    "action": "~/.local/bin/theme set \"$(~/.local/bin/theme current)\""
+  },
+
+  {
+    "id": "update.hardware",
+    "icon": "󰢻",
+    "label": "Hardware",
+    "title": "Restart hardware services"
+  },
+  {
+    "id": "update.hardware.audio",
+    "icon": "󰕾",
+    "label": "Restart audio",
+    "when": "systemctl --user list-unit-files pipewire.service >/dev/null 2>&1",
+    "action": "systemctl --user restart pipewire pipewire-pulse wireplumber"
+  },
+  {
+    "id": "update.hardware.network",
+    "icon": "󰖩",
+    "label": "Restart networking",
+    "when": "systemctl list-unit-files NetworkManager.service >/dev/null 2>&1",
+    "action": "kitty -e sudo systemctl restart NetworkManager"
+  },
+  {
+    "id": "update.hardware.bluetooth",
+    "icon": "󰂯",
+    "label": "Restart Bluetooth",
+    "when": "systemctl list-unit-files bluetooth.service >/dev/null 2>&1",
+    "action": "kitty -e sudo systemctl restart bluetooth"
+  },
+  {
+    "id": "update.hardware.monitors",
+    "icon": "󰍹",
+    "label": "Re-apply monitor profile",
+    "when": "[[ -x ~/.config/hypr/scripts/auto-monitor-profile.sh ]]",
+    "action": "~/.config/hypr/scripts/auto-monitor-profile.sh --force"
+  },
+
+  {
+    "id": "update.process",
+    "icon": "󰅗",
+    "label": "Process",
+    "title": "Process"
+  },
+  {
+    "id": "update.process.kill-window",
+    "icon": "󰅚",
+    "label": "Force quit a window",
+    "action": "hyprctl kill"
+  },
+  {
+    "id": "update.process.activity",
+    "icon": "󰄨",
+    "label": "Activity monitor",
+    "action": "~/.config/hypr/scripts/btop-float.sh"
+  },
+
+  {
+    "id": "update.config",
+    "icon": "󰒓",
+    "label": "Config",
+    "title": "Config"
+  },
+  {
+    "id": "update.config.reload-hyprland",
+    "icon": "󰚰",
+    "label": "Reload Hyprland config",
+    "action": "hyprctl reload"
+  },
+  {
+    "id": "update.config.reload-shell",
+    "icon": "󰚰",
+    "label": "Reload Quickshell",
+    "when": "command -v quickshell >/dev/null",
+    "action": "quickshell ipc call shell reload || pkill -x quickshell"
+  },
+
+  // --------------------------------------------------------------- About ---
+  {
+    "id": "about",
+    "icon": "󰋼",
+    "label": "About",
+    "title": "About",
+    "aliases": ["info", "system-info"]
+  },
+  {
+    "id": "about.system",
+    "icon": "󰌢",
+    "label": "System summary",
+    "action": "notify-send 'System' \"$(uname -sr)\\n$(hyprctl version | head -n 1)\\nUptime:$(uptime -p | sed 's/^up//')\""
+  },
+  {
+    "id": "about.fastfetch",
+    "icon": "󰣇",
+    "label": "fastfetch",
+    "when": "command -v fastfetch >/dev/null",
+    "action": "kitty -e bash -c 'fastfetch; read -rp \"Press enter.\"'"
+  },
+
+  // -------------------------------------------------------------- System ---
+  {
+    "id": "system",
+    "icon": "󰐥",
+    "label": "System",
+    "title": "System",
+    "aliases": ["power", "session"]
+  },
+  {
+    "id": "system.screensaver",
+    "icon": "󰶐",
+    "label": "Screensaver",
+    "when": "[[ -x ~/.local/bin/ascii-screensaver ]]",
+    "action": "~/.local/bin/ascii-screensaver force"
+  },
+  {
+    "id": "system.screensaver-branding",
+    "icon": "󰏘",
+    "label": "Screensaver logo",
+    "title": "Screensaver logo"
+  },
+  {
+    "id": "system.screensaver-branding.text",
+    "icon": "󰊄",
+    "label": "Edit text logo",
+    "action": "xdg-terminal-exec ~/.local/bin/screensaver-branding text"
+  },
+  {
+    "id": "system.screensaver-branding.image",
+    "icon": "󰋩",
+    "label": "Convert image from clipboard path",
+    "action": "xdg-terminal-exec bash -lc '~/.local/bin/screensaver-branding image \"$(wl-paste)\"'"
+  },
+  {
+    "id": "system.screensaver-branding.reset",
+    "icon": "󰑐",
+    "label": "Reset logo",
+    "action": "~/.local/bin/screensaver-branding reset"
+  },
+  {
+    "id": "system.lock",
+    "icon": "󰍁",
+    "label": "Lock",
+    "when": "command -v hyprlock >/dev/null",
+    "action": "if [[ -x ~/.local/bin/screensaver-lock ]]; then ~/.local/bin/screensaver-lock; else pidof hyprlock || hyprlock --config ~/.config/hypr/hyprlock.conf; fi"
+  },
+  {
+    "id": "system.suspend",
+    "icon": "󰤄",
+    "label": "Suspend",
+    "when": "~/.config/hypr/scripts/toggles-menu.sh status | jq -e '.\"stay-awake\" == \"off\"' >/dev/null",
+    "action": "loginctl lock-session && systemctl suspend"
+  },
+  {
+    "id": "system.hibernate",
+    "icon": "󰒲",
+    "label": "Hibernate",
+    "when": "grep -q disk /sys/power/state 2>/dev/null && [[ -n $(swapon --show --noheadings 2>/dev/null) ]]",
+    "action": "systemctl hibernate"
+  },
+  {
+    "id": "system.logout",
+    "icon": "󰗽",
+    "label": "Logout",
+    "action": "hyprctl dispatch exit"
+  },
+  {
+    "id": "system.reboot",
+    "icon": "󰜉",
+    "label": "Reboot",
+    "action": "systemctl reboot"
+  },
+  {
+    "id": "system.shutdown",
+    "icon": "󰐥",
+    "label": "Shutdown",
+    "action": "systemctl poweroff"
+  }
+]

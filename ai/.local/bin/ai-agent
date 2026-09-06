@@ -15,6 +15,7 @@ Supported agents:
   claude    Claude Code (executable: claude)
   codex     Codex (executable: codex)
   opencode  OpenCode (executable: opencode)
+  t3code    T3 Code (executable: t3code)
 
 Selection precedence:
   1. --agent NAME
@@ -31,6 +32,7 @@ Examples:
   $PROGRAM
   $PROGRAM --agent claude
   $PROGRAM --agent codex -- --help
+  $PROGRAM --agent t3code
 EOF
 }
 
@@ -104,7 +106,8 @@ case $selected_agent in
   claude) executable=claude ;;
   codex) executable=codex ;;
   opencode) executable=opencode ;;
-  *) fail "invalid agent '$selected_agent' (expected: claude, codex, or opencode)" ;;
+  t3code) executable=t3code ;;
+  *) fail "invalid agent '$selected_agent' (expected: claude, codex, opencode, or t3code)" ;;
 esac
 
 command -v "$executable" >/dev/null 2>&1 \

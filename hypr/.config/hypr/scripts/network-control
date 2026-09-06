@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+# NetworkManager backend for the Quickshell network panel.
+#
+# It deliberately never prints Wi-Fi secrets. `qr` writes only an SVG to a
+# mode-0700 runtime directory and returns metadata plus its path.
+set -euo pipefail
+
+nmcli_command=${NMCLI:-nmcli}
+qrencode_command=${QRENCODE:-qrencode}
+curl_command=${CURL:-curl}
+terminal_command=${TERMINAL:-kitty}
+runtime_dir=${XDG_RUNTIME_DIR:-/tmp}/network-panel-$UID
+dry_run=false
+
+if [[ ${1:-} == --dry-run ]]; then
+  dry_run=true
+  shift
+fi
+
+usage() {
+  printf 'usage: %s [--dry-run] {status|scan|wifi|connect|disconnect|dns|ipv4|speed-test|qr|nmtui}\n' "${0##*/}" >&2
+  exit 2
+}
+
+die() {
+  printf 'network-control: %s\n' "$*" >&2
+  exit 1
+}
+
+run() {
+  if "$dry_run"; then
+    printf 'dry-run:'
+    printf ' %q' "$@"
+    printf '\n'
+    return 0
+  fi
+  "$@"
+}
+
+valid_ipv4() {
+  local ip=$1 octet
+  [[ $ip =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || return 1
+  IFS=. read -r -a octets <<<"$ip"
+  for octet in "${octets[@]}"; do
+    (( 10#$octet <= 255 )) || return 1
+  done
+}
+
+valid_dns_list() {
+  local dns=$1 ip
+  [[ -n $dns ]] || return 0
+  for ip in $dns; do valid_ipv4 "$ip" || return 1; done
+}
+
+wifi_iface() {
+  "$nmcli_command" -t -f DEVICE,TYPE device status 2>/dev/null |
+    awk -F: '$2 == "wifi" { print $1; exit }'
+}
+
+active_iface() {
+  local device type state
+  while IFS=: read -r device type state; do
+    if [[ ( $type == wifi || $type == ethernet ) && $state == connected ]]; then
+      printf '%s\n' "$device"
+      return
+    fi
+  done < <("$nmcli_command" -t -f DEVICE,TYPE,STATE device status 2>/dev/null)
+}
+
+active_profile() {
+  local iface=$1 profile
+  profile=$("$nmcli_command" -g GENERAL.CONNECTION device show "$iface" 2>/dev/null | head -n 1 || true)
+  [[ -n $profile && $profile != -- ]] || return 1
+  printf '%s\n' "$profile"
+}
+
+active_wifi_details() {
+  local iface=$1 line signal ssid
+  line=$("$nmcli_command" -t -f IN-USE,SIGNAL,SSID device wifi list ifname "$iface" --rescan no 2>/dev/null | grep '^\\*' | head -n 1 || true)
+  IFS=: read -r _marker signal ssid <<<"$line"
+  printf '%s\t%s\n' "$ssid" "${signal:-0}"
+}
+
+status() {
+  local wifi_enabled iface conn_type state profile ssid signal ip gateway method dns_json dns
+  wifi_enabled=false
+  [[ $("$nmcli_command" -t -f WIFI general status 2>/dev/null | head -n 1) == enabled ]] && wifi_enabled=true
+  iface=$(active_iface || true)
+  conn_type=none
+  state=disconnected
+  profile=""
+  ssid=""
+  signal=0
+  ip=""
+  gateway=""
+  method=""
+  if [[ -n $iface ]]; then
+    conn_type=$("$nmcli_command" -g GENERAL.TYPE device show "$iface" 2>/dev/null | head -n 1 || true)
+    [[ $conn_type == 802-11-wireless ]] && conn_type=wifi
+    [[ $conn_type == 802-3-ethernet ]] && conn_type=ethernet
+    state=connected
+    profile=$(active_profile "$iface" || true)
+    ip=$("$nmcli_command" -g IP4.ADDRESS device show "$iface" 2>/dev/null | head -n 1 | sed 's#/.*##' || true)
+    gateway=$("$nmcli_command" -g IP4.GATEWAY device show "$iface" 2>/dev/null | head -n 1 || true)
+    [[ -n $profile ]] && method=$("$nmcli_command" -g ipv4.method connection show "$profile" 2>/dev/null | head -n 1 || true)
+    if [[ $conn_type == wifi ]]; then
+      IFS=$'\t' read -r ssid signal < <(active_wifi_details "$iface")
+    fi
+  fi
+  dns_json=$("$nmcli_command" -t -f IP4.DNS device show "$iface" 2>/dev/null |
+    sed -n 's/^IP4\.DNS\[[0-9][0-9]*\]://p' | jq -Rsc 'split("\n") | map(select(length > 0))' 2>/dev/null || printf '[]')
+  jq -n \
+    --arg type "$conn_type" --arg iface "$iface" --arg state "$state" \
+    --arg profile "$profile" --arg ssid "$ssid" --arg ip "$ip" --arg gateway "$gateway" \
+    --arg method "$method" --argjson signal "${signal:-0}" --argjson wifiEnabled "$wifi_enabled" \
+    --argjson dns "$dns_json" \
+    '{wifiEnabled:$wifiEnabled, connectionType:$type, interface:$iface, connectionState:$state, profile:$profile, ssid:$ssid, signal:$signal, ipv4:$ip, gateway:$gateway, dns:$dns, ipv4Method:$method}'
+}
+
+scan() {
+  local iface=${1:-$(wifi_iface)}
+  [[ -n $iface ]] || die 'No Wi-Fi adapter is available'
+  run "$nmcli_command" device wifi rescan ifname "$iface" >/dev/null
+  "$nmcli_command" -t -f BSSID,SSID,SIGNAL,SECURITY device wifi list ifname "$iface" --rescan no 2>/dev/null |
+    awk -F: '
+      # BSSID is six octets, so its first 17 characters are fixed even when
+      # NetworkManager emits a colon in an SSID after it.
+      length($0) >= 20 {
+        bssid = substr($0, 1, 17)
+        rest = substr($0, 19)
+        n = split(rest, fields, ":")
+        security = fields[n]
+        signal = fields[n - 1]
+        ssid = substr(rest, 1, length(rest) - length(security) - length(signal) - 2)
+        if (ssid != "") print bssid "\t" ssid "\t" signal "\t" security
+      }' |
+    jq -Rsc 'split("\n") | map(select(length > 0) | split("\t") | {bssid:.[0], ssid:.[1], signal:(.[2] | tonumber), security:.[3]}) | unique_by(.ssid) | sort_by(-.signal)'
+}
+
+wifi() {
+  [[ ${1:-} == on || ${1:-} == off ]] || usage
+  run "$nmcli_command" radio wifi "$1"
+}
+
+connect() {
+  local bssid=${1:-} iface
+  [[ $bssid =~ ^([[:xdigit:]]{2}:){5}[[:xdigit:]]{2}$ ]] || die 'Invalid Wi-Fi access point'
+  iface=$(wifi_iface)
+  [[ -n $iface ]] || die 'No Wi-Fi adapter is available'
+  run "$nmcli_command" device wifi connect "$bssid" ifname "$iface"
+}
+
+disconnect() {
+  local iface=${1:-$(active_iface)}
+  [[ -n $iface ]] || die 'No active network connection'
+  run "$nmcli_command" device disconnect "$iface"
+}
+
+dns() {
+  local mode=${1:-} values=${2:-} profile
+  profile=$(active_profile "$(active_iface)") || die 'No active NetworkManager connection profile'
+  case "$mode" in
+    automatic)
+      run "$nmcli_command" connection modify "$profile" ipv4.dns "" ipv4.ignore-auto-dns no
+      ;;
+    custom)
+      valid_dns_list "$values" && [[ -n $values ]] || die 'DNS must contain one or more IPv4 addresses'
+      run "$nmcli_command" connection modify "$profile" ipv4.dns "$values" ipv4.ignore-auto-dns yes
+      ;;
+    *) usage ;;
+  esac
+  run "$nmcli_command" connection up "$profile"
+}
+
+ipv4() {
+  local mode=${1:-} address=${2:-} prefix=${3:-} gateway=${4:-} dns_servers=${5:-} profile
+  profile=$(active_profile "$(active_iface)") || die 'No active NetworkManager connection profile'
+  case "$mode" in
+    automatic)
+      run "$nmcli_command" connection modify "$profile" ipv4.method auto ipv4.addresses "" ipv4.gateway "" ipv4.dns "" ipv4.ignore-auto-dns no
+      ;;
+    manual)
+      valid_ipv4 "$address" || die 'Invalid IPv4 address'
+      if [[ ! $prefix =~ ^[0-9]{1,2}$ ]] || (( 10#$prefix > 32 )); then
+        die 'Prefix must be between 0 and 32'
+      fi
+      valid_ipv4 "$gateway" || die 'Invalid IPv4 gateway'
+      valid_dns_list "$dns_servers" || die 'Invalid DNS server'
+      run "$nmcli_command" connection modify "$profile" ipv4.method manual ipv4.addresses "$address/$prefix" ipv4.gateway "$gateway" ipv4.dns "$dns_servers" ipv4.ignore-auto-dns yes
+      ;;
+    *) usage ;;
+  esac
+  run "$nmcli_command" connection up "$profile"
+}
+
+speed_test() {
+  "$dry_run" && { printf 'dry-run: speed test uses curl download/upload probes\n'; return; }
+  command -v "$curl_command" >/dev/null 2>&1 || die 'curl is required for the built-in speed test'
+  local down latency upload
+  read -r latency down < <("$curl_command" --fail --location --silent --show-error --connect-timeout 10 --max-time 60 \
+    --output /dev/null --write-out '%{time_connect} %{speed_download}' \
+    'https://speed.cloudflare.com/__down?bytes=10000000') || die 'Download probe failed'
+  upload=$(dd if=/dev/zero bs=1048576 count=2 status=none | "$curl_command" --fail --silent --show-error --connect-timeout 10 --max-time 60 \
+    --output /dev/null --write-out '%{speed_upload}' --request POST --data-binary @- \
+    'https://speed.cloudflare.com/__up') || die 'Upload probe failed'
+  jq -n --argjson pingMs "$(awk -v seconds="$latency" 'BEGIN { print seconds * 1000 }')" \
+    --argjson downloadBps "${down:-0}" --argjson uploadBps "${upload:-0}" \
+    '{pingMs:$pingMs, downloadBps:$downloadBps, uploadBps:$uploadBps}'
+}
+
+escape_qr() {
+  local value=$1
+  value=${value//\\/\\\\}
+  value=${value//;/\\;}
+  value=${value//,/\\,}
+  value=${value//:/\\:}
+  printf '%s' "$value"
+}
+
+qr() {
+  local iface profile ssid key_mgmt security password="" payload output
+  iface=$(active_iface)
+  [[ -n $iface && $("$nmcli_command" -g GENERAL.TYPE device show "$iface" 2>/dev/null | head -n 1) == 802-11-wireless ]] || die 'Connect to Wi-Fi before sharing it'
+  profile=$(active_profile "$iface") || die 'No active Wi-Fi profile'
+  ssid=$("$nmcli_command" -g 802-11-wireless.ssid connection show "$profile" 2>/dev/null | head -n 1 || true)
+  [[ -n $ssid ]] || die 'The active Wi-Fi profile has no SSID'
+  key_mgmt=$("$nmcli_command" -s -g 802-11-wireless-security.key-mgmt connection show "$profile" 2>/dev/null | head -n 1 || true)
+  case "$key_mgmt" in
+    ""|none) security=nopass ;;
+    wpa-psk|sae) security=WPA; password=$("$nmcli_command" -s -g 802-11-wireless-security.psk connection show "$profile" 2>/dev/null | head -n 1 || true); [[ -n $password ]] || die 'NetworkManager did not provide a shareable Wi-Fi secret' ;;
+    wep) security=WEP; password=$("$nmcli_command" -s -g 802-11-wireless-security.wep-key0 connection show "$profile" 2>/dev/null | head -n 1 || true); [[ -n $password ]] || die 'NetworkManager did not provide a shareable Wi-Fi secret' ;;
+    *) die 'Enterprise Wi-Fi networks cannot be safely shared as a password QR code' ;;
+  esac
+  payload="WIFI:T:$security;S:$(escape_qr "$ssid");"
+  [[ $security == nopass ]] || payload+="P:$(escape_qr "$password");"
+  payload+=';'
+  "$dry_run" && { printf 'dry-run: generate Wi-Fi QR for SSID metadata only\n'; return; }
+  command -v "$qrencode_command" >/dev/null 2>&1 || die 'qrencode is required to share Wi-Fi'
+  umask 077
+  install -d -m 700 "$runtime_dir"
+  output="$runtime_dir/wifi.svg"
+  printf '%s' "$payload" | "$qrencode_command" -t SVG -o "$output"
+  chmod 600 "$output"
+  jq -n --arg path "$output" --arg ssid "$ssid" --arg security "$security" '{path:$path, ssid:$ssid, security:$security}'
+}
+
+nmtui() {
+  "$dry_run" && { printf 'dry-run: launch nmtui connect\n'; return; }
+  exec "$terminal_command" -e nmtui connect
+}
+
+case ${1:-} in
+  status) status ;;
+  scan) scan "${2:-}" ;;
+  wifi) wifi "${2:-}" ;;
+  connect) connect "${2:-}" ;;
+  disconnect) disconnect "${2:-}" ;;
+  dns) dns "${2:-}" "${3:-}" ;;
+  ipv4) ipv4 "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" ;;
+  speed-test) speed_test ;;
+  qr) qr ;;
+  nmtui) nmtui ;;
+  *) usage ;;
+esac

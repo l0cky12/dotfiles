@@ -111,7 +111,7 @@ Rules are defined in `hypr/.config/hypr/conf/window_rules.lua`.
 
 | Match | Behavior |
 | --- | --- |
-| Brave browser | opacity 1.0 active, 0.95 inactive, 1.0 fullscreen; workspace 2 |
+| Brave browser | workspace 2; inherits global window opacity |
 | Obsidian | workspace 3 |
 | virt-manager | workspace 6 |
 | `org.kde.neochat` | workspace 7 |

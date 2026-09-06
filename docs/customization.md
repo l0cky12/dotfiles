@@ -75,9 +75,8 @@ bindings that currently call `notificationctl`.
 ## Wallpapers
 
 Set `HYPR_WALLPAPER_DIR` to a durable directory or change the picker default. By
-default, the picker reads `~/Pictures/wallpapers`. The current `Wallpapers/`
-package does not create `~/Wallpapers` under standard Stow semantics; use
-`HYPR_WALLPAPER_DIR` to point the picker at any deployed or separate directory.
+default, the picker reads `~/Pictures/wallpapers`. Deploy the `wallpaper/`
+package there with `stow --target="$HOME/Pictures/wallpapers" wallpaper`.
 
 Theme wallpapers and interactive search are related but separate paths. Update
 the theme asset resolver if a palette should choose a particular image.

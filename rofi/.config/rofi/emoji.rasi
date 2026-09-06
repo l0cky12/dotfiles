@@ -1,9 +1,27 @@
 /**
- * Emoji picker overlay.
+ * Emoji picker overlay — a glyph-only grid with a plain search bar.
  *
- * The active generated theme supplies the palette and shared Comet Glass
- * layout. These overrides give dmenu an emoji-specific prompt and a little
- * more room for searchable names and keywords.
+ * The active generated theme supplies the palette, so this file only overrides
+ * layout. Names and keywords are not drawn: RofiEmoji.sh passes them as rofi's
+ * per-row `meta` option (invisible search terms), which is what lets the grid
+ * show the glyph alone while still matching on "smile", "cat" and so on.
+ *
+ * Two sizing rules matter here, and both were learned the hard way:
+ *
+ *   1. The emoji font must be set on the global `*` block. Rofi estimates a
+ *      row's height from the global font, not from `element` or `element-text`,
+ *      so overriding only those leaves rows 22px tall (JetBrainsMono 12) while
+ *      the glyphs draw 38px and get clipped to about half. `entry` then has to
+ *      name a text font again so the search bar is not laid out for emoji.
+ *
+ *   2. A cell must be wide enough for a whole glyph. Rofi has no theme-level
+ *      ellipsize control, so a glyph that does not fit is ellipsized away and
+ *      the cell renders empty. At 24pt an emoji inks 40x38px, so each of the 8
+ *      columns needs 40px of content plus 12px padding and 2px border = 54px,
+ *      and 58px is used for headroom:
+ *
+ *        width = 8 columns * 58px + 7 gaps * 8px + 2 * 24px window padding
+ *              = 464 + 56 + 48 = 568px
  */
 
 @theme "~/.config/rofi/current-theme.rasi"
@@ -12,32 +30,55 @@ configuration {
     show-icons: false;
 }
 
+/* Rofi estimates row height from the global font. This is the knob that makes
+ * a row tall enough for a whole emoji; the element fonts below only affect how
+ * the glyph itself is drawn. */
+* {
+    font: "Noto Color Emoji 24";
+}
+
 window {
-    width: 48%;
+    width: 576px;
 }
 
 mainbox {
-    children: [ "inputbar", "listview", "message" ];
+    children: [ "inputbar", "listview" ];
 }
 
-textbox-prompt-colon {
-    str: "󰞅";
+/* No prompt colon: the placeholder carries the whole hint, as in a search bar. */
+inputbar {
+    children: [ "entry" ];
 }
 
 entry {
-    placeholder: "Search emoji by name…";
+    font:        "JetBrainsMono Nerd Font 12";
+    placeholder: "Search emojis…";
 }
 
 listview {
-    lines: 10;
+    columns:      8;
+    lines:        7;
+    dynamic:      false;
+    fixed-height: true;
+    scrollbar:    false;
+    spacing:      8px;
 }
 
-message {
-    padding: 2px 6px 0px 6px;
-    background-color: transparent;
+/* Square cells holding nothing but the glyph. The font here is what gives the
+ * row its height; the padding and window width give it room to draw. */
+element {
+    orientation:   horizontal;
+    children:      [ "element-text" ];
+    font:          "Noto Color Emoji 24";
+    padding:       8px 6px;
+    spacing:       0px;
+    border-radius: @radius-row;
 }
 
-textbox {
+element-text {
+    font:             "Noto Color Emoji 24";
+    horizontal-align: 0.5;
+    vertical-align:   0.5;
     background-color: transparent;
-    text-color: @fg2;
+    text-color:       inherit;
 }
