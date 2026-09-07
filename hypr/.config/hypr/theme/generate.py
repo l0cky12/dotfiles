@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tomllib
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -68,7 +69,58 @@ def targets(prefix: Path) -> list[tuple[str, Path]]:
         ("swaync-style.css",          prefix / "swaync/style.css"),
         ("wofi-style.css",            prefix / "wofi/style.css"),
         ("noctalia-colors.json",      prefix / "noctalia/colors.json"),
+        ("greeter-theme.css",         prefix / "greeter/greeter.css"),
+        ("regreet-greeter.toml",      prefix / "greeter/regreet.toml"),
     ]
+
+
+# The greeter CSS/TOML get an extra check beyond "does it parse": did the
+# render actually carry this theme's own colours/flags, rather than some
+# copy-pasted placeholder. Keyed by template name (not suffix) because these
+# checks are specific to these two files, unlike the generic VALIDATORS map.
+
+GREETER_CSS_ROLES = ("accent", "urgent", "muted", "surface")
+GREETER_CSS_MARKERS = (".suggested-action", "infobar.error", "entry")
+
+
+def _rgb_csv(color: str) -> str:
+    r, g, b = tl._rgb(color)
+    return f"{r}, {g}, {b}"
+
+
+def _check_greeter_css(out: Path, theme: tl.Theme) -> None:
+    text = out.read_text()
+    # A role may show up either as a raw "#rrggbb" (bare colour references
+    # like `{{ muted }}`) or as the decimal triplet css_rgba() emits.
+    missing_roles = [
+        r for r in GREETER_CSS_ROLES
+        if theme.colors[r] not in text and _rgb_csv(theme.colors[r]) not in text
+    ]
+    if missing_roles:
+        raise tl.ThemeError(
+            f"{out.name}: rendered CSS does not reference colour role(s) "
+            f"{', '.join(missing_roles)} for theme '{theme.slug}'"
+        )
+    missing_markers = [m for m in GREETER_CSS_MARKERS if m not in text]
+    if missing_markers:
+        raise tl.ThemeError(
+            f"{out.name}: rendered CSS is missing required selector(s) "
+            f"{', '.join(missing_markers)}"
+        )
+
+
+REGREET_TOML_REQUIRED = (
+    ("background", "path"), ("background", "fit"),
+    ("GTK", "application_prefer_dark_theme"), ("GTK", "cursor_theme_name"),
+    ("GTK", "font_name"), ("GTK", "theme_name"),
+)
+
+
+def _check_regreet_toml(out: Path) -> None:
+    data = tomllib.loads(out.read_text())
+    for table, key in REGREET_TOML_REQUIRED:
+        if key not in (data.get(table) or {}):
+            raise tl.ThemeError(f"{out.name}: [{table}] is missing required key '{key}'")
 
 
 def build(theme: tl.Theme, stage: Path, prefix: Path) -> list[tuple[Path, Path]]:
@@ -84,6 +136,10 @@ def build(theme: tl.Theme, stage: Path, prefix: Path) -> list[tuple[Path, Path]]
         validator = tl.VALIDATORS.get(out.suffix)
         if validator:
             validator(out)
+        if name == "greeter-theme.css":
+            _check_greeter_css(out, theme)
+        elif name == "regreet-greeter.toml":
+            _check_regreet_toml(out)
         staged.append((out, dest))
     return staged
 
@@ -289,6 +345,36 @@ def apply_wallpaper(theme: tl.Theme) -> str:
     return path.name
 
 
+# ── Greeter system install ───────────────────────────────────────────────────
+# The only place `theme set` would touch anything outside $HOME. Opt-in via
+# `--install-greeter`: `theme set` is also invoked with no TTY attached (the
+# Quickshell picker, SUPER+T, `theme next`/`previous`), where a sudo password
+# prompt would just hang. Every other caller is unaffected by this default.
+
+GREETER_ETC_TARGETS = (
+    ("greeter/greeter.css", "/etc/greetd/regreet.css"),
+    ("greeter/regreet.toml", "/etc/greetd/regreet.toml"),
+)
+
+
+def install_greeter_to_etc(prefix: Path, dry_run: bool) -> None:
+    commands = [
+        ["sudo", "install", "-m", "644", str(prefix / src), dest]
+        for src, dest in GREETER_ETC_TARGETS
+    ]
+    if dry_run:
+        for cmd in commands:
+            print(DIM("  " + " ".join(cmd)))
+        return
+    for cmd in commands:
+        if subprocess.run(cmd).returncode != 0:
+            print(f"{RED('error')}: failed: {' '.join(cmd)}", file=sys.stderr)
+            return
+    print(GREEN("  installed greeter.css and regreet.toml into /etc/greetd/"))
+    print(DIM("  regreet reads these at greeter startup, not live -- restart "
+              "greetd to apply now: sudo systemctl restart greetd"))
+
+
 def write_state(theme: tl.Theme) -> None:
     """One authority for the active theme, plus a cache mirror so non-Hyprland
     tooling can ask for the mode without parsing TOML."""
@@ -419,6 +505,10 @@ def cmd_set(args: argparse.Namespace) -> int:
         print(DIM("  reloaded: " + ", ".join(done)))
     if deferred:
         print(DIM("  on next launch: " + ", ".join(deferred)))
+
+    if args.install_greeter:
+        install_greeter_to_etc(prefix, args.dry_run)
+
     return 0
 
 
@@ -528,6 +618,8 @@ def cmd_cycle(args: argparse.Namespace) -> int:
     args.slug = slugs[(i + step) % len(slugs)]
     args.no_reload = False
     args.prefix = None
+    args.install_greeter = False
+    args.dry_run = False
     return cmd_set(args)
 
 
@@ -559,6 +651,14 @@ def main(argv: list[str] | None = None) -> int:
     p.set_defaults(wallpaper=False)
     p.add_argument("--prefix", help="render into DIR instead of ~/.config "
                                    "(implies no state write, no reload)")
+    p.add_argument(
+        "--install-greeter", action="store_true",
+        help="also copy rendered greeter.css/regreet.toml into /etc/greetd/ "
+             "via sudo (off by default; a no-op with --prefix)")
+    p.add_argument(
+        "--dry-run", action="store_true",
+        help="with --install-greeter, print the sudo install commands "
+             "instead of running them")
     p.set_defaults(func=cmd_set)
 
     p = sub.add_parser("index", help="machine-readable theme list for the picker")

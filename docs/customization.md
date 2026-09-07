@@ -99,6 +99,7 @@ an explicit package/configuration if they should become repository-controlled.
 | Hyprland config | `hyprctl reload` in the intended live session |
 | Quickshell QML | its file watcher/reload behavior; restart only if necessary |
 | theme palette | theme validation, then `theme set <name>` |
+| greeter (regreet) CSS/TOML | `theme set <name> --install-greeter`, then `sudo systemctl restart greetd` from an unused TTY to apply immediately -- otherwise it applies at next login |
 | Kitty theme | theme tool updates running Kitty where remote control is available |
 | monitor profile | profile helper in a live session, after fixture/dry-run validation |
 | browser extension/manifest | fully close and reopen browser; repair helper if needed |

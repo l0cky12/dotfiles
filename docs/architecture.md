@@ -64,7 +64,8 @@ hypr-theme / generate.py
 themes/<name>/colors.toml
         ↓
 Hyprland, Quickshell, Kitty, Rofi, Hyprlock,
-Wofi, SwayNC, Noctalia, Zsh, Fastfetch
+Wofi, SwayNC, Noctalia, Zsh, Fastfetch, Greeter (regreet;
+reaching /etc/greetd/ needs the separate, opt-in `--install-greeter` step)
 ```
 
 ### Wallpaper search

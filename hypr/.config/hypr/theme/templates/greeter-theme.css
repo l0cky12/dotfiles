@@ -1,0 +1,121 @@
+/* ~/.config/greeter/greeter.css
+ * GENERATED from themes/{{ theme_slug }}/colors.toml -- do not edit.
+ * Theme: {{ theme_name }} ({{ theme_mode }})
+ *
+ * regreet is a plain GTK4 app with a fixed widget layout (see ReGreet's
+ * src/gui/templates.rs) -- there is no per-theme structural change here, only
+ * the palette. The login card and the clock badge share the same `.background`
+ * class, so one rule styles both. No glow: elevation comes from a neutral
+ * shadow tinted by the theme's own `shadow` token, never an accent-colored one.
+ * Reboot/Power Off use GTK's standard `.destructive-action` class and only
+ * turn `urgent` on hover, so they do not read as an error state at rest.
+ */
+
+window {
+  background-color: {{ css_rgba(background, 1.0) }};
+}
+
+.background {
+  background-color: {{ css_rgba(surface, surface_opacity) }};
+  border: {{ border_width }}px solid {{ css_rgba(border_active, 0.55) }};
+  border-radius: {{ radius_panel }}px;
+  box-shadow: 0 {{ max(3, round(shadow_range / 4)) }}px {{ shadow_range }}px 0 {{ css_rgba(shadow, shadow_opacity) }};
+  color: {{ foreground }};
+  padding: 4px;
+}
+
+label {
+  color: {{ foreground }};
+}
+
+#message_label {
+  color: {{ foreground_bright }};
+}
+
+#notif_label {
+  color: {{ muted }};
+}
+
+entry {
+  background-color: {{ css_rgba(surface_alt, min(1.0, surface_opacity + 0.04)) }};
+  border: {{ border_width }}px solid {{ css_rgba(overlay, 0.65) }};
+  border-radius: {{ radius_input }}px;
+  color: {{ foreground_bright }};
+  caret-color: {{ accent }};
+  padding: 6px 10px;
+}
+
+entry:focus-within {
+  border-color: {{ css_rgba(accent, 0.85) }};
+}
+
+entry placeholder {
+  color: {{ muted }};
+}
+
+combobox, combobox button, dropdown, dropdown button {
+  background-color: {{ css_rgba(surface_alt, surface_opacity) }};
+  border: {{ border_width }}px solid {{ css_rgba(overlay, 0.55) }};
+  border-radius: {{ radius_row }}px;
+  color: {{ foreground }};
+}
+
+combobox:focus-within, dropdown:focus-within {
+  border-color: {{ css_rgba(accent, 0.75) }};
+}
+
+button {
+  background-color: {{ css_rgba(surface_alt, surface_opacity) }};
+  border: {{ border_width }}px solid {{ css_rgba(overlay, 0.55) }};
+  border-radius: {{ radius_row }}px;
+  color: {{ foreground }};
+}
+
+button:hover {
+  background-color: {{ css_rgba(mix(surface_alt, accent, 0.12), surface_opacity) }};
+}
+
+button.suggested-action {
+  background-color: {{ css_rgba(accent, 0.92) }};
+  border-color: {{ css_rgba(accent, 0.92) }};
+  color: {{ fg_on(accent) }};
+  font-weight: 600;
+}
+
+button.suggested-action:hover {
+  background-color: {{ css_rgba(accent, 1.0) }};
+}
+
+button.destructive-action {
+  background-color: transparent;
+  border-color: {{ css_rgba(overlay, 0.55) }};
+  color: {{ muted }};
+}
+
+button.destructive-action:hover {
+  background-color: {{ css_rgba(urgent, 0.20) }};
+  border-color: {{ css_rgba(urgent, 0.70) }};
+  color: {{ fg_on(urgent) }};
+}
+
+infobar {
+  background-color: {{ css_rgba(surface_alt, surface_opacity) }};
+  border-radius: {{ radius_row }}px;
+  color: {{ foreground }};
+}
+
+infobar label {
+  color: {{ foreground }};
+}
+
+/* GTK4 sets this class from the InfoBar's message-type automatically; regreet
+ * raises an error-type message on failed authentication. */
+infobar.error {
+  background-color: {{ css_rgba(urgent, 0.22) }};
+  border: {{ border_width }}px solid {{ css_rgba(urgent, 0.70) }};
+}
+
+infobar.error label {
+  color: {{ fg_on(urgent) }};
+  font-weight: 600;
+}

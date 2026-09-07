@@ -2,11 +2,14 @@
   "catppuccin": {
     "accent": "#89b4fa",
     "files": {
+      "greeter-theme.css": "df4cf1f03249ad1a27861a94c11060d8c1b2812508a5a8ef92ee97ffdb431c2b",
       "hyprland-decorations.lua": "9be1dd05aafb9873d961fcf54e043ee4f84855414db7c90670e75f75d79ddb8f",
       "hyprlock-colors.conf": "8ffe1c444ea46708f2e6f88a8664db0164e4fe7898eb88eab0a73008385ade41",
       "kitty-theme.conf": "65a6d3e058d04be29df502f6bd5dcd2403cedae9a7fe4a9077be4054de2619ee",
       "noctalia-colors.json": "c73378f0f605c7d7e83a26bd2134f92c1fd66bcc1a63669d87de7cd389812993",
       "quickshell-theme.json": "fb189500faee9564bdc5723622f97940357e8368d4cdf5f0d170086a2de8d37d",
+      "regreet-greeter.toml": "965e98bdb6c7a92e9b766cd7137a0b0264cd90864dea3d254c82fa76ebf47968",
+      "rofi-powermenu-theme.rasi": "baf7ea21351631925174c2e951139c6133cc2e0d3ae6cde303dcdfdb7bff26d8",
       "rofi-theme.rasi": "e20e169ea51af8bd14136293d121cda23116c1669abce8c3992ef5433d922bad",
       "swaync-style.css": "33f49ac3c861f77484a47e982fa2b5304e1e35e0d0501f7a4619ac082959c929",
       "wofi-style.css": "e550b6c34817d285283638aea7bf0a882ac351758c4d17000167aa024d9d2134",
@@ -18,11 +21,14 @@
   "catppuccin-latte": {
     "accent": "#1e66f5",
     "files": {
+      "greeter-theme.css": "b9a75b02194895a129d3d265e01b7c4b47ef363553449b9178fc7a9e290fae96",
       "hyprland-decorations.lua": "16ef26ad96bb117fd6ad94b640de3673a382e057a6a9fe9e2d2987d911122759",
       "hyprlock-colors.conf": "3dedfb7d303714c9a57230a738fa7b3bfed5b9c4b21f7007745cb771d538df5e",
       "kitty-theme.conf": "45582e73664ba180a9f9a64bd2c98d5797987e81e4b94298fbafa2a5d2462874",
       "noctalia-colors.json": "bde3167595b7b64e9a895a4b42af468faf83303b5b9eb7395f1c0f5560c8384f",
       "quickshell-theme.json": "5d8ce17179f813c536c594e90c3362f8d9771920765c8393a80557d3a6220ed1",
+      "regreet-greeter.toml": "2ae2ddb41533805e37ae9eecd4b7f8ad8fe339e9a8bff156218488b37580a72e",
+      "rofi-powermenu-theme.rasi": "5b294a0a2b42ccdac7ac175a2d7f3ae88197b6bbc40937d2bd10b26f44586c8c",
       "rofi-theme.rasi": "3925f5b896618a29cd592e5fbede86f898c03bb674fd099b4a8264c82c475258",
       "swaync-style.css": "e47ccd0bd93e13c88c922cbb443637e6b4a40858951180a22f78dcc608450040",
       "wofi-style.css": "b7c616eb4403d22265a33943c92fd855e9a82fa0a57d084fd1731e780c00a3df",
@@ -34,11 +40,14 @@
   "cyberpunk-neon": {
     "accent": "#00ffc8",
     "files": {
+      "greeter-theme.css": "32a8df5cc1e7b6a8492327005174520ea9f6f9b56c050b3f8696f0c8f4d61bcc",
       "hyprland-decorations.lua": "70f91271f50aff0f69682ee7e22f3c43cd0847a34d95c45ff381fbbb55caab37",
       "hyprlock-colors.conf": "33d3d03801f143c3e1335a913ecb51ef1f5f00ab3998cfbd12a950ec4c56c2ee",
       "kitty-theme.conf": "a8a4e5520cdf28c3754f12d3cf0ee764773f1c8eb4d8460dd4c630e24bb3da34",
       "noctalia-colors.json": "932da3ff6dab5448ed2bdf7a2431fdd7c412b9052b9327d52b154eaa543d7a39",
       "quickshell-theme.json": "63569e92e7d5d6cb66f0dc759d0f8b1dd0ab1b43222ae996f4a3d1f927a14177",
+      "regreet-greeter.toml": "b136f1e6d9972400ee16ea533ed21bf6e729426a9436f6fc2dd9538d927d49c0",
+      "rofi-powermenu-theme.rasi": "0038115a90793492f94c787a1cd002b9374125427fd52a15f29a01bd6835e19e",
       "rofi-theme.rasi": "1b42a93f4b69484d220371d69b4e449bd0e20bfbef007e45ba0b8657636f5fa5",
       "swaync-style.css": "3e652cb86cb54a7d54657c9a5bd33a9839eb2cb6e3dd8e0af54cd4c84d4c1e1c",
       "wofi-style.css": "082b92566ed13d7be6405c9ccf4ccba587585c303673f532e0f11051ea1b3b98",
@@ -50,11 +59,14 @@
   "ethereal": {
     "accent": "#7d82d9",
     "files": {
+      "greeter-theme.css": "61fedee92ef29e8ed14b598bdf32eea0dea27e5f8140a53a640df5bb63300f38",
       "hyprland-decorations.lua": "a20df8a0c2a4fc10a3fc06b2be4627140e484c4669f033e2b67b3ef5a3100793",
       "hyprlock-colors.conf": "5fc2b60cdb87423db482d7fae727605c8498c0425d0e458af9061ca9bf0b61ec",
       "kitty-theme.conf": "c3e554e1e77fa7985effcf55cee19ef50e74e91bc9c82116364afc38b031d3db",
       "noctalia-colors.json": "2d51d19d24d342011172c2785784266ac4f14a7d986375df5da125f7ff202ddc",
       "quickshell-theme.json": "55efe84f95f43a6d27ce02b10b46b5498f5b3fc6ddc4abb305a899181491afc0",
+      "regreet-greeter.toml": "73e81c6505e0a2f4d867e4045cb8ff1f87b3957c85074971bd288c193ea53bd4",
+      "rofi-powermenu-theme.rasi": "212cdc122baffde6680987507a4e2c53fb3017f6978ade3ab07a63ec2d1500f9",
       "rofi-theme.rasi": "b8b55a4602db3e12ebc689d3d40bbe6e533b5063254fa8b00a596c6eb973bc64",
       "swaync-style.css": "961f94182dde7cdd82676ef1b804fa79c8b4868780076cf37594b369f0534217",
       "wofi-style.css": "b3ea9cbc3f7fef63be83627c02645d498b0c2c4028d382f0eca344b946026315",
@@ -66,11 +78,14 @@
   "everforest": {
     "accent": "#7fbbb3",
     "files": {
+      "greeter-theme.css": "49ac76d3b74b08c7db30f74977d59f48a0eb2f19abd24a07098a21400250dd42",
       "hyprland-decorations.lua": "3424bfc00d23247e4658dd7b9c9b23eafd8a056e41def53d82b155067fbf2381",
       "hyprlock-colors.conf": "0c5f0e4d653e00c7ccaaa2815f76563f7185975f8305da6f1cb8f2bebb5d4e87",
       "kitty-theme.conf": "64c4ceb298936efed932f428671dab9f6d9c0d74df42ee9d35f21b4592735e37",
       "noctalia-colors.json": "eab5e53734363b7455300d8e745527bc73f9aaa72dbc66484b40426522638fd1",
       "quickshell-theme.json": "773f381e9ba3dee1e8b2d05d3b1288314607344f9a724b8ab3e6b5ad45de6ecc",
+      "regreet-greeter.toml": "c5cbb40a5556649e407a72483410a28fbc489222fdee9c84ed7b26976b3b4cf2",
+      "rofi-powermenu-theme.rasi": "d8610949f29c1418c67437ce5754bf5714c464b83620b632c3278193aeba938f",
       "rofi-theme.rasi": "c437372702ef90b55369a698bbec81f1bba825482ad09b3ba2d2c38647b3fecd",
       "swaync-style.css": "8f5309bd3378bc5bf890f350bb58b35fc277520736be20efcbdcbd6b3c4d0bad",
       "wofi-style.css": "28939a3af928d91cbba289e012e967eaa18d8dde3cafe9866866b66096d3b8ca",
@@ -82,11 +97,14 @@
   "flexoki-light": {
     "accent": "#205ea6",
     "files": {
+      "greeter-theme.css": "7e288e8ea67d331207b6e43eeb1650e592ab0421b43bb0e07780aed23fd916a0",
       "hyprland-decorations.lua": "d359b4525a002054fc24d86df33d5549f4367fd38e6057abeb231bdad310aa52",
       "hyprlock-colors.conf": "0149bc5202e6f9163320eeb5a181e16f129d05df75d6a225d4b8275274cd6b91",
       "kitty-theme.conf": "30b98571d503700daa6498047fc3cdc3ea6c2ddafdfe1be735701bb3ac9a860f",
       "noctalia-colors.json": "1404d7081134912016e12bb51c45382cceb51adeb74f172636df70dcf360e3e9",
       "quickshell-theme.json": "b23c5038ce890e89ef2c3b9deb05fee88119740b1c449a5fb52a33ce056eacd5",
+      "regreet-greeter.toml": "da839df1cd924560139e8491a6e4209b15b3e42d405c3003a24c3733dd5f37d3",
+      "rofi-powermenu-theme.rasi": "53975eb1dc532ffaa7fba0e842f38a0c14387c4f4298ebf71e852d448601fd6c",
       "rofi-theme.rasi": "5affc0f3a4bdb016e749c38f5e65f94acaeba68e9e18343eec05c9035e2b58d8",
       "swaync-style.css": "4de262398d699e6ae18513792dc87ddaba216eea7e534f8008306c9ac22a7085",
       "wofi-style.css": "415034ad30a51e992ce586514c19332c0bf54f93deae0ee319860a015cc70344",
@@ -98,11 +116,14 @@
   "gruvbox": {
     "accent": "#7daea3",
     "files": {
+      "greeter-theme.css": "9f47ccd4a748b3091bba512ae48aeb403194f9bef5cddb7e54d84fabf3a3e461",
       "hyprland-decorations.lua": "218005b451a7ad49680c33557aa010033065acb003d48a1c898ad87b5c89755f",
       "hyprlock-colors.conf": "a5473a2c42ab9eafa2cf11ffcc5969b41416118fc4b8a85496f76c72671224ac",
       "kitty-theme.conf": "c25efa5fb349e3302bac89957656023fbd9a2aaa1acbf5748c4664d3d67c84bc",
       "noctalia-colors.json": "5086b1e80b61eac563495cd45a5bb4af400356bbe8791589d6884f0ce4881cdd",
       "quickshell-theme.json": "44535a1aa2a3e47a0774d951ff586cade74e62e56cca6a610bfe6a32c4ad80f1",
+      "regreet-greeter.toml": "1277abe0fcb62a1bfe7964a5ccd4e3ad51438f748a7ca54d5ce0c37ff598dc6a",
+      "rofi-powermenu-theme.rasi": "624e25f0e0a5edd606fa8a75c5783ed1540008552ffa7495ed1cb05d2d5e806f",
       "rofi-theme.rasi": "86b675f1a3dc002418e4630f32c34638170296881ac2bbf35d7c8e3226159ef8",
       "swaync-style.css": "172ccb4c775419937bf5df2584fe15e626a899232e67af99c43fde781145932b",
       "wofi-style.css": "ef5e63fb8219f73c618b4712809a7c6a422176efdd7e25be5bbda0318882ea59",
@@ -114,11 +135,14 @@
   "hackerman": {
     "accent": "#82fb9c",
     "files": {
+      "greeter-theme.css": "e851129eb7ffa50a21032f52782e7fac0132fbec741acba844d0b7072419dcf7",
       "hyprland-decorations.lua": "e2a80039daca033404aff9b5af3247f6198904e42bb1cdcc594ed2e207d3d8db",
       "hyprlock-colors.conf": "11638ee42b26c6239cc8adad5f6582311edf3119a3cdb8363179d736475e84cc",
       "kitty-theme.conf": "f00c859010d21077be4a03f26b454988e8c7b7372fec31522a5c2e8931c6e7f2",
       "noctalia-colors.json": "410324f043fc356879230dc357e5b0a1eee6fc0ce6ca3d2b8b6d7788f501c289",
       "quickshell-theme.json": "c4bbcc4d58a630681a1d46fdf4abdc46af301ee17cacf5deb0b8cd0a7121ab2e",
+      "regreet-greeter.toml": "f277025027a414773199391eca085da89e188bc5b4df04810449453eb2570aa6",
+      "rofi-powermenu-theme.rasi": "3c95cda00e8e3fffe7bb834d2efbb1956bfcb141fdcfd619ce99142adb98e877",
       "rofi-theme.rasi": "8eaf41d5bb27f83ac474cdb70bbf5d9172344afe5e956e271475a42c9b2ebc17",
       "swaync-style.css": "999ffa3a5d268508263ce103393de0aded56e5d69005f71c96a440edbda18cc0",
       "wofi-style.css": "6644d8fa9f2aaf83926615486ce47aac04289a8e40ac89762c1224cfd57035d7",
@@ -130,11 +154,14 @@
   "kanagawa": {
     "accent": "#7e9cd8",
     "files": {
+      "greeter-theme.css": "f762b8f7b7a07e24399a8af50be48d15a1bd410143b4ba3f60d443897fee9c2e",
       "hyprland-decorations.lua": "616fc4900bbc86441ce6fd1174b234e536468ba34ca2da0443eeb8e653da8251",
       "hyprlock-colors.conf": "e7bf555b743d5210d1a5a1807d14112458686e03c497b30e4254142cdbcd1d75",
       "kitty-theme.conf": "7fded62303b94eec0dd59b486879fef3f0cd4d2c6d88bc3349aec4785d4c8749",
       "noctalia-colors.json": "6d2dafebe4a7e0dd77a612173100afcb12d43a7b93bcb6fecd3bd61794637dc5",
       "quickshell-theme.json": "1f7c58b0567affb4bb72ad8205e2e4b490257c8870e62445b2f3bc7def34b9e8",
+      "regreet-greeter.toml": "989e3d9ba7bee4eaaa3cb8a1837ed43d3695ea45cfa92d49f013d1b810593ce2",
+      "rofi-powermenu-theme.rasi": "eb6ce03967ab7949a1c96ebe4c0b09114313e24af921e9ce432449bff1e9a867",
       "rofi-theme.rasi": "b4010ddf4abde6ac4b49f0f82b564871933fc9b6da511dbf38abbbd79596342f",
       "swaync-style.css": "917927c086ad3876bd98f8c7e915c59bcbdffd275597f493e8ec295ee537114f",
       "wofi-style.css": "fa635a87236bc98537f112be28d21ff2c033e1487fc3e110f38ed6a1385984ea",
@@ -146,11 +173,14 @@
   "lumon": {
     "accent": "#38d2ff",
     "files": {
+      "greeter-theme.css": "54c19614f59b2c5b757fe143d8254f14a3f703366aa35206f23ae4b54749ea44",
       "hyprland-decorations.lua": "2aeb82cc1c7cb67c139a7a15aaf12883984d684f8e1202ce26d28eecff7a3407",
       "hyprlock-colors.conf": "c2f19b761b06103e1772f95def49273e6cdbae616a5f2f35b5fef0a61b271331",
       "kitty-theme.conf": "b8eadacd2ffdaefbd21e50ac54a702d6ded3dc5eb6872a325a476bbff039614a",
       "noctalia-colors.json": "cdcf81f300ec4416c7eef3a7894a8790e31d97acc0c644d8f465534a63e6255c",
       "quickshell-theme.json": "ef1358cf25fd056aad8d12943fcc7d3d9de600999c0abf033eaa25634300c52b",
+      "regreet-greeter.toml": "1fcae1a1e7936a109156503c4e4fca2e984f12aa038762a65ad42531a80a1e13",
+      "rofi-powermenu-theme.rasi": "0c34bfe8a0113441319c25acb83473e08fb17ac3362d059247fca70ad86e9a5c",
       "rofi-theme.rasi": "1ace3eb17adc6f3b29f1eecc57bb4e88fb94b7fc52f0465bd885b16e67139743",
       "swaync-style.css": "30b5856f6de91765084481386b2e03b91e400b392d8eea9b4d8bc8e05ddb3899",
       "wofi-style.css": "18302e689c3a7ce83e7da7fbf454557d3a156e3ac6b3f04e50da0eaa98256e6a",
@@ -162,11 +192,14 @@
   "matte-black": {
     "accent": "#e68e0d",
     "files": {
+      "greeter-theme.css": "bde82188119b00977edecfa937efce5f01aa12d522fd56465cc1aa698315e344",
       "hyprland-decorations.lua": "b7a6dd1f22a09ac407ea04c72618a2823a5f724d3b49a3aae0205a5594e91e00",
       "hyprlock-colors.conf": "4f83df673a9b1b767198788c0473927f25a7c1d490041c0d09e037d6438e4655",
       "kitty-theme.conf": "ae07f448be4cbb7798bdba57d7218a302f650c4221d956c5163bd3fa02279251",
       "noctalia-colors.json": "f924f7e16447cbf659d7be5f4a94c1ee3e611b30a502eb26b09fa8644e73c444",
       "quickshell-theme.json": "0bda78a7eaebe4be5c6a5a9824ccfdeaf880896a98c3157d15e6602c163b2ef3",
+      "regreet-greeter.toml": "04a569deefde6e69ac18aad73d0c34701734d9c6dfffe6de8728953c3f5186b4",
+      "rofi-powermenu-theme.rasi": "c16b04aff8148153ead41328dddc1fb5eb65fc2a7b3d070c4e6de458d11f8c34",
       "rofi-theme.rasi": "cda859390a586e8a6e292362475d731ff56bef1ccaacdefefb108adc396d76d3",
       "swaync-style.css": "7b66342c909bef22d543db43c9cdb2e7c689349cfd6e0eefbdf3b1da0c4d7d4e",
       "wofi-style.css": "c46b483cad2dccfda4d95284308f7147728e4fcfd3d0075149152c95f1d2f3dd",
@@ -178,11 +211,14 @@
   "miasma": {
     "accent": "#c9a554",
     "files": {
+      "greeter-theme.css": "9057d54389c1c291691e63e731b319f686a9b1cf0bc9e07e3e48f8d764c2df50",
       "hyprland-decorations.lua": "7ae074313b4c831cf7fb96310213f54339dc8e5370a98200dcd7c99022bb62c5",
       "hyprlock-colors.conf": "f40d4cc546c8101a57d898448adc355813d81a299bf8ade1ec96ae495bc1c09b",
       "kitty-theme.conf": "1ccb7db74316403e64953a24ffb42915dd9b7d9cc2dfd689759aaee0b3ab1274",
       "noctalia-colors.json": "1e6e2dab94797b606e0ae85569b070b01a6679cb04f7eb0626bd9b78eedd35e1",
       "quickshell-theme.json": "f1a6ba924427a05a83a4c68a42590f5d44243126f9a366fe57156f7ba4edfb22",
+      "regreet-greeter.toml": "3a4f986a89c98318fcff4af1843f8bca22ffcaa8845e81b824cd31119574ec6c",
+      "rofi-powermenu-theme.rasi": "3c87d5196abf01a9b24f11e7e64af8e0d372464895b22c67d5649cb83d829f67",
       "rofi-theme.rasi": "a55060af0beedc079068cfa0d23855813c607e698e59daa2a9526b3d12358f2c",
       "swaync-style.css": "3983f71c912cec54661a68a996cca01d890b2ca121cacc34afa3035579ce1b51",
       "wofi-style.css": "35bd32e829dda23ffef90a312522a0689509a41326998fc0055efd8b22f61778",
@@ -194,11 +230,14 @@
   "monochrome-minimal": {
     "accent": "#8ab4f8",
     "files": {
+      "greeter-theme.css": "8a62e3636453a35d04f781a3123fe1f66f429ecef90ce418513163bebb604450",
       "hyprland-decorations.lua": "194419d38c7f5c19f5795c6cccc508b7ff7cb8ab9b622913a646965c88ab9762",
       "hyprlock-colors.conf": "72306b032045eead52631b98e6b3a1ff41451b92f295cd3bcb370761f0f29556",
       "kitty-theme.conf": "cfd309b05858721974b1cd60ec0a1fc392669c72a2920de4a7a6dc5ac9cb9580",
       "noctalia-colors.json": "7459cd9b0ccd47ea6575319fa42128e3697e57661aa011b2fca838b3f45cc1e9",
       "quickshell-theme.json": "68fe14b7b4108040c12b727b433022f9edead7a393508a5ffbeb094e000d0aa0",
+      "regreet-greeter.toml": "7a7082f13c6a1e8cab928d7e96f20c3e6ad070b2a96b81fd71c05407bb77729a",
+      "rofi-powermenu-theme.rasi": "f83af69235ff0248cc8bc79586217f37a5d1d17efe948c468fcea6abe4ccd640",
       "rofi-theme.rasi": "d58b3bc1852da35fa9686c40511e2786489142a152251c4f5c8a72657182ec76",
       "swaync-style.css": "f8e349bed76829bb2e8e1056fae396115f8c5607d3335723af10e1eab8103502",
       "wofi-style.css": "d511732082b5b6ac8a590e65eb1784c43d59aa98e92a681f359df4fa7fc0904c",
@@ -210,11 +249,14 @@
   "nord": {
     "accent": "#81a1c1",
     "files": {
+      "greeter-theme.css": "76759a52898a0b6919b18de3d8054e655400c150e56a5716281ba488ef5c78e0",
       "hyprland-decorations.lua": "4e0630fe695f2264efc49ee6e46ba845bee7ffcee060fb56450c10b652c99bdf",
       "hyprlock-colors.conf": "edb08e4c61df7bfbf50b7921cbbc1f61fb8f06ecd648ce1457b7ffd1f8541006",
       "kitty-theme.conf": "3662f464692f279104b1e45a91cb7f6c4d52b1493dfcdbd13c78d3da748825de",
       "noctalia-colors.json": "12d2f53e8e97bb4832194f036d39dd04972c3ac31b60e2a8e6f001891d20e5be",
       "quickshell-theme.json": "2c1fcd5438e7705bd8a4b8ac6a62284a2fc2e75e1aca7ef0f1b405f092df1344",
+      "regreet-greeter.toml": "edfb886eff51ec275ede407d2e6ee0591277becad0d6552f5a1f95544a67d424",
+      "rofi-powermenu-theme.rasi": "5bd0bac34e5bb693463f667180c6961f80f1b39ab41dcc1880b66673e73b8eb7",
       "rofi-theme.rasi": "335111de897e53f8b856ac1902e712a4c329dc3f0091d2c7563ed392d25bc467",
       "swaync-style.css": "9867d6838d9103215958632459e23eb409db414ebb4de08de801179334951c5b",
       "wofi-style.css": "d0fc8803f99e366d30d66141963bcef9d7e07fded8eb2ab9fc16b37ff73fdad6",
@@ -226,11 +268,14 @@
   "osaka-jade": {
     "accent": "#509475",
     "files": {
+      "greeter-theme.css": "72f328bb5011eaf6b9e3df54d607550e7d052d0c46b9a4c941cd23310c46d0f0",
       "hyprland-decorations.lua": "eb7a4eced73955581b2ce3fbd14ee54f0f2a1ed427fcda39eb757faf285c7ce9",
       "hyprlock-colors.conf": "d01234258f8120a08ace0a8e59b033da182d66eb1cb9bfed9ef590064b0b5202",
       "kitty-theme.conf": "e7d0fc26426da3d437097d61f93c9481b3fddec9d51be882c245d7f9f233f15e",
       "noctalia-colors.json": "fbf9c4f0639128e1d7d7c868b7f897ca3c586bae034161514e42b6f94ba999b5",
       "quickshell-theme.json": "01f95a878b4e7f16fba023d228dc1a6c0d89d80d0dc1806a74b52f4b3d789446",
+      "regreet-greeter.toml": "17564a4b9234a2690d8e4d7ed00381b43002b3b87b76d29708b0a659e0c65dc0",
+      "rofi-powermenu-theme.rasi": "b0e863d8e843e01d88e338c0429178480020232f31c4bbbeab13c7ac22f46347",
       "rofi-theme.rasi": "ece518324045812658a35d75f8f5fc0777077b51259a53d80ee620f31420b3ff",
       "swaync-style.css": "72834f56750641d1accb90af68bfc13c36d67e7fa20f4e9337e409add41d0fa7",
       "wofi-style.css": "cbc1039911282067bfeb51ed55adfe6f364c1c70a51872d9a764c7c9f79f5cee",
@@ -242,11 +287,14 @@
   "retro-82": {
     "accent": "#ffb000",
     "files": {
+      "greeter-theme.css": "8307e906aa88409b636689d14f6ae6dbe036bf5301a8d4393d0688b17f9b4365",
       "hyprland-decorations.lua": "da9662f076ab2413f457307ab4ba2e0ac5ba669f922df59abc5e50f1957dc1c0",
       "hyprlock-colors.conf": "78a414abf2d15a4d1d814464ff7d72f29a605445d1dbbbe1fa740dd3e6e13886",
       "kitty-theme.conf": "fc6705b11e3885c2f97f66f79b08726c69f5241c14d1ddc6bf9a9f4c586821e3",
       "noctalia-colors.json": "91c1711aa3ec0dd5941f16d0f5ee5fe0905e94492d3546b95bb83ecb09ed7a71",
       "quickshell-theme.json": "722f1478334f00ef1d5633b4523f0310967d44ffdad46b97c8324c0f8b5eae24",
+      "regreet-greeter.toml": "8adb1399d51b51cb19a643a7f210b04818cc23f347ae0d167ef54fce96a84c2e",
+      "rofi-powermenu-theme.rasi": "f8a1b275b2973758d2322f13addf0facd4a41cece6bf2a694964ef23395bb77b",
       "rofi-theme.rasi": "cbe45bc31a498f0b2349ff9e6e3696b5c09676fb4985a0e973e0de1f62b60545",
       "swaync-style.css": "bd0012e7fb52240627166a25e8598362d65ae21129469dc03bbf48ac6cd7dfa4",
       "wofi-style.css": "92d06493c3b98d8cbea0f4362f436d7482a7d9386f13266deed7178e18b506ad",
@@ -258,11 +306,14 @@
   "ristretto": {
     "accent": "#f38d70",
     "files": {
+      "greeter-theme.css": "4716c2a8f8217224b4d58fd401f1e39377bbf632c8949b33805e33f7215ace0c",
       "hyprland-decorations.lua": "1675ed635c365ae7570e2897340a3ec5aec7661e206e9e58827cc156903ca91c",
       "hyprlock-colors.conf": "1c6018f94d2b87b40c6683f67098eddb5907606f6285b1244d05530022072cb3",
       "kitty-theme.conf": "882fde96ab286d8a26634e3c43749354dcdca406c8c0c2e244c98e0743a77266",
       "noctalia-colors.json": "8b48ae399bcd15dc19d69bc735285bf12abcffb7d8fc1041882fe1c4968c7f25",
       "quickshell-theme.json": "0d64fde4396cf0569ff0f5cdd278f4eeca5252b378ed1c50e050342522275b95",
+      "regreet-greeter.toml": "6002c7de2cd0ad7271702f9e583c42020d7eb6151be935199b7a515bd6bddb54",
+      "rofi-powermenu-theme.rasi": "499977470f69a7232f6d40cc9146ed84cfd371d38c3e06ec356cfeec4a948310",
       "rofi-theme.rasi": "f87de1d052cf7cf387aa05bbf63e38a9fbddd82fecb3e32ed0a979d62d843cd9",
       "swaync-style.css": "6a64b9189e1d8e3b081406fd638887790841283e2d7be2b1128c888292c15fd0",
       "wofi-style.css": "2c2bc1f7e8d030b72be4391a21003339e3f4ac5ab27af17b2749ea36f38ac247",
@@ -274,11 +325,14 @@
   "rose-pine": {
     "accent": "#9ccfd8",
     "files": {
+      "greeter-theme.css": "7767bd482f46649b45e164fe92c70d45d84920878f51c995895a08ed5d0b4c4e",
       "hyprland-decorations.lua": "0932aa18de4a25f5454e19ee4de428828ee3c159fc95723e7bd4bee96e252d92",
       "hyprlock-colors.conf": "060fe0da7f1f9c0f8d153309e2d6a3aee064e5e4b2fb7ba465aeaae42e1e479e",
       "kitty-theme.conf": "ee0a68390ad62d4deb1d1a360b217aeb91fb7300e742316ff9b4f425e5366050",
       "noctalia-colors.json": "840401c07683f7fb30eefc713530218f44d7f46def0389de8c989991486887f1",
       "quickshell-theme.json": "1be12dab6dd0e496f32c155f2c74bd3f76a00f05916f9672bfb288f45b33e25f",
+      "regreet-greeter.toml": "43fc938309935cd1c9215f96a4cb2ef304c6bb16c9a6f8e332b44ff56ad30a40",
+      "rofi-powermenu-theme.rasi": "83569669fb07e6cf68ab0102ea00a6a073f998e7125d3322855b0778eed04049",
       "rofi-theme.rasi": "4fcd160710190a2fd4725e38ce9618181670482c5c0dbab11703f334c8611689",
       "swaync-style.css": "d9d293d183103a78b60a1368c832be91444f8aa9772708d7f75810a8bd31b72b",
       "wofi-style.css": "858a14895a333c7c5c32472b9528eae82711925e5cca6988286f694b961fc313",
@@ -290,11 +344,14 @@
   "solarized-dark": {
     "accent": "#268bd2",
     "files": {
+      "greeter-theme.css": "48b7e8bb71011e358f2f3f96d125275939a54393afe2cfccea19fe3d0a3cfacb",
       "hyprland-decorations.lua": "563eb3ad726e3facb5929aa0bca489f5981e828a2cb9185a9a931a5c72a4449b",
       "hyprlock-colors.conf": "24d42682f5737f63493052e3a929e5cebe58a1844e013fe9f941ece449e8dd58",
       "kitty-theme.conf": "08ee31be74c9e4def1ac620e4276577144990a7f9640f4227b596c666fbab528",
       "noctalia-colors.json": "da02ff83d8253b526c596d8642918c7ede584ca0ec2921f20bea973785bc1e01",
       "quickshell-theme.json": "33c1a738ebc574cca89934581c92a9f49d38306e8a26c4fb1a83372ce812cf57",
+      "regreet-greeter.toml": "15666a72b18443750ca6f9ea5fba73c4d1e36ab80519b2a8a3851d510b3de4a3",
+      "rofi-powermenu-theme.rasi": "bf307bae49b7e13d1476bb5c3cd566e83c7dd1f4697a4d8371e515b51db7839b",
       "rofi-theme.rasi": "31717e9ffeee5676c179b1eebacc2c3eb69e0a87be0cb1f8bc7a63d9234a0fc7",
       "swaync-style.css": "3434a29d82582b12158fccdac9a497d28419ed740df583126446c45fb1597404",
       "wofi-style.css": "83e903feb25df3c2b56e36e1b9ec9e531742f74c49cf74a891fd5483486350ea",
@@ -306,11 +363,14 @@
   "tokyo-night": {
     "accent": "#7aa2f7",
     "files": {
+      "greeter-theme.css": "d1c6684e1fd8d2147c965c344e66c7ba403e4f5627a59a7ad370859557425d7b",
       "hyprland-decorations.lua": "08a8109929e0fd8d20582d474e9ae0fdd0bfa9befbe1f7891221b2dda53dde08",
       "hyprlock-colors.conf": "6c81966ae1a1fbb7354252ec91069a3f3a482797d64fd1cc215ae1978aa8d005",
       "kitty-theme.conf": "282ba52aac83d688660c7d66ffa44ac973726e0fd4fcfefd1934436d9b634ac8",
       "noctalia-colors.json": "b980a62f90008027fd7ec31abfc9eff194365304d5eae5c76e75f76642f6244e",
       "quickshell-theme.json": "708295291f67b9de44340cf4a05f39fb71c573f920a07ebdc21c984cf1c85fea",
+      "regreet-greeter.toml": "359df62e03064ecb153ed668f6c7ab765cc592c1b46767884927ead51a1971ff",
+      "rofi-powermenu-theme.rasi": "be03ab81f9b0cf5be085b86e267a5cbbfeaeca5bfdc21ba0f900f91a475236df",
       "rofi-theme.rasi": "b73ff5aa4c1d7384058102f98618e34e5eb02de1f97049ffd2ee6041b2e0c446",
       "swaync-style.css": "58873c0d970d6d6032f1ea5f99cf081db46089370d82f4b543e8e21a9fb33f26",
       "wofi-style.css": "d92d85af469a34e4227bbd9c373166cc17d6de7b2e552db9b9222e81afd152fe",
@@ -322,11 +382,14 @@
   "vantablack": {
     "accent": "#6aa2cc",
     "files": {
+      "greeter-theme.css": "28da19a422b14996b1ecbaf456cf93d69d6b94a5e0756ad1f46dd3022526471d",
       "hyprland-decorations.lua": "f410f99222eb9eeb11fb18e9ec57ad556e9e654d4969fc70dd3f246cc5811904",
       "hyprlock-colors.conf": "40756a73945be3c94302b292be39ea4417bb9284b1db5b1fcb20a72e727c962a",
       "kitty-theme.conf": "249c99391a059e879ef37ac2172ceef3342406c302d66f15e2edb0466b267a90",
       "noctalia-colors.json": "6aa813eec2d5af58b993fdeccbbbf1fbec7a7322f780ea74881137d985db9469",
       "quickshell-theme.json": "428c7689bfe927e28d2ccfbeaebe10197581d70a384229019bfe35a4baf86372",
+      "regreet-greeter.toml": "645aeafcff26c3e1b13a6399f203c194c1b7200d08319543c065dca8b0385f39",
+      "rofi-powermenu-theme.rasi": "cc6d8aed363717ba5f3954735a0a5eb04c5970ef441aa281e8c6268e67ee4aa1",
       "rofi-theme.rasi": "7433c3bad2a22d839ba1dc1888bdb6323bcc692ff393cd8afb766e0f038bc0d7",
       "swaync-style.css": "17a5fcc2b73b8dfa47e48e96542e98664e6e800a07f921f82d3aeef1329e2824",
       "wofi-style.css": "0196b1ef9324b964473b1af9e0d0fd6d447d131e0d1686f5cf842ee9f4e0af72",
@@ -338,11 +401,14 @@
   "warm-pastel": {
     "accent": "#f2a7b3",
     "files": {
+      "greeter-theme.css": "15e43d28f558e4bf958c3826e22463842e85bd3ff51148dd4b8b2ae19bf8fd0b",
       "hyprland-decorations.lua": "7e0461506c776c9c3de26f49b3ca375f05fca8ca872a9786c19e78a0f15f46bb",
       "hyprlock-colors.conf": "d7fa7e2d7e17019e5ab85a5006faec7db576f19e5a3dcc6d533c904a6581133c",
       "kitty-theme.conf": "27a9eb8498140a75af5868d2c6c9cdd20655e4d9f39a7d8e99ffb4a6653ede0e",
       "noctalia-colors.json": "e4684cd9850d05978cfc3c588f73ac0914a64408e844328b3ba4b80013e437b3",
       "quickshell-theme.json": "3e3a8de1de4ecd1c30870bf6d84eff90dae9eb69b7b4e506689606c29297d0e8",
+      "regreet-greeter.toml": "c4066f5b3613b5d0069a490ad0f211a710777b63510a0758508c7d20b0d3247c",
+      "rofi-powermenu-theme.rasi": "d4bb2fa5e262ab0514215316426394d96f6cc82ebc5a176331c53d67e81ece0b",
       "rofi-theme.rasi": "ed696127e9750a87ff6f43566c2c8708ac7b3030cd4bd7d99acdad25ebc97efa",
       "swaync-style.css": "24a1b8228108978a8aac741ea351ba3eb07925b1919fcfc30367e03a6da2d45e",
       "wofi-style.css": "bebe2a596db2ddc553e4490db4ddf37354b635822a69ca63621a3a754f7d732a",
@@ -354,11 +420,14 @@
   "windows-7": {
     "accent": "#4fc3f7",
     "files": {
+      "greeter-theme.css": "fce429cadbd94916cd50f0adef9bf1fa3cefd33a3692da7551cd35cc58688989",
       "hyprland-decorations.lua": "e4b37532c884e3d72044d6a3260d7046e4da12ff67390cb43a84ee2bbef9e77c",
       "hyprlock-colors.conf": "96307094fa59c3634f5ecb67d993066ab6c0038b87833736a15d0255d1448d07",
       "kitty-theme.conf": "552a0912e16833504de6bbd2c6b5f0bfdb852d21915a1cf87615a70972059133",
       "noctalia-colors.json": "cf7410b53ce93920f111c61ce95f18adecff96311dd8ead8599c6b5f2a8ab7d5",
       "quickshell-theme.json": "fd0273dbed000d51a7668dc367bf7dd3924c8f775ea937497d347561766b9037",
+      "regreet-greeter.toml": "b3d4a60dffc30ad9836022c052591372799c8fa29441eca480f8d577a9a3b365",
+      "rofi-powermenu-theme.rasi": "b675cb10663d2ae302e280bd442aef898a244e612897c90e3d1b889148a6ebb0",
       "rofi-theme.rasi": "4f321f0e4a8969f0c8eb125f049ded6552eac411533f9bb4bba2db4bf38a4a2f",
       "swaync-style.css": "a1088203ac305522c08ada0e74e0e6a28b2297002b18f96b83f39ef1da0c8edf",
       "wofi-style.css": "9b36eef2e7d7b5c1064eecb57236ff2a95a6b533ab2104e396534a06ff6f1f98",

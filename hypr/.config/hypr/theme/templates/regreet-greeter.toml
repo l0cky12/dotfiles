@@ -1,0 +1,25 @@
+# ~/.config/greeter/regreet.toml
+# GENERATED from themes/{{ theme_slug }}/colors.toml -- do not edit.
+# Theme: {{ theme_name }} ({{ theme_mode }})
+#
+# `theme set <slug>` renders this into ~/.config/greeter/regreet.toml. regreet
+# never reads it from there directly -- installing it into /etc/greetd/ is a
+# separate, root-owned step. See greeter/README.md.
+
+[background]
+# Empty when this theme has no wallpaper asset under wallpaper/theme/ (see
+# `theme index`); regreet falls back to its own default background in that
+# case rather than failing to start.
+path = "{{ theme_wallpaper_path }}"
+fit = "Cover"
+
+[GTK]
+application_prefer_dark_theme = {{ on(is_dark) }}
+# Cursor/icon/GTK theme names are not tracked per-palette anywhere else in this
+# repo (see docs/themes.md, Fonts/icons/cursors) -- these are fixed, installed
+# defaults, not derived from colors.toml.
+cursor_theme_name = "Adwaita"
+cursor_blink = true
+font_name = "JetBrainsMono Nerd Font 11"
+icon_theme_name = "Adwaita"
+theme_name = "Adwaita"

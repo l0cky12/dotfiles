@@ -46,6 +46,7 @@ A theme selection renders coordinated output for:
 | Wofi | `wofi/.config/wofi/style.css` |
 | Noctalia | generated colors/scheme data |
 | Fastfetch | configured `keyColor` |
+| Greeter (regreet) | `greeter/.config/greeter/{greeter.css,regreet.toml}` -- a further, opt-in `theme set --install-greeter` root-owned copy is required to reach `/etc/greetd/`; see `greeter/README.md` |
 
 The generator also synchronizes relevant Noctalia settings and scheme metadata.
 
@@ -98,7 +99,12 @@ directory; see [Wallpaper](./components.md#wallpaper).
 - Hyprland sets XCursor and Hyprcursor size to 24, but the cursor theme itself
   could not be determined from the tracked configuration.
 - GTK/Qt theme selection is not defined by a dedicated tracked GTK, Qt, or
-  Kvantum package. It could not be determined from this repository.
+  Kvantum package for the interactive desktop. It could not be determined from
+  this repository.
+- The regreet greeter is the one exception: `regreet-greeter.toml` sets a
+  fixed GTK theme/icon/cursor name (`Adwaita`) and font, since regreet needs
+  *some* value and none of those are tracked per-palette elsewhere. Only
+  `application_prefer_dark_theme` follows the active theme's `mode`.
 
 ## Adding or changing a palette
 

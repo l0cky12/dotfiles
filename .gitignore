@@ -20,6 +20,8 @@ swaync/.config/swaync/style.css
 wofi/.config/wofi/style.css
 noctalia/.config/noctalia/colors.json
 noctalia/.config/noctalia/colorschemes/
+greeter/.config/greeter/greeter.css
+greeter/.config/greeter/regreet.toml
 
 # ── Generated monitor/workspace state ─────────────────────────────────────────
 # Sources of truth are hypr/.config/hypr/monitor_profiles/<profile>.*.lua.

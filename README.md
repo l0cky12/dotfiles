@@ -35,7 +35,7 @@ contents into `~`.
 **Deploy everything at once:**
 
 ```bash
-stow ai browser cliphist fastfetch hypr hyprlock kitty modes noctalia quickshell \
+stow ai browser cliphist fastfetch greeter hypr hyprlock kitty modes noctalia quickshell \
      rofi screensaver security swaync systemd windows wallpaper wofi xdg zsh
 ```
 

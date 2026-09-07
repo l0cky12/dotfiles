@@ -475,6 +475,8 @@ def namespace(theme: Theme) -> dict[str, object]:
     ns["theme_description"] = theme.description
     ns["theme_family"] = theme.family
     ns["theme_wallpaper"] = theme.wallpaper or ""
+    resolved_wallpaper = resolve_wallpaper(theme.wallpaper)
+    ns["theme_wallpaper_path"] = str(resolved_wallpaper) if resolved_wallpaper else ""
     ns["is_dark"] = theme.is_dark
 
     # Derived structural tokens. Computed here rather than as template
@@ -663,6 +665,13 @@ def validate_lua(path: Path) -> None:
         )
 
 
+def validate_toml(path: Path) -> None:
+    try:
+        tomllib.loads(path.read_text())
+    except tomllib.TOMLDecodeError as exc:
+        raise ThemeError(f"{path.name}: generated TOML is invalid: {exc}") from None
+
+
 VALIDATORS = {
     ".json": validate_json,
     ".css": validate_css,
@@ -670,6 +679,7 @@ VALIDATORS = {
     ".rasi": validate_rasi,
     ".zsh": validate_zsh,
     ".lua": validate_lua,
+    ".toml": validate_toml,
 }
 
 

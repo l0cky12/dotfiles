@@ -223,7 +223,16 @@ unknown browsers fail with a notification instead of opening a normal window.
 
 Selection updates generated files and live applications while preserving the
 current wallpaper. Pass `--wallpaper` to explicitly apply the selected theme's
-wallpaper. See [Themes](./themes.md).
+wallpaper. Pass `--install-greeter` (optionally with `--dry-run`) to also copy
+the rendered regreet CSS/TOML into `/etc/greetd/` via `sudo`; this is separate
+from every other reload because it is the only case where the theme tool
+needs root, so it is never run implicitly by the picker or keybindings. See
+[Themes](./themes.md).
+
+`system/greetd/install.sh` (dry-run by default; `--apply` to act) deploys
+`system/greetd/config.toml` to `/etc/greetd/config.toml`, the greetd-level
+config that points at the regreet greeter. See
+[Installation](./installation.md#greetd-session-entrypoint).
 
 ## Notification and web-app tools
 

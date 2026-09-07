@@ -37,6 +37,9 @@ can run without it, but that feature cannot.
 | `bluez-utils` | configured Bluetooth widget | `bluetoothctl` |
 | `iputils` | dashboard/network checks | `ping` |
 | polkit provider | NetworkManager authorization | persistent DNS and IPv4 profile changes when the active policy requires confirmation |
+| `greetd` | display manager, already installed/enabled on this machine | login; `system/greetd/config.toml` |
+| `greetd-regreet` | themed GTK4 greeter | `[default_session]` in `system/greetd/config.toml` |
+| `greetd-tuigreet` | rescue greeter | manual fallback via `/etc/greetd/config.toml.pre-regreet`, see `greeter/README.md` |
 
 The system also needs a working Wayland session, D-Bus user bus, font stack, PAM
 Hyprlock service, and ordinary core utilities (`bash`, `sh`, `realpath`, `flock`,
