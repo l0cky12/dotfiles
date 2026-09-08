@@ -8,7 +8,7 @@ targets below `$HOME`.
 | Goal | Edit |
 | --- | --- |
 | change terminal/file manager/disk utility | `hypr/.config/hypr/conf/variables.lua` |
-| change browser binding | literal `brave` command in `hypr/.config/hypr/conf/keybindings.lua` |
+| change browser binding | literal `helium-browser` command in `hypr/.config/hypr/conf/keybindings.lua` |
 | change main modifier or shortcuts | `hypr/.config/hypr/conf/keybindings.lua` |
 | add startup programs | `hypr/.config/hypr/conf/autostart.lua` |
 | change app workspace assignments | `hypr/.config/hypr/conf/window_rules.lua` |
@@ -25,10 +25,10 @@ targets below `$HOME`.
 
 ## Applications
 
-`terminal`, `file_manager`, and `disks` are variables. `browser` is declared
-but the active `SUPER+W` binding and autostart use `brave` explicitly, so update
-all intended browser references. Browser extensions also require browser-specific
-flag/native-host installation.
+`terminal`, `file_manager`, and `disks` are variables. `browser` is declared,
+but the active `SUPER+W` binding and autostart use `helium-browser` explicitly,
+so update all intended browser references. Browser extensions also require
+browser-specific flag/native-host installation.
 
 When changing an autostarted application's workspace, update both the startup
 line's requested workspace and any matching window rule if both exist.

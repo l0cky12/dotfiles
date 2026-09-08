@@ -15,11 +15,11 @@ entry point for a fresh login.
 | --- | --- | --- |
 | `scripts_dir` | `/home/liam/.config/hypr/scripts` | script bindings and startup |
 | `terminal` | `kitty` | terminal bindings |
-| `browser` | `brave` | declared browser preference |
+| `browser` | `brave` | declared browser preference (not used by the active binding/autostart) |
 | `file_manager` | `nautilus` | file-manager bindings |
 | `disks` | `gnome-disks` | disk utility binding |
 
-The current browser binding invokes `brave` literally rather than using
+The current browser binding invokes `helium-browser` literally rather than using
 `browser`. Changing the variable alone therefore does not change `SUPER+W`.
 
 ## Monitors
@@ -85,7 +85,7 @@ functional grouping rather than a guaranteed serial timeline.
 | `desktop-mode daemon` | session mode expiry and backend reconciliation |
 | `spotify-notify.sh` | player change notifications |
 | `hypr-monitor-watch.py` | listen for monitor hotplug on socket2, reapply the profile |
-| `brave` | browser, assigned to workspace 2 |
+| `helium-browser` | browser, assigned to workspace 2 |
 | `spotify` | music application, assigned to workspace 9 |
 | `virt-manager` | VM manager, assigned to workspace 6 |
 | `hermes` | application assigned to workspace 6 |

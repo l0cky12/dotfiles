@@ -281,8 +281,8 @@ as part of the active shell without intentionally switching shells.
 
 `xdg/.config/mimeapps.list` assigns Helium as the default HTTP/HTML handler,
 Nautilus for directories, imv for images, mpv for video, Zathura for PDFs, and a
-custom Kitty/Neovim desktop entry for text/code types. This differs from the
-Hyprland browser binding, which launches Brave. The desktop entry is tracked at
+custom Kitty/Neovim desktop entry for text/code types. This matches the Hyprland
+browser binding and autostart, which launch Helium. The desktop entry is tracked at
 `xdg/.local/share/applications/nvim-kitty.desktop`. The MIME file also delegates
 Packet Tracer file/protocol types and `t3code`/`claude-cli` URL schemes to
 externally installed desktop entries; those applications are not supplied here.

@@ -30,7 +30,7 @@ opened with `SUPER+K`.
 | `SUPER+A` | application launcher | installed desktop applications; `Tab` cycles launcher modes |
 | `SUPER+SHIFT+A` | quick search | windows, apps, commands, reboot, and shutdown; `Tab` cycles modes |
 | `SUPER+ALT+A` | web-app manager | Quickshell web-app panel |
-| `SUPER+W` | browser | `brave` |
+| `SUPER+W` | browser | `helium-browser` |
 | `SUPER+ALT+W` | Windows VM | start/connect through `windows-vm launch` |
 | `SUPER+CTRL+ALT+W` | stop Windows VM | graceful stop through `windows-vm stop` |
 | `SUPER+SHIFT+ALT+W` | private browser window | XDG default browser's declared private action |

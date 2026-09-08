@@ -49,7 +49,8 @@ Hyprlock service, and ordinary core utilities (`bash`, `sh`, `realpath`, `flock`
 
 | Command | Role / binding |
 | --- | --- |
-| `brave` | `SUPER+W`, browser autostart, browser extensions |
+| `helium-browser` | `SUPER+W`, browser autostart |
+| `brave` | browser extensions |
 | XDG default browser (currently Helium via `helium.desktop`) | `SUPER+SHIFT+ALT+W` private-window launcher |
 | `nautilus` | `SUPER+E`, file-manager helpers |
 | `gnome-disks` | `SUPER+SHIFT+D` |
@@ -66,8 +67,8 @@ Hyprlock service, and ordinary core utilities (`bash`, `sh`, `realpath`, `flock`
 | `imv`, `mpv`, Zathura, Neovim | XDG MIME handlers |
 | Cisco Packet Tracer, T3 Code, Claude Code handlers | externally referenced XDG file/URL handlers |
 
-Helium and Brave serve different configured roles: Helium is the MIME default,
-while Brave is the Hyprland binding/autostart browser.
+Helium is the MIME default and Hyprland binding/autostart browser. Brave remains
+supported by the browser-extension tooling.
 
 ## Feature-specific dependencies
 
