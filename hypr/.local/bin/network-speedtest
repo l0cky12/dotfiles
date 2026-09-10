@@ -1,23 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+stream_json=0
+case ${1:-} in
+  "") ;;
+  --stream-json) stream_json=1 ;;
+  *)
+    printf 'usage: %s [--stream-json]\n' "${0##*/}" >&2
+    exit 2
+    ;;
+esac
+
 readonly api_url='https://api.fast.com/netflix/speedtest/v2?token=YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm&urlCount=3'
 readonly phase_seconds=5
 readonly worker_count=8
 readonly upload_bytes=$((64 * 1024 * 1024))
 worker_pids=()
 
-notify() {
-  local urgency=$1 title=$2 message=$3
-  command -v notify-send >/dev/null 2>&1 &&
-    notify-send --app-name=network-speedtest --urgency="$urgency" "$title" "$message" ||
-    true
-}
-
 die() {
   printf 'network-speedtest: %s\n' "$1" >&2
-  notify critical 'Network speed test failed' "$1"
   exit 1
+}
+
+emit_sample() {
+  ((stream_json)) || return 0
+  printf '{"phase":"%s","mbps":%s}\n' "$1" "$2"
 }
 
 # Stop every active curl. Upload producers exit on SIGPIPE when their curl is
@@ -77,11 +84,23 @@ read_counter() {
 }
 
 mbps() {
-  awk -v before="$1" -v after="$2" -v seconds="$phase_seconds" '
+  awk -v before="$1" -v after="$2" -v seconds="${3:-$phase_seconds}" '
     BEGIN {
       if (after < before) exit 1
       printf "%.1f", (after - before) * 8 / seconds / 1000000
     }'
+}
+
+stream_phase() {
+  local phase=$1 counter=$2 previous=$3 current rate
+  for ((second = 1; second <= phase_seconds; second++)); do
+    sleep 1
+    current=$(read_counter "$counter")
+    rate=$(mbps "$previous" "$current" 1) ||
+      die "the ${phase} counter reset during the test"
+    emit_sample "$phase" "$rate"
+    previous=$current
+  done
 }
 
 # Interface counters include all host traffic during the sample. Queue repeated
@@ -97,7 +116,7 @@ for ((worker = 0; worker < worker_count; worker++)); do
   curl "${curl_args[@]}" &
   worker_pids+=("$!")
 done
-sleep "$phase_seconds"
+stream_phase download "$rx_counter" "$download_before"
 download_after=$(read_counter "$rx_counter")
 stop_workers
 download_mbps=$(mbps "$download_before" "$download_after") ||
@@ -114,7 +133,7 @@ for ((worker = 0; worker < worker_count; worker++)); do
       "${urls[worker % ${#urls[@]}]}" &
   worker_pids+=("$!")
 done
-sleep "$phase_seconds"
+stream_phase upload "$tx_counter" "$upload_before"
 upload_after=$(read_counter "$tx_counter")
 stop_workers
 upload_mbps=$(mbps "$upload_before" "$upload_after") ||
@@ -122,5 +141,9 @@ upload_mbps=$(mbps "$upload_before" "$upload_after") ||
 
 result=$(printf 'Interface: %s\nDownload: %s Mbps\nUpload: %s Mbps' \
   "$iface" "$download_mbps" "$upload_mbps")
-printf '%s\n' "$result"
-notify normal 'Network speed test' "$result"
+if ((stream_json)); then
+  printf '{"phase":"complete","download":%s,"upload":%s}\n' \
+    "$download_mbps" "$upload_mbps"
+else
+  printf '%s\n' "$result"
+fi

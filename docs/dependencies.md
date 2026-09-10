@@ -74,11 +74,10 @@ supported by the browser-extension tooling.
 ### Network speed test
 
 `network-speedtest` requires Bash, `curl`, `jq`, `awk` from Arch's `gawk`
-package, and `ip` from `iproute2`. `libnotify` supplies the optional
-`notify-send` result notification.
+package, and `ip` from `iproute2`.
 
 ```bash
-paru -S --needed curl jq gawk iproute2 libnotify
+paru -S --needed curl jq gawk iproute2
 ```
 
 ### Capture

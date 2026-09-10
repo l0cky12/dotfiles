@@ -34,6 +34,9 @@ Scope {
     function manage(): void {
       NetworkState.togglePanel(bar.focusedScreen())
     }
+    function speedTest(): void {
+      NetworkState.runSpeedTest(bar.focusedScreen())
+    }
   }
 
   IpcHandler {
@@ -185,6 +188,15 @@ Scope {
     model: Quickshell.screens
 
     CavaEdgeVisualizer {
+      required property var modelData
+      output: modelData
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+
+    SpeedTestOverlay {
       required property var modelData
       output: modelData
     }

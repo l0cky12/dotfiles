@@ -69,19 +69,13 @@ cat >"$test_root/bin/sleep" <<'SH'
 /usr/bin/sleep 0.1
 SH
 
-cat >"$test_root/bin/notify-send" <<'SH'
-#!/usr/bin/env bash
-printf '%s\n' "$*" >>"$NOTIFICATIONS"
-SH
-
 chmod +x "$test_root/bin/"*
 
 export CURL_CALLS="$test_root/curl.calls"
 export COUNTER_STATE="$test_root/counters"
-export NOTIFICATIONS="$test_root/notifications"
 
 run() {
-  CURL_API_FAIL="${CURL_API_FAIL:-}" PATH="$test_root/bin:/usr/bin" "$script"
+  CURL_API_FAIL="${CURL_API_FAIL:-}" PATH="$test_root/bin:/usr/bin" "$script" "$@"
 }
 
 output=$(run)
@@ -94,8 +88,16 @@ grep -Fq 'Upload: 50.0 Mbps' <<<"$output" || fail 'upload calculation is wrong'
   fail 'upload did not POST /dev/zero with curl data mode'
 grep -Fqx 'api:https://api.fast.com/netflix/speedtest/v2?token=YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm&urlCount=3' \
   "$CURL_CALLS" || fail 'fast.com API parameters changed'
-grep -Fq 'Download: 100.0 Mbps' "$NOTIFICATIONS" ||
-  fail 'result notification was not sent'
+! grep -Fq 'notify-send' "$script" || fail 'network speed test still sends notifications'
+
+: >"$CURL_CALLS"
+rm -f "$COUNTER_STATE"/*
+stream=$(run --stream-json)
+jq -se 'length == 11
+  and (map(select(.phase == "download")) | length == 5)
+  and (map(select(.phase == "upload")) | length == 5)
+  and .[10].phase == "complete"' <<<"$stream" >/dev/null ||
+  fail 'stream mode did not emit live download and upload samples'
 
 if CURL_API_FAIL=1 run >"$test_root/failure.out" 2>"$test_root/failure.err"; then
   fail 'HTTP 403 did not fail'

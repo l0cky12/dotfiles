@@ -107,20 +107,20 @@ and all commands.
 `network-speedtest` resolves the active interface through `ip route`, runs eight
 parallel fast.com transfers for five seconds in each direction, and calculates
 Mbps from the interface's kernel byte counters. It prints the interface,
-download speed, and upload speed to stdout and sends the same result through
-`notify-send` when a notification service is available.
+download speed, and upload speed to stdout. The Quickshell entry points stream
+each one-second sample into a full-screen, themed gauge overlay.
 
-`SUPER+ALT+T` runs the test. `SUPER+SHIFT+T` remains assigned to OCR. The tool is
-part of the `hypr` Stow package and does not call Omarchy, QML, or Quickshell IPC.
+`SUPER+ALT+T`, the Quickbar network panel, and lmenu run the overlay.
+`SUPER+SHIFT+T` remains assigned to OCR. The tool is part of the `hypr` Stow
+package. Press Escape to close the overlay; use Run again after a test finishes.
 
 Install its Arch dependencies with:
 
 ```bash
-paru -S --needed curl jq gawk iproute2 libnotify
+paru -S --needed curl jq gawk iproute2
 ```
 
-`gawk` provides `awk`, while `libnotify` provides `notify-send`. Notifications
-are optional because the result is always printed.
+`gawk` provides `awk`.
 
 The fast.com token is public and hardcoded. Netflix can rotate or restrict it,
 which may make the API return HTTP 403. That is a known fragility of the

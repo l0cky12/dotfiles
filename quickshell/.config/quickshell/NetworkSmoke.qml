@@ -22,6 +22,13 @@ Scope {
     check("keeps the most specific backend error line",
       NetworkState.backendError("Error: some nmcli noise\nnetwork-control: NetworkManager authorization was cancelled or denied\n") === "NetworkManager authorization was cancelled or denied")
     check("reports no error for empty backend output", NetworkState.backendError("\n  \n") === "")
+    NetworkState.connType = "wifi"
+    NetworkState.ssid = "Smoke Wi-Fi"
+    check("uses the SSID as the Wi-Fi speed-test label",
+      NetworkState.speedTestLabel() === "Smoke Wi-Fi")
+    NetworkState.handleSpeedTestLine('{"phase":"download","mbps":59}')
+    check("accepts download samples", NetworkState.downloadMbps === 59
+      && NetworkState.downloadPeakMbps >= 59)
   }
   Timer {
     interval: 300; running: true

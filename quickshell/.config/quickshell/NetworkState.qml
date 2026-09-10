@@ -13,6 +13,16 @@ Singleton {
   property bool scanning: false
   property bool applying: false
   property bool qrLoading: false
+  property bool speedTestRunning: false
+  property bool speedTestVisible: false
+  property bool speedTestCancelled: false
+  property string speedTestScreen: ""
+  property string speedTestConnection: ""
+  property string speedTestPhase: ""
+  property real downloadMbps: 0
+  property real uploadMbps: 0
+  property real downloadPeakMbps: 0
+  property real uploadPeakMbps: 0
   property string lastError: ""
   property bool wifiEnabled: false
   property string connType: "none"
@@ -30,6 +40,7 @@ Singleton {
 
   readonly property string backend: Quickshell.env("NETWORK_CONTROL") ||
     Quickshell.env("HOME") + "/.config/hypr/scripts/network-control"
+  readonly property string speedTest: Quickshell.env("HOME") + "/.local/bin/network-speedtest"
   readonly property var dnsProviders: [
     { id: "automatic", label: "Automatic", values: "" },
     { id: "cloudflare", label: "Cloudflare", values: "1.1.1.1 1.0.0.1" },
@@ -97,6 +108,48 @@ Singleton {
     if (qrLoading || connType !== "wifi") return
     qrLoading = true; qrResult = null; lastError = ""; qrProc.command = [backend, "qr"]; qrProc.running = true
   }
+  function speedTestLabel() {
+    if (connType === "wifi")
+      return ssid || iface || "Wi-Fi"
+    if (connType !== "" && connType !== "none")
+      return connType
+    return ssid || iface || "Network"
+  }
+  function runSpeedTest(screenName) {
+    if (speedTestRunning || screenName === "")
+      return
+    speedTestScreen = screenName
+    speedTestConnection = speedTestLabel()
+    speedTestPhase = "download"
+    speedTestCancelled = false
+    downloadMbps = 0; uploadMbps = 0
+    downloadPeakMbps = 0; uploadPeakMbps = 0
+    speedTestVisible = true
+    speedTestRunning = true; lastError = ""; speedTestProc.running = true
+  }
+  function closeSpeedTest() {
+    speedTestVisible = false
+    if (speedTestRunning) {
+      speedTestCancelled = true
+      speedTestProc.running = false
+    }
+  }
+  function handleSpeedTestLine(line) {
+    let sample
+    try { sample = JSON.parse(line) } catch (error) { return }
+    const mbps = Number(sample.mbps)
+    if (!isFinite(mbps) || mbps < 0)
+      return
+    if (sample.phase === "download") {
+      speedTestPhase = "download"
+      downloadMbps = mbps
+      downloadPeakMbps = Math.max(downloadPeakMbps, mbps)
+    } else if (sample.phase === "upload") {
+      speedTestPhase = "upload"
+      uploadMbps = mbps
+      uploadPeakMbps = Math.max(uploadPeakMbps, mbps)
+    }
+  }
 
   Process {
     id: statusProc; command: [root.backend, "status"]
@@ -142,6 +195,18 @@ Singleton {
         return
       }
       try { root.qrResult = JSON.parse(qrOut.text) } catch (error) { root.lastError = "Wi-Fi QR creation returned invalid data." }
+    }
+  }
+  Process {
+    id: speedTestProc
+    command: [root.speedTest, "--stream-json"]
+    stdout: SplitParser { onRead: line => root.handleSpeedTestLine(line) }
+    stderr: StdioCollector { id: speedTestErr }
+    onExited: function(code) {
+      root.speedTestRunning = false
+      if (code !== 0 && !root.speedTestCancelled)
+        root.lastError = speedTestErr.text.trim() || "Network speed test failed."
+      root.speedTestPhase = root.speedTestCancelled ? "" : (code === 0 ? "complete" : "error")
     }
   }
   Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.refresh() }

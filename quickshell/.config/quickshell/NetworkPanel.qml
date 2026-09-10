@@ -133,6 +133,10 @@ PopupWindow {
                 Text { anchors.centerIn: parent; text: "Disconnect"; color: Theme.text; font.pixelSize: Theme.fs(10) }
                 MouseArea { anchors.fill: parent; onClicked: panel.confirm("Disconnect", "This disconnects " + (NetworkState.ssid || NetworkState.iface) + ".", function() { NetworkState.disconnect() }) }
               }
+              Rectangle { width: Theme.fs(112); height: Theme.fs(28); radius: Theme.radiusCell; color: Theme.surface
+                Text { anchors.centerIn: parent; text: NetworkState.speedTestRunning ? "Testing…" : "Speed test"; color: Theme.text; font.pixelSize: Theme.fs(10) }
+                MouseArea { anchors.fill: parent; enabled: !NetworkState.speedTestRunning; onClicked: NetworkState.runSpeedTest(panel.ownerScreen) }
+              }
               Rectangle { visible: NetworkState.connType === "wifi"; width: Theme.fs(112); height: Theme.fs(28); radius: Theme.radiusCell; color: Theme.accent
                 Text { anchors.centerIn: parent; text: NetworkState.qrLoading ? "Creating…" : "Share Wi-Fi"; color: Theme.bgDeep; font.pixelSize: Theme.fs(10); font.bold: true }
                 MouseArea { anchors.fill: parent; enabled: !NetworkState.qrLoading; onClicked: NetworkState.shareWifi() }
