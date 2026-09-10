@@ -10,7 +10,6 @@ fail() {
 }
 
 for component in \
-  'ArchIcon {' \
   'WorkspacesModule {' \
   'ModeIndicators {' \
   'UpdatesIcon {' \
@@ -24,7 +23,7 @@ for component in \
   grep -Fq "$component" "$bar" || fail "bar does not mount $component"
 done
 
-grep -Fq '"HH:mm"' "$bar" || fail 'center clock is not fixed to HH:mm'
+grep -Fq '"h:mm AP"' "$bar" || fail 'center clock is not fixed to 12-hour h:mm AP'
 grep -Fq 'anchors.centerIn: parent' "$bar" || fail 'clock has no centered anchor'
 grep -Fq 'onDoubleClicked:' "$bar" || fail 'empty-space transparency toggle is missing'
 grep -Fq 'bar.barAtBottom = true' "$bar" || fail 'downward position drag is missing'

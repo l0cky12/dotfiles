@@ -237,7 +237,7 @@ Scope {
       // at 26 design px, so 1.25x gives 33px inside 45px -- about 6px of padding
       // above and below. Capped there rather than filling the bar edge to edge.
       // The width/800 term only bites on a bar narrower than 1000px, where the
-      // fixed content (Arch icon, 10 workspace cells, status icons, weekday
+      // fixed content (10 workspace cells, status icons, weekday
       // clock) would otherwise crowd out the centred media widget.
       readonly property real barScale: Math.max(1.0, Math.min(1.25, width / 800))
 
@@ -264,7 +264,6 @@ Scope {
         onDoubleClicked: bar.barTransparent = !bar.barTransparent
       }
 
-      // Arch button first, then workspaces.
       Row {
         id: leftGroup
         anchors.left: parent.left
@@ -272,7 +271,6 @@ Scope {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.fs(6 * panel.barScale)
 
-        ArchIcon { screenName: panel.modelData.name; barScale: panel.barScale }
         WorkspacesModule { id: workspaces; barScale: panel.barScale }
       }
 

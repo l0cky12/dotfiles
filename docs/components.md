@@ -12,13 +12,14 @@ One top-layer bar is created per screen. Its active layout is:
 
 | Area | Modules |
 | --- | --- |
-| Left | Arch/dashboard button, fixed workspace cells 1–10 |
+| Left | fixed workspace cells 1–10 |
 | Center | MPRIS media display |
 | Right | display, network, Bluetooth, audio, recording status, desktop-mode status, clipboard, clock |
 
 Workspace buttons switch to their numbered workspace. Other interactions include:
 
-- Arch button: dashboard.
+- Clock: dashboard. Also reachable over IPC via the `dashboard` target's
+  `toggle` call.
 - Media: media panel.
 - Display: display panel; wheel adjusts DDC/CI brightness.
 - Network: themed NetworkManager panel; secured Wi-Fi connections use an
