@@ -132,6 +132,11 @@ fi
 grep -Fq 'multiple YubiKeys found' "$test_root/multiple.out" \
   || fail 'multiple-device failure was not actionable'
 
+command -v zsh >/dev/null 2>&1 || {
+  printf 'skip: zsh is not installed\n'
+  exit 0
+}
+
 mkdir -p "$test_root/zsh-bin"
 cp "$auth" "$test_root/zsh-bin/yubikey-auth"
 zsh_integration="$repo_root/security/.config/yubikey-auth/shell.zsh"

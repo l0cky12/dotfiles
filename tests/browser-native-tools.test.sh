@@ -16,6 +16,15 @@ fail() {
     exit 1
 }
 
+require_jq() {
+  command -v jq >/dev/null 2>&1 || {
+    printf 'skip: jq is not installed\n'
+    exit 0
+  }
+}
+
+require_jq
+
 assert_eq() {
     [[ "$1" == "$2" ]] || fail "expected [$1], got [$2]"
 }

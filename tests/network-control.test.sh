@@ -10,6 +10,15 @@ trap 'rm -rf -- "$test_root"' EXIT
 
 fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 assert() { "$@" || fail "$*"; }
+
+require_jq() {
+  command -v jq >/dev/null 2>&1 || {
+    printf 'skip: jq is not installed\n'
+    exit 0
+  }
+}
+
+require_jq
 mkdir -p "$test_root/bin" "$test_root/runtime"
 
 cat > "$test_root/bin/nmcli" <<'SH'

@@ -7,6 +7,11 @@ set -euo pipefail
 
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
+command -v jq >/dev/null 2>&1 || {
+  printf 'skip: jq is not installed\n'
+  exit 0
+}
+
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 hypr_root="$repo_root/hypr/.config/hypr"
 lid_switch="$hypr_root/scripts/lid-switch.sh"

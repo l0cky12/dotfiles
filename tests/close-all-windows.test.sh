@@ -7,9 +7,20 @@ test_root=$(mktemp -d -t close-all-windows-test.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 
 fail() {
-  printf 'FAIL: %s\n' "$1" >&2
+  printf 'FAIL: %s
+' "$1" >&2
   exit 1
 }
+
+require_jq() {
+  command -v jq >/dev/null 2>&1 || {
+    printf 'skip: jq is not installed
+'
+    exit 0
+  }
+}
+
+require_jq
 
 cat >"$test_root/hyprctl" <<'SH'
 #!/usr/bin/env bash
