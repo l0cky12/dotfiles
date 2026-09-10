@@ -13,4 +13,15 @@ Scope {
   }
   Notifications.NotificationRoot {}
   VideoDownloadRoot {}
+  // Screen-centred Wi-Fi QR share window: one instance per monitor, only the
+  // one whose ownerScreen matches NetworkState.overlayScreen is visible.
+  Variants {
+    model: Quickshell.screens
+
+    WifiQrOverlay {
+      required property var modelData
+      screen: modelData
+      ownerScreen: modelData.name
+    }
+  }
 }

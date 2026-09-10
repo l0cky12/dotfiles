@@ -9,6 +9,10 @@ Singleton {
   id: root
   property bool panelVisible: false
   property string panelScreen: ""
+  // Screen owning the dedicated WifiQrOverlay. The overlay is screen-centred,
+  // not bar-anchored, so it follows the panel's own screen choice instead of a
+  // keybind's focused monitor.
+  property string overlayScreen: ""
   property bool loading: false
   property bool scanning: false
   property bool applying: false
@@ -43,6 +47,7 @@ Singleton {
     if (panelVisible && panelScreen === screenName) { panelVisible = false; return }
     if (screenName === "") return
     panelScreen = screenName
+    overlayScreen = screenName
     panelVisible = true
     refresh()
   }
