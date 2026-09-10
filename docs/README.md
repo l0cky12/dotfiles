@@ -1,5 +1,9 @@
 # Dotfiles documentation
 
+> These are the original reference notes. For task-oriented,
+> cross-linked pages — including provisioning with Ansible — see the
+> [wiki](../wiki/Home.md).
+
 This repository is a GNU Stow-managed Hyprland desktop configuration. Its active
 session is centered on Hyprland and a custom Quickshell desktop shell, with
 Hyprpaper, Hypridle, Hyprlock, Rofi, Kitty, and a collection of shell/Python
@@ -41,8 +45,9 @@ the repository but are not started by the current Hyprland config.
 ## Repository layout
 
 Most top-level components are Stow packages whose contents mirror paths below
-`$HOME`. `docs/`, `tests/` and `system/` are not: `system/` holds root-owned
-`/etc` templates deployed by `yubikey-auth`, never symlinked into `$HOME`.
+`$HOME`. `docs/`, `wiki/`, `tests/` and `system/` are not: `system/` holds
+root-owned `/etc` templates deployed by `yubikey-auth`, never symlinked into
+`$HOME`.
 
 | Package | Main purpose |
 | --- | --- |

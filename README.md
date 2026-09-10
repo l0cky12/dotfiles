@@ -2,6 +2,10 @@
 
 Personal Hyprland dotfiles for Arch Linux, managed with [GNU Stow](https://www.gnu.org/software/stow/).
 
+**[Read the wiki](wiki/Home.md)** for the full reference: setup, architecture, the
+complete keybinding list, where to customize each part, and how to provision a
+whole machine with Ansible. This page is the feature tour.
+
 ## Setup
 
 ### Prerequisites
@@ -28,7 +32,7 @@ cd ~/dotfiles
 Most top-level directories are Stow packages. Run `stow <package>` to symlink its
 contents into `~`.
 
-> **`docs/`, `tests/` and `system/` are not packages — never stow them.**
+> **`docs/`, `wiki/`, `tests/` and `system/` are not packages — never stow them.**
 > `system/` holds root-owned `/etc` templates that `yubikey-auth` deploys;
 > stowing it would create `~/greetd` and `~/pam.d`.
 
