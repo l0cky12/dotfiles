@@ -9,9 +9,14 @@
 -- Regenerate from the live session with:
 --   ~/.config/hypr/scripts/capture-monitor-profile.sh kvm
 
+-- The internal panel follows the lid, not the dock: scripts/lid-switch.sh
+-- disables it live on lid close, and auto-monitor-profile.sh keeps it off
+-- while the lid is closed.
 hl.monitor({
     output = "eDP-1",
-    disabled = true,
+    mode = "2256x1504@60.0",
+    position = "0x0",
+    scale = 1.0,
 })
 
 -- left, portrait

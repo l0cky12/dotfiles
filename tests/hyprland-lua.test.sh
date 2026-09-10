@@ -205,6 +205,9 @@ grep -Fq 'config ok' "$test_root/verify.log" || fail 'config verification did no
 
 fixture_hypr="$test_root/profile-hypr"
 mkdir -p "$fixture_hypr/monitor_profiles" "$test_root/bin" "$test_root/profile-runtime"
+# The applier consults the ACPI lid state (lid closed forces the internal
+# panel off); pin it to "open" so the host's real lid does not leak in.
+export HYPR_LID_STATE="$test_root/no-such-lid-state"
 cp "$hypr_root/monitor_profiles/"*.lua "$fixture_hypr/monitor_profiles/"
 cp "$hypr_root/hyprland.lua" "$fixture_hypr/hyprland.lua"
 

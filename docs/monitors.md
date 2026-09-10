@@ -119,6 +119,25 @@ Logs go to the journal:
 journalctl -t hypr-monitor -f
 ```
 
+## Laptop lid
+
+The internal panel (`eDP-1`) follows the lid, independent of which profile is
+active. Hyprland's `switch:on:Lid Switch` / `switch:off:Lid Switch` binds run
+`scripts/lid-switch.sh`, which only touches live compositor state:
+
+- **Close** disables `eDP-1` — unless it is the only enabled monitor, in which
+  case it is left alone (an undocked lid close is logind's suspend to handle).
+- **Open** re-enables it with `preferred`/`auto`; the resulting `monitoradded`
+  event triggers the applier, which snaps the panel to the active profile's
+  exact mode and position.
+
+The applier is lid-aware: while `/proc/acpi/button/lid/*/state` reports
+`closed`, it treats `eDP-1` as desired-off regardless of the profile row, and
+re-disables it after a `hyprctl reload`. A hotplug apply therefore never
+re-lights a closed laptop, and the lid binds never fight the watcher.
+
+Logs go to the journal under the `hypr-lid` tag.
+
 ## Changing the layout
 
 1. Arrange the displays however you like — `nwg-displays`, or by hand.

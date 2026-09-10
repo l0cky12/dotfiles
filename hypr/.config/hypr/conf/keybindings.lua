@@ -176,6 +176,11 @@ exec("XF86AudioStop", "stop playback", "playerctl stop")
 exec("XF86MonBrightnessUp", "brightness up", "brightnessctl set +5%", { repeating = true })
 exec("XF86MonBrightnessDown", "brightness down", "brightnessctl set 5%-", { repeating = true })
 
+-- Laptop lid: the internal panel follows the lid. Locked so it still fires
+-- while the screen is locked.
+exec("switch:on:Lid Switch", "lid closed: disable internal display", cfg.scripts_dir .. "/lid-switch.sh close", { locked = true })
+exec("switch:off:Lid Switch", "lid opened: enable internal display", cfg.scripts_dir .. "/lid-switch.sh open", { locked = true })
+
 -- Resize, move, and focus.
 -- Tiling direction for the next window to open. dwindle's `preselect` is a
 -- one-time override, so each press affects only the next window.

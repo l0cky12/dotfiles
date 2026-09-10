@@ -26,6 +26,12 @@ RUNTIME="${XDG_RUNTIME_DIR:-/tmp}"
 LOCK_FILE="$RUNTIME/hypr-monitor-profile.lock"
 HYPRCTL="${HYPRCTL:-hyprctl}"
 
+# The built-in panel follows the lid (see scripts/lid-switch.sh): while the
+# lid is closed the panel's desired state is "disabled" no matter what the
+# profile row says, so a hotplug apply never re-lights a closed laptop.
+INTERNAL_OUTPUT="${HYPR_INTERNAL_OUTPUT:-eDP-1}"
+LID_STATE_GLOB="${HYPR_LID_STATE:-/proc/acpi/button/lid/*/state}"
+
 # How long to wait for the display stack to finish enumerating after a hotplug.
 SETTLE_TIMEOUT="${HYPR_SETTLE_TIMEOUT:-10}"
 SETTLE_INTERVAL="${HYPR_SETTLE_INTERVAL:-0.4}"
@@ -70,6 +76,15 @@ log() {
 }
 
 die() { log "FATAL: $*"; exit 1; }
+
+lid_closed() {
+  local f
+  # Intentionally unquoted: the default is a glob over ACPI lid devices.
+  for f in $LID_STATE_GLOB; do
+    [[ -r "$f" ]] && grep -q closed "$f" 2>/dev/null && return 0
+  done
+  return 1
+}
 
 # ── The monitors that define the KVM setup, by EDID description ─────────────
 # Keep in sync with monitor_profiles/kvm.monitors.lua (capture-monitor-profile.sh
@@ -188,6 +203,15 @@ pick_profile() {
 
 # ── Desired layout, parsed out of the profile's Lua ─────────────────────────
 # Emits: output|mode|position|scale|transform|disabled
+# While the lid is closed the internal panel's row is forced to disabled.
+lid_override() {
+  if lid_closed; then
+    awk -F'|' -v OFS='|' -v mon="$INTERNAL_OUTPUT" '$1 == mon { $6 = "true" } { print }'
+  else
+    cat
+  fi
+}
+
 desired_layout() {
   local file="$PROFILE_DIR/$1.monitors.lua"
   [[ -r "$file" ]] || return 1
@@ -210,7 +234,7 @@ desired_layout() {
       }
       print o "|" m "|" p "|" s "|" t "|" d
     }
-  ' "$file"
+  ' "$file" | lid_override
 }
 
 # Actual state of one profile key, in the same canonical shape.
@@ -388,6 +412,15 @@ apply_profile() {
 
   "$HYPRCTL" reload >/dev/null || log "warning: hyprctl reload reported failure"
   refresh_live || true
+
+  # The reload just applied monitors.lua, which may have re-enabled the
+  # internal panel; put it back off before workspaces are pinned to it.
+  if lid_closed && [[ -n "$(resolve_output "$INTERNAL_OUTPUT")" ]]; then
+    log "lid closed: disabling $INTERNAL_OUTPUT after reload"
+    "$HYPRCTL" -q eval "hl.monitor({ output = \"$INTERNAL_OUTPUT\", disabled = true })" >/dev/null 2>&1
+    refresh_live || true
+  fi
+
   move_existing_workspaces
 
   if [[ "$profile" == desktop ]]; then
