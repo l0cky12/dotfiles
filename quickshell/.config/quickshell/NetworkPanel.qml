@@ -15,7 +15,13 @@ PopupWindow {
   anchor.gravity: Edges.Bottom
   anchor.margins.top: Theme.gapS
   implicitWidth: Theme.fs(520)
-  implicitHeight: Theme.fs(680)
+  // Fit the content instead of always reserving the tallest case: the drawer
+  // is short when Advanced IPv4 is collapsed and only grows to maxHeight,
+  // beyond which the network list scrolls rather than running off screen.
+  readonly property int maxHeight: Theme.fs(680)
+  implicitHeight: Math.min(maxHeight, panel.qrView
+    ? qrContent.implicitHeight + Theme.gapL * 2
+    : header.implicitHeight + Theme.gapM + content.implicitHeight + Theme.gapL * 2)
 
   property bool advancedOpen: false
   property bool qrView: false
@@ -72,7 +78,7 @@ PopupWindow {
 
         Flickable {
           anchors.left: parent.left; anchors.right: parent.right; anchors.top: header.bottom; anchors.bottom: parent.bottom
-          anchors.topMargin: Theme.gapM; clip: true; contentWidth: width; contentHeight: content.implicitHeight + Theme.gapL
+          anchors.topMargin: Theme.gapM; clip: true; contentWidth: width; contentHeight: content.implicitHeight
           Column {
             id: content; width: parent.width; spacing: Theme.gapM
             Grid {
@@ -200,7 +206,7 @@ PopupWindow {
       }
 
       Item { visible: panel.qrView; anchors.fill: parent; anchors.margins: Theme.gapL
-        Column { anchors.centerIn: parent; spacing: Theme.gapM
+        Column { id: qrContent; anchors.centerIn: parent; spacing: Theme.gapM
           Text { text: "Share Wi-Fi"; color: Theme.text; font.bold: true; font.pixelSize: Theme.fs(17); anchors.horizontalCenter: parent.horizontalCenter }
           Image { source: NetworkState.qrResult ? "file://" + NetworkState.qrResult.path : ""; width: Theme.fs(280); height: Theme.fs(280); fillMode: Image.PreserveAspectFit; sourceSize.width: width; sourceSize.height: height }
           Text { text: NetworkState.qrResult ? NetworkState.qrResult.ssid : ""; color: Theme.text; font.pixelSize: Theme.fs(14); anchors.horizontalCenter: parent.horizontalCenter }
