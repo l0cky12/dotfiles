@@ -222,9 +222,9 @@ stow swaync wofi noctalia
 ```
 
 The wallpaper package is unusual. It contains `theme/` and image files
-directly at its package root. Use `stow --target="$HOME/Pictures/wallpapers" wallpaper`
+directly at its package root. Use `stow --target="$HOME/Pictures/Wallpapers" wallpaper`
 to deploy it directly into the picker's default directory. The active picker defaults to
-`~/Pictures/wallpapers`; create that directory and place your wallpaper files
+`~/Pictures/Wallpapers`; create that directory and place your wallpaper files
 there, or set `HYPR_WALLPAPER_DIR` to use another durable location.
 
 The root `README.md`'s “deploy everything” line lists every package, but
@@ -290,7 +290,7 @@ The following are not portable without review:
 | --- | --- |
 | `/home/liam/.config/hypr/scripts` | Hyprland variables, bindings, autostart |
 | `/home/liam/.config/hypr/conf/greeter/hyprland-greeter.conf` | `system/greetd/config.toml`'s `[default_session]`; also needs the `greeter` system user's ACL grant described in `greeter/README.md` |
-| `~/Pictures/wallpapers` | Wallpaper picker default; override with `HYPR_WALLPAPER_DIR` |
+| `~/Pictures/Wallpapers` | Wallpaper picker default; override with `HYPR_WALLPAPER_DIR` |
 | `/home/liam/.config/hypr/scripts/capture/capture.sh` | Quickshell recording state |
 | `/home/liam` native-host executable paths | Browser manifests and browser flags |
 | DP/eDP connector names and exact resolutions | Monitor profiles |

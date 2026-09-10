@@ -32,13 +32,13 @@ assert_missing() {
     [[ ! -e "$1" ]] || fail "$1 should not exist"
 }
 
-default_wallpaper_dir="$test_root/Pictures/wallpapers"
+default_wallpaper_dir="$test_root/Pictures/Wallpapers"
 mkdir -p "$default_wallpaper_dir"
 printf fixture > "$default_wallpaper_dir/default.png"
 env -u HYPR_WALLPAPER_DIR HOME="$test_root" "$picker" index > "$test_root/default-index.json"
 jq -e --arg path "$default_wallpaper_dir/default.png" \
     '.items[] | select(.path == $path)' "$test_root/default-index.json" >/dev/null || \
-    fail "default wallpaper directory was not ~/Pictures/wallpapers"
+    fail "default wallpaper directory was not ~/Pictures/Wallpapers"
 
 notify-send() {
     printf '%s\n' "$*" >> "$test_root/notifications"

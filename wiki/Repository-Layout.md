@@ -26,7 +26,7 @@ nothing in the live session reaches it.
 | `ai` | `~/.config/ai-agent`, `~/.local/bin` | optional | `ai-agent`, one launcher for Claude Code, Codex, OpenCode, and T3 Code |
 | `zsh` | `~/.zshrc`, `~/.p10k.zsh` | optional | Shell config; Oh My Zsh itself is not tracked |
 | `fastfetch` | `~/.config/fastfetch` | optional | Normal and Pokémon startup displays |
-| `wallpaper` | `~/Pictures/wallpapers` (custom target) | optional | Tracked wallpaper assets, including per-theme images |
+| `wallpaper` | `~/Pictures/Wallpapers` (custom target) | optional | Tracked wallpaper assets, including per-theme images |
 | `swaync` | `~/.config/swaync` | retained | Rollback notification backend; its autostart line is commented out |
 | `wofi` | `~/.config/wofi` | retained | Alternative launcher; not bound, not started |
 | `noctalia` | `~/.config/noctalia` | retained | Alternative shell settings and plugin data; startup commented out |

@@ -127,7 +127,7 @@ before installing Hyprlock PAM. See [installation and recovery](docs/installatio
 [installation](docs/installation.md#optional-packages) before deploying):
 
 ```bash
-stow --target="$HOME/Pictures/wallpapers" wallpaper
+stow --target="$HOME/Pictures/Wallpapers" wallpaper
 ```
 
 **Remove a package:**
