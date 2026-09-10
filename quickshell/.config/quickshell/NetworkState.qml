@@ -88,6 +88,17 @@ Singleton {
     if (speedTesting) return
     speedTesting = true; speedResult = null; lastError = ""; speedProc.command = [backend, "speed-test"]; speedProc.running = true
   }
+  // The backend prefixes its own name onto every diagnostic and may emit more
+  // than one line, so the panel shows just the last, most specific sentence.
+  function backendError(text) {
+    const lines = []
+    const raw = String(text || "").split("\n")
+    for (let i = 0; i < raw.length; i++) {
+      const line = raw[i].replace(/^network-control:\s*/, "").trim()
+      if (line !== "") lines.push(line)
+    }
+    return lines.length > 0 ? lines[lines.length - 1] : ""
+  }
   function shareWifi() {
     if (qrLoading || connType !== "wifi") return
     qrLoading = true; qrResult = null; lastError = ""; qrProc.command = [backend, "qr"]; qrProc.running = true
@@ -141,7 +152,7 @@ Singleton {
     onExited: function(code) {
       root.qrLoading = false
       if (code !== 0) {
-        root.lastError = qrErr.text.trim() || "Could not create a Wi-Fi QR code."
+        root.lastError = root.backendError(qrErr.text) || "Could not create a Wi-Fi QR code."
         return
       }
       try { root.qrResult = JSON.parse(qrOut.text) } catch (error) { root.lastError = "Wi-Fi QR creation returned invalid data." }

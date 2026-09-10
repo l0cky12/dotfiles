@@ -67,6 +67,30 @@ active_iface() {
   done < <("$nmcli_command" -t -f DEVICE,TYPE,STATE device status 2>/dev/null)
 }
 
+# Sharing Wi-Fi has to follow the wireless device even when a wired link is
+# also up and sorts first in `device status`.
+active_wifi_iface() {
+  local device type state
+  while IFS=: read -r device type state; do
+    if [[ $type == wifi && $state == connected ]]; then
+      printf '%s\n' "$device"
+      return
+    fi
+  done < <("$nmcli_command" -t -f DEVICE,TYPE,STATE device status 2>/dev/null)
+}
+
+# GENERAL.TYPE is the short name (`wifi`) on current NetworkManager and the
+# settings name (`802-11-wireless`) on older releases, so collapse both.
+device_type() {
+  local type
+  type=$("$nmcli_command" -g GENERAL.TYPE device show "$1" 2>/dev/null | head -n 1 || true)
+  case "$type" in
+    802-11-wireless) printf 'wifi\n' ;;
+    802-3-ethernet) printf 'ethernet\n' ;;
+    *) printf '%s\n' "$type" ;;
+  esac
+}
+
 active_profile() {
   local iface=$1 profile
   profile=$("$nmcli_command" -g GENERAL.CONNECTION device show "$iface" 2>/dev/null | head -n 1 || true)
@@ -95,9 +119,8 @@ status() {
   gateway=""
   method=""
   if [[ -n $iface ]]; then
-    conn_type=$("$nmcli_command" -g GENERAL.TYPE device show "$iface" 2>/dev/null | head -n 1 || true)
-    [[ $conn_type == 802-11-wireless ]] && conn_type=wifi
-    [[ $conn_type == 802-3-ethernet ]] && conn_type=ethernet
+    conn_type=$(device_type "$iface")
+    [[ -n $conn_type ]] || conn_type=none
     state=connected
     profile=$(active_profile "$iface" || true)
     ip=$("$nmcli_command" -g IP4.ADDRESS device show "$iface" 2>/dev/null | head -n 1 | sed 's#/.*##' || true)
@@ -219,7 +242,9 @@ escape_qr() {
 
 wifi_secret() {
   local property=$1 profile=$2 secret
-  if ! secret=$("$nmcli_command" --ask --show-secrets --get-values "$property" connection show id "$profile"); then
+  # stdin is closed so a secret NetworkManager cannot supply fails fast instead
+  # of blocking the panel on an `--ask` prompt nobody can answer.
+  if ! secret=$("$nmcli_command" --ask --show-secrets --get-values "$property" connection show id "$profile" 2>/dev/null </dev/null); then
     die 'NetworkManager authorization was cancelled or denied'
   fi
   [[ -n $secret && $secret != -- ]] || die 'NetworkManager did not provide a shareable Wi-Fi secret'
@@ -228,8 +253,8 @@ wifi_secret() {
 
 qr() {
   local iface profile ssid key_mgmt security password="" payload output
-  iface=$(active_iface)
-  [[ -n $iface && $("$nmcli_command" -g GENERAL.TYPE device show "$iface" 2>/dev/null | head -n 1) == 802-11-wireless ]] || die 'Connect to Wi-Fi before sharing it'
+  iface=$(active_wifi_iface)
+  [[ -n $iface ]] || die 'Connect to Wi-Fi before sharing it'
   profile=$(active_profile "$iface") || die 'No active Wi-Fi profile'
   ssid=$("$nmcli_command" -g 802-11-wireless.ssid connection show id "$profile" 2>/dev/null | head -n 1 || true)
   [[ -n $ssid ]] || die 'The active Wi-Fi profile has no SSID'

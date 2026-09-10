@@ -17,9 +17,19 @@ cat > "$test_root/bin/nmcli" <<'SH'
 printf '%s\n' "$*" >> "$NMCLI_CALLS"
 case "$*" in
   '-t -f WIFI general status') printf 'enabled\n' ;;
-  '-t -f DEVICE,TYPE,STATE device status') printf 'wlp2s0:wifi:connected\nenp1s0:ethernet:disconnected\n' ;;
+  '-t -f DEVICE,TYPE,STATE device status')
+    if [[ ${NMCLI_WIRED_FIRST:-} == 1 ]]; then
+      printf 'enp1s0:ethernet:connected\nwlp2s0:wifi:connected\n'
+    else
+      printf 'wlp2s0:wifi:connected\nenp1s0:ethernet:disconnected\n'
+    fi
+    ;;
   '-t -f DEVICE,TYPE device status') printf 'wlp2s0:wifi\nenp1s0:ethernet\n' ;;
-  '-g GENERAL.TYPE device show wlp2s0') printf '802-11-wireless\n' ;;
+  '-g GENERAL.TYPE device show wlp2s0')
+    # NetworkManager >= 1.10 reports the short name; older releases the
+    # settings name. The panel has to normalize both to "wifi".
+    if [[ ${NMCLI_LEGACY_TYPES:-} == 1 ]]; then printf '802-11-wireless\n'; else printf 'wifi\n'; fi
+    ;;
   '-g GENERAL.CONNECTION device show wlp2s0') printf 'Cafe;Net\n' ;;
   '-g IP4.ADDRESS device show wlp2s0') printf '192.0.2.22/24\n' ;;
   '-g IP4.GATEWAY device show wlp2s0') printf '192.0.2.1\n' ;;
@@ -59,6 +69,10 @@ run() { NMCLI="$test_root/bin/nmcli" QRENCODE="$test_root/bin/qrencode" XDG_RUNT
 status=$(run status)
 jq -e '.wifiEnabled and .connectionType == "wifi" and .ssid == "Cafe;Net" and .signal == 71 and .ipv4 == "192.0.2.22" and .dns == ["1.1.1.1", "1.0.0.1"] and .ipv4Method == "auto"' <<<"$status" >/dev/null || fail 'status JSON omitted active connection information'
 ! grep -Fq 'fixture:secret' <<<"$status" || fail 'status leaked a Wi-Fi secret'
+NMCLI_LEGACY_TYPES=1 run status >"$test_root/legacy-status.json" 2>&1 \
+  || fail 'status failed on a legacy 802-11-wireless device type'
+jq -e '.connectionType == "wifi"' "$test_root/legacy-status.json" >/dev/null \
+  || fail 'status did not normalize a legacy 802-11-wireless device type'
 
 scan=$(run scan)
 jq -e 'length == 2 and .[0].ssid == "Open Cafe" and .[0].security == "--" and .[1].security == "WPA2"' <<<"$scan" >/dev/null || fail 'scan JSON did not preserve connection options'
@@ -95,6 +109,14 @@ grep -Fq 'authorization was cancelled or denied' "$test_root/denied.err" \
   || fail 'QR authorization failure did not provide an actionable error'
 ! grep -Fq 'fixture:secret' "$test_root/denied.out" "$test_root/denied.err" \
   || fail 'QR authorization failure leaked a Wi-Fi secret'
+NMCLI_LEGACY_TYPES=1 run qr >"$test_root/legacy-qr.json" 2>&1 \
+  || fail 'QR refused a legacy 802-11-wireless device type'
+jq -e '.ssid == "Cafe;Net"' "$test_root/legacy-qr.json" >/dev/null \
+  || fail 'QR metadata changed on a legacy 802-11-wireless device type'
+NMCLI_WIRED_FIRST=1 run qr >"$test_root/wired-first-qr.json" 2>&1 \
+  || fail 'QR followed the wired link instead of the connected Wi-Fi device'
+jq -e '.ssid == "Cafe;Net"' "$test_root/wired-first-qr.json" >/dev/null \
+  || fail 'QR shared the wrong network while a wired link was also up'
 
 # The panel and state must remain theme-driven and must not contain a password
 # input, a raw resolv.conf write, or a shell command assembled from UI text.
@@ -103,6 +125,7 @@ grep -Fq 'authorization was cancelled or denied' "$test_root/denied.err" \
 grep -Fq 'NetworkState.applyManual' "$panel" || fail 'manual IPv4 control is not wired to the state'
 grep -Fq 'NetworkState.shareWifi' "$panel" || fail 'Wi-Fi QR action is not wired to the state'
 grep -Fq 'stderr: StdioCollector { id: qrErr }' "$state" || fail 'Wi-Fi QR errors are not surfaced to the panel'
+grep -Fq 'root.backendError(qrErr.text)' "$state" || fail 'Wi-Fi QR errors are not cleaned up for the panel'
 grep -Fq 'speedProc' "$state" || fail 'speed test is not asynchronous'
 grep -Fq 'NetworkState.togglePanel(bar.focusedScreen())' "$repo_root/quickshell/.config/quickshell/Bar.qml" || fail 'network manage IPC does not open the panel'
 grep -Fqx 'exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")' \
