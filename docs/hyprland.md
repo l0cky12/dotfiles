@@ -90,6 +90,7 @@ functional grouping rather than a guaranteed serial timeline.
 | `virt-manager` | VM manager, assigned to workspace 6 |
 | `hermes` | application assigned to workspace 6 |
 | `obsidian` | notes application, assigned to workspace 3 |
+| `t3code` | coding-agent control surface, assigned to workspace 4 |
 | `kitty` | terminal, assigned to workspace 1 |
 | `udiskie --automount --notify --no-tray` | removable-media automounting |
 | `hyprsunset` | color-temperature service |
