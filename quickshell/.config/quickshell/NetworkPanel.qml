@@ -192,14 +192,6 @@ PopupWindow {
               }
             }
 
-            Rectangle { width: parent.width; height: 1; color: Theme.surface }
-            Row { spacing: Theme.gapS
-              Rectangle { width: Theme.fs(116); height: Theme.fs(28); radius: Theme.radiusCell; color: Theme.surface
-                Text { anchors.centerIn: parent; text: NetworkState.speedTesting ? "Testing…" : "Speed test"; color: Theme.text; font.pixelSize: Theme.fs(10) }
-                MouseArea { anchors.fill: parent; enabled: !NetworkState.speedTesting; onClicked: NetworkState.runSpeedTest() }
-              }
-              Text { visible: NetworkState.speedResult !== null; text: NetworkState.speedResult ? NetworkState.speedResult.pingMs.toFixed(0) + " ms  ↓ " + NetworkState.formatBytes(NetworkState.speedResult.downloadBps) + "  ↑ " + NetworkState.formatBytes(NetworkState.speedResult.uploadBps) : ""; color: Theme.textDim; font.pixelSize: Theme.fs(10); anchors.verticalCenter: parent.verticalCenter }
-            }
             Text { visible: NetworkState.lastError !== ""; text: NetworkState.lastError; color: Theme.error; font.pixelSize: Theme.fs(10); wrapMode: Text.WordWrap; width: parent.width }
           }
         }

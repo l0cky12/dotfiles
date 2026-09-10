@@ -41,7 +41,7 @@ Workspace buttons switch to their numbered workspace. Other interactions include
 
 | Panel | Implementation / external interfaces |
 | --- | --- |
-| Network | `network-control` over NetworkManager `nmcli`; Wi-Fi scan/connect, profile DNS/IPv4 changes, asynchronous curl speed test, and runtime-only `qrencode` Wi-Fi sharing |
+| Network | `network-control` over NetworkManager `nmcli`; Wi-Fi scan/connect, profile DNS/IPv4 changes, and runtime-only `qrencode` Wi-Fi sharing |
 | Bluetooth | Hyprland script backend over `bluetoothctl` |
 | Audio | Quickshell PipeWire API |
 | Media | Quickshell MPRIS; recent/pinned players; lyrics from `lrclib.net` |

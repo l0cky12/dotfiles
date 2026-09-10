@@ -290,8 +290,8 @@ mapfile -t trigger_order < <(sed -E 's/^[^ ]*  //; s/ +[›✓]$//' "$test_root/
 [[ ${trigger_order[4]} == Share ]] || fail 'Share is not the fifth Trigger row'
 [[ ${trigger_order[5]} == Toggle ]] || fail 'Toggle is not the sixth Trigger row'
 [[ ${trigger_order[6]} == "Speed Test" ]] || fail 'Speed Test is not the seventh Trigger row'
-grep -Fq '"action": "quickshell ipc call speedtest toggle"' "$menu" ||
-  fail 'Speed Test does not launch the visual overlay'
+grep -Fq '"action": "~/.local/bin/network-speedtest"' "$menu" ||
+  fail 'Speed Test does not launch the network-speedtest CLI'
 
 # Transcode moved to the Trigger root, so it must no longer sit under Capture.
 LMENU_MENU="$menu" LMENU_EXTENSIONS=/nonexistent python3 "$parser" rows trigger.capture \

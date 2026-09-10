@@ -12,7 +12,6 @@ Singleton {
   property bool loading: false
   property bool scanning: false
   property bool applying: false
-  property bool speedTesting: false
   property bool qrLoading: false
   property string lastError: ""
   property bool wifiEnabled: false
@@ -27,7 +26,6 @@ Singleton {
   property var dnsServers: []
   property string ipv4Method: ""
   property var wifiNetworks: []
-  property var speedResult: null
   property var qrResult: null
 
   readonly property string backend: Quickshell.env("NETWORK_CONTROL") ||
@@ -84,10 +82,6 @@ Singleton {
     }
     action(["ipv4", "manual", address, prefix, gatewayValue, dns])
   }
-  function runSpeedTest() {
-    if (speedTesting) return
-    speedTesting = true; speedResult = null; lastError = ""; speedProc.command = [backend, "speed-test"]; speedProc.running = true
-  }
   // The backend prefixes its own name onto every diagnostic and may emit more
   // than one line, so the panel shows just the last, most specific sentence.
   function backendError(text) {
@@ -135,14 +129,6 @@ Singleton {
       root.applying = false
       if (code !== 0) root.lastError = "NetworkManager did not apply that change. Check authorization or connection details."
       root.refresh()
-    }
-  }
-  Process {
-    id: speedProc; stdout: StdioCollector { id: speedOut }
-    onExited: function(code) {
-      root.speedTesting = false
-      if (code !== 0) { root.lastError = "Speed test failed. Check your internet connection."; return }
-      try { root.speedResult = JSON.parse(speedOut.text) } catch (error) { root.lastError = "Speed test returned invalid data." }
     }
   }
   Process {

@@ -37,13 +37,6 @@ Scope {
   }
 
   IpcHandler {
-    target: "speedtest"
-    function toggle(): void {
-      SpeedTestState.togglePanel(bar.focusedScreen())
-    }
-  }
-
-  IpcHandler {
     target: "audio"
     function toggle(): void {
       AudioState.togglePanel(bar.focusedScreen())
@@ -185,15 +178,6 @@ Scope {
       required property var modelData
       screen: modelData
       ownerScreen: modelData.name
-    }
-  }
-
-  Variants {
-    model: Quickshell.screens
-
-    SpeedTestOverlay {
-      required property var modelData
-      output: modelData
     }
   }
 

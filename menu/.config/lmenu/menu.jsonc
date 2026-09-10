@@ -380,7 +380,7 @@
     "label": "Speed Test",
     "aliases": ["bandwidth", "network speed"],
     "when": "command -v curl >/dev/null",
-    "action": "quickshell ipc call speedtest toggle"
+    "action": "~/.local/bin/network-speedtest"
   },
   {
     "id": "trigger.calculator",

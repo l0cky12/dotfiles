@@ -59,7 +59,7 @@ python3 -m unittest tests.test_theme_generator
 | `arch-updates.test.sh` | update counting, including a failed mirror sync |
 | `omakub-bar-layout.test.sh` | the bar still mounts the expected component set |
 | `omakub-toggles.test.sh` | the toggles menu |
-| `bluetooth-control.test.sh`, `network-control.test.sh`, `speed-test-ui.test.sh` | the Quickshell panel backends |
+| `bluetooth-control.test.sh`, `network-control.test.sh` | the Quickshell panel backends |
 | `browser-native-tools.test.sh` | both native hosts, with mocked clipboard, downloader, notification, player, and OSD commands |
 | `capture-screenshot-editor.test.sh`, `webcam-resize.test.sh` | capture behaviours |
 | `lmenu.test.sh`, `lmenu-reminder.test.sh` | menu rendering and systemd-timer reminders |

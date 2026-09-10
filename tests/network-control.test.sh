@@ -135,7 +135,6 @@ grep -Fq 'NetworkState.applyManual' "$panel" || fail 'manual IPv4 control is not
 grep -Fq 'NetworkState.shareWifi' "$panel" || fail 'Wi-Fi QR action is not wired to the state'
 grep -Fq 'stderr: StdioCollector { id: qrErr }' "$state" || fail 'Wi-Fi QR errors are not surfaced to the panel'
 grep -Fq 'root.backendError(qrErr.text)' "$state" || fail 'Wi-Fi QR errors are not cleaned up for the panel'
-grep -Fq 'speedProc' "$state" || fail 'speed test is not asynchronous'
 grep -Fq 'NetworkState.togglePanel(bar.focusedScreen())' "$repo_root/quickshell/.config/quickshell/Bar.qml" || fail 'network manage IPC does not open the panel'
 grep -Fqx 'exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")' \
   "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Lua Super+Ctrl+W binding is missing or changed'

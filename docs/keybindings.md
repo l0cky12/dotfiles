@@ -45,7 +45,7 @@ opened with `SUPER+K`.
 | `SUPER+SHIFT+D` | Disks | `gnome-disks` through `disks` |
 | `SUPER+U` | eject removable drives | `eject-drive.sh` picker; confirms, unmounts, and powers off the drive |
 | `SUPER+CTRL+I` | network status panel | Quickshell IPC |
-| `SUPER+CTRL+W` | network panel | Quickshell NetworkManager controls: Wi-Fi, DNS, IPv4 overrides, speed test, and Wi-Fi QR sharing |
+| `SUPER+CTRL+W` | network panel | Quickshell NetworkManager controls: Wi-Fi, DNS, IPv4 overrides, and Wi-Fi QR sharing |
 | `SUPER+CTRL+A` | audio panel | Quickshell IPC |
 | `SUPER+CTRL+B` | Bluetooth panel | Quickshell IPC |
 | `SUPER+SHIFT+B` | power profile menu | Rofi picker over `powerprofilesctl` profiles |
