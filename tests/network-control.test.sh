@@ -28,9 +28,15 @@ case "$*" in
   '-t -f IN-USE,SIGNAL,SSID device wifi list ifname wlp2s0 --rescan no') printf '*:71:Cafe;Net\n' ;;
   'device wifi rescan ifname wlp2s0') : ;;
   '-t -f BSSID,SSID,SIGNAL,SECURITY device wifi list ifname wlp2s0 --rescan no') printf 'AA:BB:CC:DD:EE:FF:Open Cafe:84:--\n11:22:33:44:55:66:Secure Cafe:62:WPA2\n' ;;
-  '-g 802-11-wireless.ssid connection show Cafe;Net') printf 'Cafe;Net\n' ;;
-  '-s -g 802-11-wireless-security.key-mgmt connection show Cafe;Net') printf 'wpa-psk\n' ;;
-  '-s -g 802-11-wireless-security.psk connection show Cafe;Net') printf 'fixture:secret;\\value\n' ;;
+  '-g 802-11-wireless.ssid connection show id Cafe;Net') printf 'Cafe;Net\n' ;;
+  '-g 802-11-wireless-security.key-mgmt connection show id Cafe;Net') printf 'wpa-psk\n' ;;
+  '--ask --show-secrets --get-values 802-11-wireless-security.psk connection show id Cafe;Net')
+    if [[ ${NMCLI_DENY_SECRETS:-} == 1 ]]; then
+      printf 'Error: NetworkManager authorization denied\n' >&2
+      exit 1
+    fi
+    printf 'fixture:secret;\\value\n'
+    ;;
   *) : ;;
 esac
 SH
@@ -80,6 +86,15 @@ qr_file=$(jq -r .path <<<"$qr_json")
 [[ $(stat -c '%a' "$qr_file") == 600 ]] || fail 'QR SVG is not owner-readable only'
 grep -Fq 'WIFI:T:WPA;S:Cafe\;Net;P:fixture\:secret\;\\value;;' "$qr_file" || fail 'QR payload is not standards escaped'
 ! grep -Fq 'fixture:secret' "$NMCLI_CALLS" || fail 'Wi-Fi secret was passed to NetworkManager as an argument'
+grep -Fqx -- '--ask --show-secrets --get-values 802-11-wireless-security.psk connection show id Cafe;Net' "$NMCLI_CALLS" \
+  || fail 'QR secret read did not enable NetworkManager authorization'
+if NMCLI_DENY_SECRETS=1 run qr >"$test_root/denied.out" 2>"$test_root/denied.err"; then
+  fail 'QR generation ignored denied NetworkManager authorization'
+fi
+grep -Fq 'authorization was cancelled or denied' "$test_root/denied.err" \
+  || fail 'QR authorization failure did not provide an actionable error'
+! grep -Fq 'fixture:secret' "$test_root/denied.out" "$test_root/denied.err" \
+  || fail 'QR authorization failure leaked a Wi-Fi secret'
 
 # The panel and state must remain theme-driven and must not contain a password
 # input, a raw resolv.conf write, or a shell command assembled from UI text.
@@ -87,6 +102,7 @@ grep -Fq 'WIFI:T:WPA;S:Cafe\;Net;P:fixture\:secret\;\\value;;' "$qr_file" || fai
   || fail 'panel bypasses theme or credential boundaries'
 grep -Fq 'NetworkState.applyManual' "$panel" || fail 'manual IPv4 control is not wired to the state'
 grep -Fq 'NetworkState.shareWifi' "$panel" || fail 'Wi-Fi QR action is not wired to the state'
+grep -Fq 'stderr: StdioCollector { id: qrErr }' "$state" || fail 'Wi-Fi QR errors are not surfaced to the panel'
 grep -Fq 'speedProc' "$state" || fail 'speed test is not asynchronous'
 grep -Fq 'NetworkState.togglePanel(bar.focusedScreen())' "$repo_root/quickshell/.config/quickshell/Bar.qml" || fail 'network manage IPC does not open the panel'
 grep -Fqx 'exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")' \

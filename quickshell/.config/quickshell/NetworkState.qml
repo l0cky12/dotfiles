@@ -135,10 +135,15 @@ Singleton {
     }
   }
   Process {
-    id: qrProc; stdout: StdioCollector { id: qrOut }
+    id: qrProc
+    stdout: StdioCollector { id: qrOut }
+    stderr: StdioCollector { id: qrErr }
     onExited: function(code) {
       root.qrLoading = false
-      if (code !== 0) { root.lastError = "Could not create a Wi-Fi QR code. NetworkManager may require authorization."; return }
+      if (code !== 0) {
+        root.lastError = qrErr.text.trim() || "Could not create a Wi-Fi QR code."
+        return
+      }
       try { root.qrResult = JSON.parse(qrOut.text) } catch (error) { root.lastError = "Wi-Fi QR creation returned invalid data." }
     }
   }
