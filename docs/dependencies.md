@@ -72,6 +72,16 @@ supported by the browser-extension tooling.
 
 ## Feature-specific dependencies
 
+### Network speed test
+
+`network-speedtest` requires Bash, `curl`, `jq`, `awk` from Arch's `gawk`
+package, and `ip` from `iproute2`. `libnotify` supplies the optional
+`notify-send` result notification.
+
+```bash
+paru -S --needed curl jq gawk iproute2 libnotify
+```
+
 ### Capture
 
 | Command | Feature |

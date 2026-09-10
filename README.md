@@ -102,6 +102,30 @@ Open the Quickshell panel with `SUPER+ALT+M`. See the
 [desktop modes guide](docs/desktop-modes.md) for boundaries, timers, recovery,
 and all commands.
 
+## Network speed test
+
+`network-speedtest` resolves the active interface through `ip route`, runs eight
+parallel fast.com transfers for five seconds in each direction, and calculates
+Mbps from the interface's kernel byte counters. It prints the interface,
+download speed, and upload speed to stdout and sends the same result through
+`notify-send` when a notification service is available.
+
+`SUPER+ALT+T` runs the test. `SUPER+SHIFT+T` remains assigned to OCR. The tool is
+part of the `hypr` Stow package and does not call Omarchy, QML, or Quickshell IPC.
+
+Install its Arch dependencies with:
+
+```bash
+paru -S --needed curl jq gawk iproute2 libnotify
+```
+
+`gawk` provides `awk`, while `libnotify` provides `notify-send`. Notifications
+are optional because the result is always printed.
+
+The fast.com token is public and hardcoded. Netflix can rotate or restrict it,
+which may make the API return HTTP 403. That is a known fragility of the
+unofficial API, not a script failure.
+
 ## YubiKey authentication
 
 The optional `security` package provides a guarded setup command for the
