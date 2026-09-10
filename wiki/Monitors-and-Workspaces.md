@@ -149,7 +149,6 @@ A fresh clone materialises them with:
 `monitors.conf` and `workspaces.conf` are the inactive hyprlang mirror, kept as a
 rollback path. Since Hyprland loads the Lua config, anything written there has no
 effect; regenerate them by hand alongside the profile if that path is ever used.
-`monitors.conf.bak` is empty.
 
 ## Manual profile switching
 

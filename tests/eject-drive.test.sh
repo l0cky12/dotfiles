@@ -11,6 +11,12 @@ fail() {
   exit 1
 }
 
+command -v jq >/dev/null 2>&1 || {
+  printf 'skip: jq is not installed\n'
+  exit 0
+}
+
+
 # Keybind pair stays in sync across both config dialects.
 # shellcheck disable=SC2016
 grep -Fq '$scriptsDir/eject-drive.sh' \

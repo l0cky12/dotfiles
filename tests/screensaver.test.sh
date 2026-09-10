@@ -36,6 +36,11 @@ fi
 SH
 chmod +x "$test_root/bin/pw-dump"
 
+command -v jq >/dev/null 2>&1 || {
+  printf 'skip: jq is not installed\n'
+  exit 0
+}
+
 AUDIO_FIXTURE=running "$bin_root/ascii-screensaver" condition && fail 'playing audio did not inhibit the screensaver'
 AUDIO_FIXTURE=idle "$bin_root/ascii-screensaver" condition || fail 'idle audio incorrectly inhibited the screensaver'
 

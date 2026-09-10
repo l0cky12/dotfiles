@@ -9,9 +9,20 @@ test_root=$(mktemp -d -t omakub-toggles-test.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 
 fail() {
-  printf 'FAIL: %s\n' "$1" >&2
+  printf 'FAIL: %s
+' "$1" >&2
   exit 1
 }
+
+require_jq() {
+  command -v jq >/dev/null 2>&1 || {
+    printf 'skip: jq is not installed
+'
+    exit 0
+  }
+}
+
+require_jq
 
 mkdir -p "$test_root/bin" "$test_root/state/hyprland-desktop"
 
