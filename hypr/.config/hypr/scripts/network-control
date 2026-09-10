@@ -217,18 +217,27 @@ escape_qr() {
   printf '%s' "$value"
 }
 
+wifi_secret() {
+  local property=$1 profile=$2 secret
+  if ! secret=$("$nmcli_command" --ask --show-secrets --get-values "$property" connection show id "$profile"); then
+    die 'NetworkManager authorization was cancelled or denied'
+  fi
+  [[ -n $secret && $secret != -- ]] || die 'NetworkManager did not provide a shareable Wi-Fi secret'
+  printf '%s' "$secret"
+}
+
 qr() {
   local iface profile ssid key_mgmt security password="" payload output
   iface=$(active_iface)
   [[ -n $iface && $("$nmcli_command" -g GENERAL.TYPE device show "$iface" 2>/dev/null | head -n 1) == 802-11-wireless ]] || die 'Connect to Wi-Fi before sharing it'
   profile=$(active_profile "$iface") || die 'No active Wi-Fi profile'
-  ssid=$("$nmcli_command" -g 802-11-wireless.ssid connection show "$profile" 2>/dev/null | head -n 1 || true)
+  ssid=$("$nmcli_command" -g 802-11-wireless.ssid connection show id "$profile" 2>/dev/null | head -n 1 || true)
   [[ -n $ssid ]] || die 'The active Wi-Fi profile has no SSID'
-  key_mgmt=$("$nmcli_command" -s -g 802-11-wireless-security.key-mgmt connection show "$profile" 2>/dev/null | head -n 1 || true)
+  key_mgmt=$("$nmcli_command" -g 802-11-wireless-security.key-mgmt connection show id "$profile" 2>/dev/null | head -n 1 || true)
   case "$key_mgmt" in
     ""|none) security=nopass ;;
-    wpa-psk|sae) security=WPA; password=$("$nmcli_command" -s -g 802-11-wireless-security.psk connection show "$profile" 2>/dev/null | head -n 1 || true); [[ -n $password ]] || die 'NetworkManager did not provide a shareable Wi-Fi secret' ;;
-    wep) security=WEP; password=$("$nmcli_command" -s -g 802-11-wireless-security.wep-key0 connection show "$profile" 2>/dev/null | head -n 1 || true); [[ -n $password ]] || die 'NetworkManager did not provide a shareable Wi-Fi secret' ;;
+    wpa-psk|sae) security=WPA; password=$(wifi_secret 802-11-wireless-security.psk "$profile") ;;
+    wep) security=WEP; password=$(wifi_secret 802-11-wireless-security.wep-key0 "$profile") ;;
     *) die 'Enterprise Wi-Fi networks cannot be safely shared as a password QR code' ;;
   esac
   payload="WIFI:T:$security;S:$(escape_qr "$ssid");"
