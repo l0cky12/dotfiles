@@ -53,6 +53,7 @@ Item {
       anchors.centerIn: parent
       text: "Repository: " + UpdatesState.repoCount
             + "\nAUR: " + UpdatesState.aurCount
+            + (UpdatesState.stale ? "\nLast check failed" : "")
             + "\nClick to update"
       color: Theme.text
       font.family: Theme.uiFamily

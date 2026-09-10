@@ -3,14 +3,39 @@
 set -u
 
 count_lines() {
-  local output line count=0
+  local line count=0
 
-  command -v "$1" >/dev/null 2>&1 || { printf '0'; return; }
-  output=$("$@" 2>/dev/null) || { printf '0'; return; }
   while IFS= read -r line; do
     [[ -n $line ]] && ((count += 1))
-  done <<< "$output"
+  done <<< "$1"
   printf '%d' "$count"
+}
+
+# checkupdates exits 2 when the sync succeeded and nothing is outdated, and
+# 1 when it could not sync at all. Collapsing both to 0 made the bar claim the
+# system was up to date whenever the network was down, so a failed sync is
+# reported as an error instead and the caller keeps its last known count.
+repo_count() {
+  local output status
+
+  command -v checkupdates >/dev/null 2>&1 || { printf '0'; return 0; }
+  output=$(checkupdates 2>/dev/null)
+  status=$?
+  case $status in
+    0) count_lines "$output" ;;
+    2) printf '0' ;;
+    *) return 1 ;;
+  esac
+}
+
+# AUR helpers exit non-zero when there is simply nothing to upgrade, so their
+# status carries no signal; only the output is counted.
+aur_count() {
+  local helper output
+
+  helper=$1
+  output=$("$helper" -Qua 2>/dev/null)
+  count_lines "$output"
 }
 
 aur_helper() {
@@ -26,9 +51,12 @@ aur_helper() {
 print_count() {
   local helper repo aur=0
 
-  repo=$(count_lines checkupdates)
+  if ! repo=$(repo_count); then
+    printf '{"error":"sync failed"}\n' >&2
+    return 1
+  fi
   if helper=$(aur_helper); then
-    aur=$(count_lines "$helper" -Qua)
+    aur=$(aur_count "$helper")
   fi
   printf '{"repo":%d,"aur":%d,"total":%d}\n' "$repo" "$aur" "$((repo + aur))"
 }
