@@ -1,34 +1,27 @@
-import Quickshell
 import QtQuick
+import Quickshell
 
 Scope {
   id: smoke
-  readonly property var state: SpeedTestState
+  Component { id: gaugeComponent; SpeedTestGauge {} }
+
   property int failures: 0
-
-  Component { SpeedGauge {} }
-
   function check(name, condition) {
-    if (condition)
-      console.log("ok   " + name)
-    else {
-      console.log("FAIL " + name)
-      failures += 1
-    }
+    if (condition) console.log("ok   " + name)
+    else { console.log("FAIL " + name); failures += 1 }
   }
 
   Component.onCompleted: {
-    check("formats fractional Mbps", SpeedTestState.formatMbps(7.25) === "7.25")
-    check("formats fast Mbps", SpeedTestState.formatMbps(412.4) === "412")
-    check("gauge starts at zero", SpeedTestState.gaugeFraction(0) === 0)
-    check("gauge clamps gigabit", SpeedTestState.gaugeFraction(1000) === 1)
+    const gauge = gaugeComponent.createObject(null, { value: 59, peak: 59 })
+    check("autorange keeps 59 Mbps mid-arc", gauge.scaleFor(59) === 100)
+    check("autorange keeps 940 Mbps readable", gauge.scaleFor(940) === 1600)
+    gauge.destroy()
   }
-
   Timer {
-    interval: 300
+    interval: 100
     running: true
     onTriggered: {
-      console.log(smoke.failures === 0 ? "ok: SpeedTest UI logic" : "FAIL: SpeedTest UI logic")
+      console.log(smoke.failures === 0 ? "ok: Speed test logic" : "FAIL: Speed test logic")
       Qt.quit()
     }
   }

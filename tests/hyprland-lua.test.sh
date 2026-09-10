@@ -11,9 +11,12 @@ fail() {
   exit 1
 }
 
-command -v luac >/dev/null 2>&1 || fail 'luac is required'
-command -v lua >/dev/null 2>&1 || fail 'lua is required'
-command -v Hyprland >/dev/null 2>&1 || fail 'Hyprland is required'
+for cmd_name in luac lua Hyprland; do
+  command -v "$cmd_name" >/dev/null 2>&1 || {
+    printf 'skip: %s is not installed\n' "$cmd_name"
+    exit 0
+  }
+done
 
 while IFS= read -r -d '' file; do
   luac -p "$file"

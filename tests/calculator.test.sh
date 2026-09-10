@@ -42,7 +42,24 @@ cat > "$test_root/bin/notify-send" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$CALCULATOR_NOTIFICATIONS"
 SH
-chmod +x "$test_root/bin/rofi" "$test_root/bin/wl-copy" "$test_root/bin/notify-send"
+cat > "$test_root/bin/qalc" <<'SH'
+#!/usr/bin/env bash
+# Minimal qalc stand-in: evaluates simple integer arithmetic so the test
+# does not depend on libqalculate being installed.
+# Strip qalc's flags (-t -m 2000) and whitespace; keep only the expression.
+args=()
+for a in "$@"; do
+  case $a in
+    -t|-m|2000) ;;
+    *) args+=("$a") ;;
+  esac
+done
+expr="${args[*]}"
+expr="${expr//[[:space:]]/}"
+(( result = 0 + expr ))
+printf '%s\n' "$result"
+SH
+chmod +x "$test_root/bin/rofi" "$test_root/bin/wl-copy" "$test_root/bin/notify-send" "$test_root/bin/qalc"
 
 export ROFI_STATE="$test_root/rofi-state"
 export CALCULATOR_CLIPBOARD_ARGS="$test_root/clipboard-args"

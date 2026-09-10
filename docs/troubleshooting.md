@@ -112,8 +112,8 @@ browser processes.
 
 ## Wallpaper picker shows no local results
 
-The tool defaults to `~/Pictures/wallpapers`. Create that directory and put
-JPEG/PNG files there. Standard `stow --target="$HOME/Pictures/wallpapers" wallpaper`
+The tool defaults to `~/Pictures/Wallpapers`. Create that directory and put
+JPEG/PNG files there. Standard `stow --target="$HOME/Pictures/Wallpapers" wallpaper`
 deploys the package directly into the picker's default directory. Local
 matching uses filenames and recognizes JPEG/PNG files.
 Empty remote results additionally require `curl`,

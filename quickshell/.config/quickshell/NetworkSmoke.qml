@@ -35,6 +35,14 @@ Scope {
     check("qrResult accepts a result", NetworkState.qrResult !== null)
     NetworkState.qrResult = null
     check("clearing qrResult dismisses", NetworkState.qrResult === null)
+
+    NetworkState.connType = "wifi"
+    NetworkState.ssid = "Smoke Wi-Fi"
+    check("uses the SSID as the Wi-Fi speed-test label",
+      NetworkState.speedTestLabel() === "Smoke Wi-Fi")
+    NetworkState.handleSpeedTestLine('{"phase":"download","mbps":59}')
+    check("accepts download samples", NetworkState.downloadMbps === 59
+      && NetworkState.downloadPeakMbps >= 59)
   }
   Timer {
     interval: 300; running: true

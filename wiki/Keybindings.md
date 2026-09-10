@@ -75,7 +75,7 @@ already-running shell rather than starting a process.
 | --- | --- |
 | `SUPER+CTRL+D` | display (also hosts the THEME launcher row) |
 | `SUPER+CTRL+I` | network status |
-| `SUPER+CTRL+W` | network management: Wi-Fi, DNS, IPv4, speed test, Wi-Fi QR |
+| `SUPER+CTRL+W` | network management: Wi-Fi, DNS, IPv4, Wi-Fi QR |
 | `SUPER+CTRL+A` | audio |
 | `SUPER+CTRL+B` | Bluetooth |
 | `SUPER+CTRL+M` | media |

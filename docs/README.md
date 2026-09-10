@@ -64,7 +64,7 @@ root-owned `/etc` templates deployed by `yubikey-auth`, never symlinked into
 | `cliphist/` | Clipboard-history limits |
 | `noctalia/` | Retained Noctalia settings and plugin data |
 | `xdg/` | MIME defaults and a Kitty/Neovim desktop entry |
-| `wallpaper/` | Tracked wallpaper assets; stow into `~/Pictures/wallpapers` |
+| `wallpaper/` | Tracked wallpaper assets; stow into `~/Pictures/Wallpapers` |
 | `tests/` | Browser native-tool fixture tests |
 
 ## Documentation

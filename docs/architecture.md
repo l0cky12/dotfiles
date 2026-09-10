@@ -177,7 +177,7 @@ honor feature-specific variables:
 
 | Variable | Purpose / default |
 | --- | --- |
-| `HYPR_WALLPAPER_DIR` | wallpaper directory; defaults to `~/Pictures/wallpapers` |
+| `HYPR_WALLPAPER_DIR` | wallpaper directory; defaults to `~/Pictures/Wallpapers` |
 | `HYPR_WALLPAPER_RUNTIME_DIR` | wallpaper search/download runtime data |
 | `CHROMIUM_YTDLP_DIR` | browser video destination; `~/Videos` |
 | `AI_AGENT_DEFAULT`, `AI_AGENT_CONFIG` | default AI CLI (including T3 Code) and config path |

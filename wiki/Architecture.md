@@ -106,7 +106,7 @@ SUPER+SHIFT+W
 hypr-wallpaper-picker (no args) → toggles the Quickshell cover-flow panel
         ↓
 index / search / apply / activate / current / restore / cleanup
-        ├── local ~/Pictures/wallpapers filename matches, first page
+        ├── local ~/Pictures/Wallpapers filename matches, first page
         └── SFW wallhaven.cc results ≥1920×1080, after local results
         ↓
 download → ImageMagick validation → restart hyprpaper → apply in cover mode
@@ -172,7 +172,7 @@ Honoured by scripts:
 
 | Variable | Purpose / default |
 | --- | --- |
-| `HYPR_WALLPAPER_DIR` | wallpaper directory; `~/Pictures/wallpapers` |
+| `HYPR_WALLPAPER_DIR` | wallpaper directory; `~/Pictures/Wallpapers` |
 | `HYPR_WALLPAPER_RUNTIME_DIR`, `HYPR_WALLPAPER_STATE_FILE` | picker runtime data and state path |
 | `CHROMIUM_YTDLP_DIR` | browser video destination; `~/Videos` |
 | `AI_AGENT_DEFAULT`, `AI_AGENT_CONFIG` | AI launcher default and config path |

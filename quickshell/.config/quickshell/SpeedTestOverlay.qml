@@ -1,180 +1,138 @@
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import QtQuick
+import QtQuick.Effects
 
 PanelWindow {
-  id: panel
+  id: window
 
   required property var output
   screen: output
-  visible: SpeedTestState.panelVisible && output &&
-    SpeedTestState.panelScreen === output.name
+  visible: NetworkState.speedTestVisible
+    && NetworkState.speedTestScreen === output.name
+  color: "transparent"
   anchors { top: true; bottom: true; left: true; right: true }
   exclusionMode: ExclusionMode.Ignore
-  color: "transparent"
 
+  WlrLayershell.namespace: "hyprland-network-speedtest"
   WlrLayershell.layer: WlrLayer.Overlay
   WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-  WlrLayershell.namespace: "quickshell-speed-test"
 
-  readonly property real contentScale: Math.min(1.0, width / Theme.fs(920), height / Theme.fs(610))
-  readonly property string connectionLabel: {
-    if (NetworkState.connType === "ethernet")
-      return "Ethernet"
-    if (NetworkState.connType === "wifi")
-      return NetworkState.ssid !== "" ? NetworkState.ssid : "Wi-Fi"
-    return "Internet connection"
+  readonly property string wallpaperStatePath: {
+    const override = Quickshell.env("HYPR_WALLPAPER_STATE_FILE")
+    if (override)
+      return override
+    const stateHome = Quickshell.env("XDG_STATE_HOME") ||
+      (Quickshell.env("HOME") + "/.local/state")
+    return stateHome + "/hyprland-desktop/wallpaper/current"
   }
+  property string wallpaperPath: ""
 
-  Rectangle {
-    anchors.fill: parent
-    color: Theme.bgDeep
+  FileView {
+    id: wallpaperState
+    path: window.wallpaperStatePath
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: {
+      try {
+        window.wallpaperPath = JSON.parse(wallpaperState.text()).path || ""
+      } catch (error) {
+        window.wallpaperPath = ""
+      }
+    }
+    onLoadFailed: window.wallpaperPath = ""
   }
 
   Image {
+    id: wallpaper
     anchors.fill: parent
-    source: SpeedTestState.wallpaperPath
+    source: window.wallpaperPath === "" ? "" : "file://" + window.wallpaperPath
     fillMode: Image.PreserveAspectCrop
     asynchronous: true
-    cache: false
-    visible: status === Image.Ready
-    opacity: 0.36
+    visible: false
+    sourceSize.width: window.width
+    sourceSize.height: window.height
+  }
+
+  MultiEffect {
+    anchors.fill: parent
+    source: wallpaper
+    blurEnabled: true
+    blur: 1.0
+    blurMax: Theme.fs(24)
+    visible: wallpaper.status === Image.Ready
   }
 
   Rectangle {
     anchors.fill: parent
-    gradient: Gradient {
-      GradientStop { position: 0.0; color: Qt.rgba(Theme.bgDeep.r, Theme.bgDeep.g, Theme.bgDeep.b, 0.68) }
-      GradientStop { position: 0.55; color: Qt.rgba(Theme.bg.r, Theme.bg.g, Theme.bg.b, 0.82) }
-      GradientStop { position: 1.0; color: Qt.rgba(Theme.bgDeep.r, Theme.bgDeep.g, Theme.bgDeep.b, 0.96) }
-    }
+    color: Theme.background
+    opacity: 0.62
   }
 
   FocusScope {
+    id: input
     anchors.fill: parent
-    focus: panel.visible
-    Keys.onPressed: event => {
-      if (event.key === Qt.Key_Escape) {
-        SpeedTestState.close()
-        event.accepted = true
-      } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) &&
-                 !SpeedTestState.running) {
-        SpeedTestState.start()
-        event.accepted = true
-      }
-    }
-  }
-
-  Column {
-    anchors.centerIn: parent
-    width: Math.min(panel.width - Theme.fs(48), Theme.fs(820))
-    spacing: Theme.fs(22) * panel.contentScale
+    focus: window.visible
+    Keys.onEscapePressed: NetworkState.closeSpeedTest()
 
     Column {
       anchors.horizontalCenter: parent.horizontalCenter
-      spacing: Theme.fs(6)
+      y: parent.height * 0.14
+      spacing: Theme.fs(34)
 
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
-        text: panel.connectionLabel.toUpperCase()
-        color: Theme.accent
-        font.family: Theme.glyphFamily
-        font.pixelSize: Theme.fs(12)
-        font.bold: true
-        font.letterSpacing: Theme.fs(3)
-      }
-      Text {
-        anchors.horizontalCenter: parent.horizontalCenter
-        text: SpeedTestState.running ? "MEASURING BANDWIDTH" :
-          (SpeedTestState.result ? Math.round(SpeedTestState.pingMs) + " ms ping" : "READY")
-        color: Theme.textMuted
-        font.family: Theme.glyphFamily
-        font.pixelSize: Theme.fs(10)
-        font.letterSpacing: Theme.fs(1)
-      }
-    }
-
-    Row {
-      anchors.horizontalCenter: parent.horizontalCenter
-      spacing: Theme.fs(42) * panel.contentScale
-
-      SpeedGauge {
-        width: Theme.fs(330) * panel.contentScale
-        height: Theme.fs(285) * panel.contentScale
-        label: "Download"
-        mbps: SpeedTestState.downloadMbps
-        running: SpeedTestState.running
-        accentColor: Theme.accent
-      }
-      SpeedGauge {
-        width: Theme.fs(330) * panel.contentScale
-        height: Theme.fs(285) * panel.contentScale
-        label: "Upload"
-        mbps: SpeedTestState.uploadMbps
-        running: SpeedTestState.running
-        accentColor: Theme.accentAlt
-      }
-    }
-
-    Text {
-      anchors.horizontalCenter: parent.horizontalCenter
-      visible: SpeedTestState.lastError !== ""
-      text: SpeedTestState.lastError
-      color: Theme.error
-      font.family: Theme.uiFamily
-      font.pixelSize: Theme.fs(12)
-    }
-
-    Rectangle {
-      anchors.horizontalCenter: parent.horizontalCenter
-      width: Theme.fs(142)
-      height: Theme.fs(38)
-      radius: Theme.radiusRow
-      color: rerun.containsMouse ? Theme.selection : "transparent"
-      border.width: Theme.borderWidth
-      border.color: Theme.borderColor
-      visible: !SpeedTestState.running
-
-      Text {
-        anchors.centerIn: parent
-        text: SpeedTestState.result || SpeedTestState.lastError !== "" ? "RUN AGAIN" : "START"
+        text: NetworkState.speedTestConnection.toUpperCase()
         color: Theme.text
         font.family: Theme.glyphFamily
-        font.pixelSize: Theme.fs(11)
+        font.pixelSize: Theme.fs(14)
+        font.letterSpacing: Theme.fs(4)
         font.bold: true
       }
-      MouseArea {
-        id: rerun
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: SpeedTestState.start()
+
+      Row {
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: Theme.fs(76)
+
+        SpeedTestGauge {
+          value: NetworkState.downloadMbps
+          peak: NetworkState.downloadPeakMbps
+          active: NetworkState.speedTestPhase === "download"
+          label: "Download"
+        }
+        SpeedTestGauge {
+          value: NetworkState.uploadMbps
+          peak: NetworkState.uploadPeakMbps
+          active: NetworkState.speedTestPhase === "upload"
+          label: "Upload"
+        }
+      }
+
+      Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        visible: !NetworkState.speedTestRunning
+        width: Theme.fs(118)
+        height: Theme.fs(32)
+        radius: Theme.fs(6)
+        color: Theme.surface
+
+        Text {
+          anchors.centerIn: parent
+          text: "Run again"
+          color: Theme.text
+          font.family: Theme.glyphFamily
+          font.pixelSize: Theme.fs(12)
+          font.letterSpacing: Theme.fs(1)
+        }
+        MouseArea {
+          anchors.fill: parent
+          onClicked: NetworkState.runSpeedTest(NetworkState.speedTestScreen)
+        }
       }
     }
   }
 
-  Rectangle {
-    anchors.right: parent.right
-    anchors.bottom: parent.bottom
-    anchors.margins: Theme.fs(14)
-    width: Theme.fs(36)
-    height: width
-    color: closeArea.containsMouse ? Theme.selection : "transparent"
-    border.width: Theme.borderWidth
-    border.color: Theme.borderAccent
-
-    Text {
-      anchors.centerIn: parent
-      text: "×"
-      color: Theme.accent
-      font.pixelSize: Theme.fs(25)
-    }
-    MouseArea {
-      id: closeArea
-      anchors.fill: parent
-      hoverEnabled: true
-      cursorShape: Qt.PointingHandCursor
-      onClicked: SpeedTestState.close()
-    }
-  }
+  onVisibleChanged: if (visible) input.forceActiveFocus()
 }

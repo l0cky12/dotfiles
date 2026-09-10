@@ -7,7 +7,6 @@ set -euo pipefail
 
 nmcli_command=${NMCLI:-nmcli}
 qrencode_command=${QRENCODE:-qrencode}
-curl_command=${CURL:-curl}
 terminal_command=${TERMINAL:-kitty}
 runtime_dir=${XDG_RUNTIME_DIR:-/tmp}/network-panel-$UID
 dry_run=false
@@ -18,7 +17,7 @@ if [[ ${1:-} == --dry-run ]]; then
 fi
 
 usage() {
-  printf 'usage: %s [--dry-run] {status|scan|wifi|connect|disconnect|dns|ipv4|speed-test|qr|nmtui}\n' "${0##*/}" >&2
+  printf 'usage: %s [--dry-run] {status|scan|wifi|connect|disconnect|dns|ipv4|qr|nmtui}\n' "${0##*/}" >&2
   exit 2
 }
 
@@ -216,21 +215,6 @@ ipv4() {
   run "$nmcli_command" connection up "$profile"
 }
 
-speed_test() {
-  "$dry_run" && { printf 'dry-run: speed test uses curl download/upload probes\n'; return; }
-  command -v "$curl_command" >/dev/null 2>&1 || die 'curl is required for the built-in speed test'
-  local down latency upload
-  read -r latency down < <("$curl_command" --fail --location --silent --show-error --connect-timeout 10 --max-time 60 \
-    --output /dev/null --write-out '%{time_connect} %{speed_download}' \
-    'https://speed.cloudflare.com/__down?bytes=10000000') || die 'Download probe failed'
-  upload=$(dd if=/dev/zero bs=1048576 count=2 status=none | "$curl_command" --fail --silent --show-error --connect-timeout 10 --max-time 60 \
-    --output /dev/null --write-out '%{speed_upload}' --request POST --data-binary @- \
-    'https://speed.cloudflare.com/__up') || die 'Upload probe failed'
-  jq -n --argjson pingMs "$(awk -v seconds="$latency" 'BEGIN { print seconds * 1000 }')" \
-    --argjson downloadBps "${down:-0}" --argjson uploadBps "${upload:-0}" \
-    '{pingMs:$pingMs, downloadBps:$downloadBps, uploadBps:$uploadBps}'
-}
-
 escape_qr() {
   local value=$1
   value=${value//\\/\\\\}
@@ -291,7 +275,6 @@ case ${1:-} in
   disconnect) disconnect "${2:-}" ;;
   dns) dns "${2:-}" "${3:-}" ;;
   ipv4) ipv4 "${2:-}" "${3:-}" "${4:-}" "${5:-}" "${6:-}" ;;
-  speed-test) speed_test ;;
   qr) qr ;;
   nmtui) nmtui ;;
   *) usage ;;

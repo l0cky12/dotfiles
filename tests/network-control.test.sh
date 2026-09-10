@@ -5,11 +5,22 @@ repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 backend="$repo_root/hypr/.config/hypr/scripts/network-control"
 panel="$repo_root/quickshell/.config/quickshell/NetworkPanel.qml"
 state="$repo_root/quickshell/.config/quickshell/NetworkState.qml"
+speed_gauge="$repo_root/quickshell/.config/quickshell/SpeedTestGauge.qml"
+speed_overlay="$repo_root/quickshell/.config/quickshell/SpeedTestOverlay.qml"
 test_root=$(mktemp -d -t network-control-test.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 
 fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 assert() { "$@" || fail "$*"; }
+
+require_jq() {
+  command -v jq >/dev/null 2>&1 || {
+    printf 'skip: jq is not installed\n'
+    exit 0
+  }
+}
+
+require_jq
 mkdir -p "$test_root/bin" "$test_root/runtime"
 
 cat > "$test_root/bin/nmcli" <<'SH'
@@ -124,9 +135,23 @@ jq -e '.ssid == "Cafe;Net"' "$test_root/wired-first-qr.json" >/dev/null \
   || fail 'panel bypasses theme or credential boundaries'
 grep -Fq 'NetworkState.applyManual' "$panel" || fail 'manual IPv4 control is not wired to the state'
 grep -Fq 'NetworkState.shareWifi' "$panel" || fail 'Wi-Fi QR action is not wired to the state'
+grep -Fq 'NetworkState.runSpeedTest(panel.ownerScreen)' "$panel" || fail 'speed test is not wired to its screen'
+grep -Fq 'command: [root.speedTest, "--stream-json"]' "$state" || fail 'speed test does not launch the streaming CLI'
+grep -Fq 'SpeedTestOverlay {' "$repo_root/quickshell/.config/quickshell/Bar.qml" || fail 'speed-test overlay is not mounted'
+grep -Fq 'MultiEffect {' "$speed_overlay" || fail 'speed-test overlay does not blur the wallpaper'
+grep -Fq 'Theme.info' "$speed_gauge" || fail 'speed-test accent does not follow the theme'
+grep -Fq 'NumberAnimation' "$speed_gauge" || fail 'speed-test gauge does not ease samples'
+grep -Fq 'WlrKeyboardFocus.Exclusive' "$speed_overlay" || fail 'speed-test overlay does not accept keyboard input'
+grep -Fq 'Keys.onEscapePressed: NetworkState.closeSpeedTest()' "$speed_overlay" || fail 'speed-test overlay cannot close with Escape'
+grep -Fq 'Run again' "$speed_overlay" || fail 'speed-test overlay has no repeat action'
+grep -Fq 'function closeSpeedTest()' "$state" || fail 'speed-test state cannot close an active test'
+grep -Fqx 'exec(mod .. " + ALT + T", "network speed test", "quickshell ipc call network speedTest")' \
+  "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Lua speed-test binding does not open the overlay'
+# shellcheck disable=SC2016 # The legacy binding must contain a literal $mainMod.
+grep -Fqx 'bindd = $mainMod ALT, T, network speed test, exec, quickshell ipc call network speedTest' \
+  "$repo_root/hypr/.config/hypr/conf/keybinding.conf" || fail 'legacy speed-test binding does not open the overlay'
 grep -Fq 'stderr: StdioCollector { id: qrErr }' "$state" || fail 'Wi-Fi QR errors are not surfaced to the panel'
 grep -Fq 'root.backendError(qrErr.text)' "$state" || fail 'Wi-Fi QR errors are not cleaned up for the panel'
-grep -Fq 'speedProc' "$state" || fail 'speed test is not asynchronous'
 grep -Fq 'NetworkState.togglePanel(bar.focusedScreen())' "$repo_root/quickshell/.config/quickshell/Bar.qml" || fail 'network manage IPC does not open the panel'
 grep -Fqx 'exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")' \
   "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Lua Super+Ctrl+W binding is missing or changed'
@@ -141,6 +166,11 @@ if command -v quickshell >/dev/null 2>&1; then
   grep -Fq 'ok: NetworkState logic' "$smoke_log" \
     || { sed -n '1,120p' "$smoke_log" >&2; fail 'NetworkSmoke.qml did not parse and run'; }
   ! grep -Fq 'FAIL' "$smoke_log" || fail 'NetworkSmoke.qml reported a failing assertion'
+  speed_smoke_log="$test_root/speed-test-smoke.log"
+  QT_QPA_PLATFORM=offscreen timeout 30 quickshell -p "$repo_root/quickshell/.config/quickshell/SpeedTestSmoke.qml" >"$speed_smoke_log" 2>&1 || true
+  grep -Fq 'ok: Speed test logic' "$speed_smoke_log" \
+    || { sed -n '1,120p' "$speed_smoke_log" >&2; fail 'SpeedTestSmoke.qml did not parse and run'; }
+  ! grep -Fq 'FAIL' "$speed_smoke_log" || fail 'SpeedTestSmoke.qml reported a failing assertion'
 fi
 
 printf 'ok: network-control fixtures\n'

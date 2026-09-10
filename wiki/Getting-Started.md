@@ -79,7 +79,7 @@ Wallpapers are the one package that does not target `$HOME`. Its files sit at th
 package root, so deploy it into the picker's default directory instead:
 
 ```bash
-stow --target="$HOME/Pictures/wallpapers" wallpaper
+stow --target="$HOME/Pictures/Wallpapers" wallpaper
 ```
 
 To remove a package: `stow -D hypr`.
@@ -170,7 +170,7 @@ These are not portable without review:
 | --- | --- |
 | `/home/liam/.config/hypr/scripts` | `conf/variables.lua`, and therefore most bindings and autostart lines |
 | `/home/liam/.config/hypr/conf/greeter/hyprland-greeter.conf` | `system/greetd/config.toml`'s `[default_session]`, plus an ACL grant for the `greeter` user |
-| `~/Pictures/wallpapers` | wallpaper picker default; override with `HYPR_WALLPAPER_DIR` |
+| `~/Pictures/Wallpapers` | wallpaper picker default; override with `HYPR_WALLPAPER_DIR` |
 | `/home/liam/.config/hypr/scripts/capture/capture.sh` | Quickshell recording state |
 | `/home/liam` native-host paths | browser manifests and browser flag files |
 | DP/eDP connector names and exact modes | monitor profiles |

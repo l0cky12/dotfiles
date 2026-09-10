@@ -85,7 +85,7 @@ it requests no keyboard focus. It draws in the bottom-right corner.
 
 | Panel | Backed by |
 | --- | --- |
-| Network | `scripts/network-control` over `nmcli`; Wi-Fi scan and connect, per-profile DNS and IPv4 overrides, an asynchronous `curl` speed test, and runtime-only `qrencode` Wi-Fi sharing |
+| Network | `scripts/network-control` over `nmcli`; Wi-Fi scan and connect, per-profile DNS and IPv4 overrides, and runtime-only `qrencode` Wi-Fi sharing |
 | Bluetooth | `scripts/bluetooth-control` over `bluetoothctl` |
 | Audio | Quickshell's PipeWire API |
 | Media | Quickshell MPRIS; recent and pinned players; lyrics from `lrclib.net` |
@@ -97,7 +97,6 @@ it requests no keyboard focus. It draws in the bottom-right corner.
 | Wallpaper | the local/Wallhaven backend in `hypr-wallpaper-picker` |
 | Web apps | the `webapp` shell backend |
 | Modes | `desktop-mode` |
-| Speed test | `network-control`, rendered by `SpeedTestOverlay` |
 
 Secured Wi-Fi connections hand off to an interactive `nmtui` prompt, so the
 password never crosses the panel boundary. The Wi-Fi QR is rendered at runtime
@@ -111,7 +110,7 @@ how the keybindings toggle them without spawning anything:
 ```text
 audio      bar        bluetooth   clipboard   dashboard   display
 keybinds   media      modes       network     notifications
-speedtest  theme      videoDownload           visualizer
+theme      videoDownload           visualizer
 wallpaper  webapps
 ```
 
@@ -143,7 +142,7 @@ dropdown.
 | Bar shell | `Bar.qml`, `WorkspacesModule.qml`, `IconButton.qml`, `Card.qml` |
 | Clock and calendar | `ClockState.qml`, `ClockWidget.qml`, `DesktopClock.qml`, `CalendarGrid.qml`, `CalendarPopup.qml`, `TimezonePopup.qml`, `DateTimeCard.qml` |
 | Dashboard | `DashboardState.qml`, `DashboardPanel.qml`, `TabBar.qml`, `DashTab.qml`, `MediaTab.qml`, `PerfTab.qml`, `WorkspacesTab.qml`, `WeatherTab.qml`, `MetricCard.qml`, `Gauge.qml`, `HeroGauge.qml`, `ProfileCard.qml`, `SysState.qml` |
-| Network | `NetworkState/Icon/Panel.qml`, `SpeedTestState.qml`, `SpeedTestOverlay.qml`, `SpeedGauge.qml` |
+| Network | `NetworkState/Icon/Panel.qml` |
 | Audio and media | `AudioState/Icon/Panel.qml`, `VolumeSlider.qml`, `MediaState/Icon/Panel.qml`, `MediaPreviewCard.qml`, `LyricsState.qml`, `LyricsView.qml` |
 | Visualiser | `CavaState.qml`, `CavaBars.qml`, `CavaEdgeVisualizer.qml`, `VisualizerState.qml` |
 | Bluetooth | `BluetoothState/Icon/Panel.qml` |
@@ -171,7 +170,7 @@ QT_QPA_PLATFORM=offscreen quickshell -p quickshell/.config/quickshell/OmakubBarS
 ```
 
 Available: `OmakubBarSmoke`, `NotificationSmoke`, `BluetoothSmoke`,
-`NetworkSmoke`, `ModesSmoke`, `UpdatesSmoke`, `SpeedTestSmoke`,
+`NetworkSmoke`, `ModesSmoke`, `UpdatesSmoke`,
 `VideoDownloadSmoke`, `WindowsVmSmoke`, `ClockWidgetSmoke`.
 
 ## Reloading

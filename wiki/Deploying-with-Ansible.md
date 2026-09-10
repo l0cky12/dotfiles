@@ -248,7 +248,7 @@ explicitly if you ever regenerate that list.
 > **One divergence worth knowing.** The playbook stows `wallpaper` to `$HOME`
 > like every other package, so its files land directly in the home directory.
 > This repository's own instructions deploy it with
-> `stow --target="$HOME/Pictures/wallpapers" wallpaper`, which is where the
+> `stow --target="$HOME/Pictures/Wallpapers" wallpaper`, which is where the
 > picker looks by default. If you want the picker to find them after an Ansible
 > run, either re-stow that one package by hand or set `HYPR_WALLPAPER_DIR`.
 

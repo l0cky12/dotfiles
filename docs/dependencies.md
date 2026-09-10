@@ -33,7 +33,6 @@ can run without it, but that feature cannot.
 | PipeWire/WirePlumber tools | configured audio path | `wpctl`, Quickshell PipeWire |
 | NetworkManager | configured network path | `nmcli`, `nmtui`, Network panel connection/DNS/IPv4 controls |
 | `qrencode` | network-panel Wi-Fi sharing | renders the runtime-only Wi-Fi QR SVG; never stores a plaintext secret |
-| `curl` | network-panel speed test fallback | asynchronous Cloudflare download/upload probes when no dedicated speed-test CLI is installed |
 | `bluez-utils` | configured Bluetooth widget | `bluetoothctl` |
 | `iputils` | dashboard/network checks | `ping` |
 | polkit provider | NetworkManager authorization | persistent DNS and IPv4 profile changes when the active policy requires confirmation |
@@ -71,6 +70,15 @@ Helium is the MIME default and Hyprland binding/autostart browser. Brave remains
 supported by the browser-extension tooling.
 
 ## Feature-specific dependencies
+
+### Network speed test
+
+`network-speedtest` requires Bash, `curl`, `jq`, `awk` from Arch's `gawk`
+package, and `ip` from `iproute2`.
+
+```bash
+paru -S --needed curl jq gawk iproute2
+```
 
 ### Capture
 

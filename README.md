@@ -102,6 +102,30 @@ Open the Quickshell panel with `SUPER+ALT+M`. See the
 [desktop modes guide](docs/desktop-modes.md) for boundaries, timers, recovery,
 and all commands.
 
+## Network speed test
+
+`network-speedtest` resolves the active interface through `ip route`, runs eight
+parallel fast.com transfers for five seconds in each direction, and calculates
+Mbps from the interface's kernel byte counters. It prints the interface,
+download speed, and upload speed to stdout. The Quickshell entry points stream
+each one-second sample into a full-screen, themed gauge overlay.
+
+`SUPER+ALT+T`, the Quickbar network panel, and lmenu run the overlay.
+`SUPER+SHIFT+T` remains assigned to OCR. The tool is part of the `hypr` Stow
+package. Press Escape to close the overlay; use Run again after a test finishes.
+
+Install its Arch dependencies with:
+
+```bash
+paru -S --needed curl jq gawk iproute2
+```
+
+`gawk` provides `awk`.
+
+The fast.com token is public and hardcoded. Netflix can rotate or restrict it,
+which may make the API return HTTP 403. That is a known fragility of the
+unofficial API, not a script failure.
+
 ## YubiKey authentication
 
 The optional `security` package provides a guarded setup command for the
@@ -127,7 +151,7 @@ before installing Hyprlock PAM. See [installation and recovery](docs/installatio
 [installation](docs/installation.md#optional-packages) before deploying):
 
 ```bash
-stow --target="$HOME/Pictures/wallpapers" wallpaper
+stow --target="$HOME/Pictures/Wallpapers" wallpaper
 ```
 
 **Remove a package:**

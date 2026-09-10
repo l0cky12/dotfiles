@@ -1,0 +1,149 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+stream_json=0
+case ${1:-} in
+  "") ;;
+  --stream-json) stream_json=1 ;;
+  *)
+    printf 'usage: %s [--stream-json]\n' "${0##*/}" >&2
+    exit 2
+    ;;
+esac
+
+readonly api_url='https://api.fast.com/netflix/speedtest/v2?token=YXNkZmFzZGxmbnNkYWZoYXNkZmhrYWxm&urlCount=3'
+readonly phase_seconds=5
+readonly worker_count=8
+readonly upload_bytes=$((64 * 1024 * 1024))
+worker_pids=()
+
+die() {
+  printf 'network-speedtest: %s\n' "$1" >&2
+  exit 1
+}
+
+emit_sample() {
+  ((stream_json)) || return 0
+  printf '{"phase":"%s","mbps":%s}\n' "$1" "$2"
+}
+
+# Stop every active curl. Upload producers exit on SIGPIPE when their curl is
+# killed, so an interrupt cannot leave traffic running in the background.
+stop_workers() {
+  ((${#worker_pids[@]})) || return 0
+  kill "${worker_pids[@]}" 2>/dev/null || true
+  wait "${worker_pids[@]}" 2>/dev/null || true
+  worker_pids=()
+}
+
+trap stop_workers EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+for dependency in ip curl jq awk head; do
+  command -v "$dependency" >/dev/null 2>&1 || die "$dependency is required"
+done
+
+# Ask the kernel which interface it would use for an ordinary Internet route.
+route=$(ip route get 1.1.1.1 2>/dev/null) ||
+  die 'could not resolve the active network interface'
+iface=$(awk '{
+  for (field = 1; field <= NF; field++)
+    if ($field == "dev") { print $(field + 1); exit }
+}' <<<"$route")
+[[ -n $iface ]] || die 'the active route did not contain an interface'
+
+rx_counter="/sys/class/net/$iface/statistics/rx_bytes"
+tx_counter="/sys/class/net/$iface/statistics/tx_bytes"
+[[ -r $rx_counter && -r $tx_counter ]] ||
+  die "kernel byte counters are unavailable for $iface"
+
+# Fetch three Netflix test targets. The public token can expire or be rejected,
+# so curl has short timeouts and any HTTP error becomes a visible failure.
+if ! api_response=$(curl --fail --silent --show-error \
+    --connect-timeout 5 --max-time 15 "$api_url"); then
+  die 'fast.com API unavailable or rejected the public token; HTTP 403 is a known failure mode'
+fi
+
+if ! url_lines=$(jq -er '.targets | select(type == "array") | .[].url' \
+    <<<"$api_response"); then
+  die 'fast.com returned an unexpected response'
+fi
+mapfile -t urls <<<"$url_lines"
+[[ ${#urls[@]} -eq 3 ]] || die 'fast.com did not return three test URLs'
+for url in "${urls[@]}"; do
+  [[ $url == http://* || $url == https://* ]] ||
+    die 'fast.com returned an unsupported test URL'
+done
+
+read_counter() {
+  local value
+  value=$(cat "$1") || die "could not read $1"
+  [[ $value =~ ^[0-9]+$ ]] || die "invalid byte counter in $1"
+  printf '%s\n' "$value"
+}
+
+mbps() {
+  awk -v before="$1" -v after="$2" -v seconds="${3:-$phase_seconds}" '
+    BEGIN {
+      if (after < before) exit 1
+      printf "%.1f", (after - before) * 8 / seconds / 1000000
+    }'
+}
+
+stream_phase() {
+  local phase=$1 counter=$2 previous=$3 current rate
+  for ((second = 1; second <= phase_seconds; second++)); do
+    sleep 1
+    current=$(read_counter "$counter")
+    rate=$(mbps "$previous" "$current" 1) ||
+      die "the ${phase} counter reset during the test"
+    emit_sample "$phase" "$rate"
+    previous=$current
+  done
+}
+
+# Interface counters include all host traffic during the sample. Queue repeated
+# target downloads in each curl so fast links do not finish one 25 MiB response
+# before the five-second measurement ends.
+download_before=$(read_counter "$rx_counter")
+for ((worker = 0; worker < worker_count; worker++)); do
+  curl_args=(--fail --location --silent --max-time "$((phase_seconds + 2))"
+    --proto '=http,https' --proto-redir '=http,https')
+  for ((request = 0; request < 64; request++)); do
+    curl_args+=(--output /dev/null "${urls[(worker + request) % ${#urls[@]}]}")
+  done
+  curl "${curl_args[@]}" &
+  worker_pids+=("$!")
+done
+stream_phase download "$rx_counter" "$download_before"
+download_after=$(read_counter "$rx_counter")
+stop_workers
+download_mbps=$(mbps "$download_before" "$download_after") ||
+  die 'the receive counter reset during the test'
+
+# POST exactly 64 MiB from /dev/zero through each curl worker. Fast.com's
+# targets reject curl's streamed upload mode, so use its regular data mode.
+upload_before=$(read_counter "$tx_counter")
+for ((worker = 0; worker < worker_count; worker++)); do
+  head -c "$upload_bytes" /dev/zero |
+    curl --fail --location --silent --max-time "$((phase_seconds + 2))" \
+      --proto '=http,https' --proto-redir '=http,https' \
+      --request POST --data-binary @- --output /dev/null \
+      "${urls[worker % ${#urls[@]}]}" &
+  worker_pids+=("$!")
+done
+stream_phase upload "$tx_counter" "$upload_before"
+upload_after=$(read_counter "$tx_counter")
+stop_workers
+upload_mbps=$(mbps "$upload_before" "$upload_after") ||
+  die 'the transmit counter reset during the test'
+
+result=$(printf 'Interface: %s\nDownload: %s Mbps\nUpload: %s Mbps' \
+  "$iface" "$download_mbps" "$upload_mbps")
+if ((stream_json)); then
+  printf '{"phase":"complete","download":%s,"upload":%s}\n' \
+    "$download_mbps" "$upload_mbps"
+else
+  printf '%s\n' "$result"
+fi
