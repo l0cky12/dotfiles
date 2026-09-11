@@ -263,7 +263,7 @@ PanelWindow {
               anchors.left: arrow.right
               anchors.leftMargin: Theme.gapM
               anchors.right: parent.right
-              anchors.rightMargin: Theme.gapM
+              anchors.rightMargin: row.modelData.actionable ? Theme.gapM : Theme.gapM + Theme.gapS + infoMarker.width
               anchors.verticalCenter: parent.verticalCenter
               text: row.modelData.description
               color: row.isCurrent ? Theme.accent : Theme.textDim
@@ -273,6 +273,7 @@ PanelWindow {
             }
 
             Text {
+              id: infoMarker
               anchors.right: parent.right
               anchors.rightMargin: Theme.gapS
               anchors.verticalCenter: parent.verticalCenter
