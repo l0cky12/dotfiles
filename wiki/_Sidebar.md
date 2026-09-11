@@ -1,5 +1,11 @@
 **[dotfiles wiki](Home.md)**
 
+*New user guide*
+- [Start here](user/Start-Here.md)
+- [Daily use](user/Daily-Use.md)
+- [Features](user/Features.md)
+- [Fixing things](user/Fixing-Things.md)
+
 *Start here*
 - [Getting started](Getting-Started.md)
 - [Repository layout](Repository-Layout.md)

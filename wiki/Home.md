@@ -8,6 +8,26 @@ Everything here describes what is in this repository. Where the repository does
 not establish a fact, the page says so rather than guessing at an upstream
 default.
 
+## New to this setup?
+
+Start with **[Start here](user/Start-Here.md)** — what this desktop is, the ten
+keybindings that matter, and your first ten minutes. It assumes no prior
+knowledge and explains every term where it first appears.
+
+## User guide
+
+A plain-English layer over the reference pages. Begin at the top if you are
+new; dip in per task if you are not.
+
+| # | Page | What it covers |
+|---|---|---|
+| 1 | [Start here](user/Start-Here.md) | Track 1: what this desktop is, first login, the 10 essential keybindings. |
+| 2 | [Daily use](user/Daily-Use.md) | Track 2: recipes — wallpaper, themes, Wi-Fi and the QR share, notifications, capture, lock and modes, clipboard. |
+| 3 | [Features](user/Features.md) | Short walkthroughs of the theme system, Quickshell bar/panels, desktop modes, notifications, lmenu, and PATH scripts. |
+| 4 | [Fixing things](user/Fixing-Things.md) | Symptom-first troubleshooting in plain language. |
+
+## Reference pages
+
 ## Pages
 
 | # | Page | What it covers |
