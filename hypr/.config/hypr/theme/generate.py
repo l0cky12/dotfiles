@@ -67,8 +67,9 @@ def targets(prefix: Path, theme: tl.Theme) -> list[tl.Artifact]:
     """Describe every template, destination, and validator.
 
     Destinations are real config paths, not copies: this repo is stowed, so
-    ~/.config/<app> already points into it. `prefix` exists only so the test
-    pass can render everything somewhere harmless.
+    ~/.config/<app> already points into it. Optional deployment is decided from
+    the live XDG config tree even when `prefix` points at a harmless preview
+    tree; ``--validate-all`` still renders every target.
     """
     return [
         tl.Artifact(

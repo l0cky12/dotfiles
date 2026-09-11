@@ -54,7 +54,9 @@ def render_all(theme: tl.Theme, root: Path) -> list[Path]:
 def summary(theme: tl.Theme, outputs: list[Path]) -> dict[str, object]:
     """The stable subset worth snapshotting: identity and rendered bytes."""
     files = {
-        output.name: hashlib.sha256(output.read_bytes()).hexdigest()
+        output.name: hashlib.sha256(
+            output.read_text().replace(str(tl.repo_root()), ".").encode()
+        ).hexdigest()
         for output in outputs
     }
     return {
@@ -86,7 +88,9 @@ class ThemeGeneratorTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
         wallpaper_patcher = unittest.mock.patch.object(
-            tl, "wallpaper_roots", return_value=[]
+            tl,
+            "wallpaper_roots",
+            return_value=[tl.repo_root() / "wallpaper/theme"],
         )
         wallpaper_patcher.start()
         self.addCleanup(wallpaper_patcher.stop)
@@ -193,18 +197,17 @@ class ThemeGeneratorTest(unittest.TestCase):
         self.assertFalse((prefix / "btop").exists())
         self.assertFalse((prefix / "obsidian").exists())
 
-    def test_non_utf8_btop_config_is_user_owned_and_untouched(self) -> None:
-        theme = self.themes["tokyo-night"]
-        prefix = self.root / "prefix"
-        config = prefix / "btop/btop.conf"
-        config.parent.mkdir(parents=True)
-        invalid_utf8 = b'color_theme = "Default"\n# \xff\n'
-        config.write_bytes(invalid_utf8)
+    def test_btop_sync_is_advisory_and_ignores_its_arguments(self) -> None:
+        prefix = unittest.mock.MagicMock(spec=Path)
+        theme = unittest.mock.MagicMock(spec=tl.Theme)
 
         message = generate.sync_btop_config(prefix, theme)
 
-        self.assertEqual(config.read_bytes(), invalid_utf8)
-        self.assertIn('color_theme = "current"', message)
+        self.assertEqual(
+            message, '  btop: set color_theme = "current" in btop.conf once'
+        )
+        self.assertEqual(prefix.mock_calls, [])
+        self.assertEqual(theme.mock_calls, [])
 
     def test_optional_link_failure_keeps_installed_theme_and_state_aligned(self) -> None:
         theme = self.themes["tokyo-night"]

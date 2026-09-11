@@ -720,9 +720,9 @@ def install(staged: list[tuple[Path, Path]]) -> None:
     """Move every staged file to its destination.
 
     Each move is `os.replace` against a temp file in the destination's own
-    directory, so no reader ever sees a partial file. This runs only after all
-    rendering and validation has succeeded, which is what makes a failed switch
-    a no-op rather than a half-switched desktop.
+    directory, so no reader ever sees a partial file. Callers run this only
+    after rendering and validation succeed; separate optional app-owned sets
+    may still fail without rolling back an already installed mandatory set.
     """
     for src, dest in staged:
         dest.parent.mkdir(parents=True, exist_ok=True)
