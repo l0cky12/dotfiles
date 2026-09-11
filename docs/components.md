@@ -30,6 +30,10 @@ Workspace buttons switch to their numbered workspace. Other interactions include
   `CTRL+S` scan, `CTRL+B` power, Escape to close) and sorts connected devices
   first.
 - Audio: panel on left/middle click, mute on right click, 3% wheel adjustment.
+  The panel keeps the master output controls and adds live output/input device
+  switching, available PipeWire port/profile labels, and per-application
+  playback volume and mute controls. Empty device or application sections
+  collapse, with a muted unavailable state when PipeWire has no useful nodes.
 - Recording indicator: appears while recording and stops it when clicked.
 - Desktop-mode indicators: active night light, DND, stay-awake,
   automatic-screensaver-disabled, and error states; click to open the modes panel.
@@ -43,7 +47,7 @@ Workspace buttons switch to their numbered workspace. Other interactions include
 | --- | --- |
 | Network | `network-control` over NetworkManager `nmcli`; Wi-Fi scan/connect, profile DNS/IPv4 changes, and runtime-only `qrencode` Wi-Fi sharing |
 | Bluetooth | Hyprland script backend over `bluetoothctl` |
-| Audio | Quickshell PipeWire API |
+| Audio | Quickshell PipeWire API; default output/input switching and live per-application playback controls |
 | Media | Quickshell MPRIS; recent/pinned players; lyrics from `lrclib.net` |
 | Display | Hyprland monitor model, `ddcutil`, monitor-scale helper |
 | Dashboard | `/proc`, `df`, shell commands, Open-Meteo weather API |
