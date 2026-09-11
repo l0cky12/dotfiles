@@ -295,6 +295,7 @@ Scope {
           RecordIcon { barScale: panel.barScale }
           ModeIndicators { screenName: panel.modelData.name; barScale: panel.barScale }
           UpdatesIcon { barScale: panel.barScale }
+          BatteryIcon { barScale: panel.barScale }
         }
 
         Row {

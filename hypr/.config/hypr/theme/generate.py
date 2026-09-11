@@ -31,7 +31,6 @@ HERE = Path(__file__).resolve().parent
 TEMPLATES = HERE / "templates"
 THEMES_DIR = HERE.parent / "themes"
 STATE_FILE = THEMES_DIR / "current-theme"
-
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 CACHE_HOME = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
 WALLPAPER_STATE_FILE = Path(os.environ.get(
@@ -51,27 +50,78 @@ RED = lambda s: _c("31", s)          # noqa: E731
 DIM = lambda s: _c("2", s)           # noqa: E731
 
 
-def targets(prefix: Path) -> list[tuple[str, Path]]:
-    """(template, destination) for every generated file.
+OPTIONAL_TARGETS = {
+    "neovim-theme.lua": "neovim",
+    "btop-theme.tpl": "btop",
+    "obsidian-theme.css": "obsidian",
+}
+
+OPTIONAL_DEPLOY_DIRS = {
+    "neovim": Path("nvim/colors"),
+    "btop": Path("btop/themes"),
+    "obsidian": Path("obsidian/snippets"),
+}
+
+
+def targets(prefix: Path, theme: tl.Theme) -> list[tl.Artifact]:
+    """Describe every template, destination, and validator.
 
     Destinations are real config paths, not copies: this repo is stowed, so
-    ~/.config/<app> already points into it. `prefix` exists only so the test
-    pass can render everything somewhere harmless.
+    ~/.config/<app> already points into it. Optional deployment is decided from
+    the live XDG config tree even when `prefix` points at a harmless preview
+    tree; ``--validate-all`` still renders every target.
     """
     return [
-        ("hyprland-decorations.lua",  prefix / "hypr/conf/decorations.lua"),
-        ("quickshell-theme.json",     prefix / "hypr/themes/.active/theme.json"),
-        ("kitty-theme.conf",          prefix / "kitty/theme/current-theme.conf"),
-        ("zsh-theme.zsh",             prefix / "zsh/current-theme.zsh"),
-        ("rofi-theme.rasi",           prefix / "rofi/color-themes/current.rasi"),
-        ("rofi-powermenu-theme.rasi", prefix / "rofi/powermenu/theme.rasi"),
-        ("hyprlock-colors.conf",      prefix / "hyprlock/colors.conf"),
-        ("swaync-style.css",          prefix / "swaync/style.css"),
-        ("wofi-style.css",            prefix / "wofi/style.css"),
-        ("noctalia-colors.json",      prefix / "noctalia/colors.json"),
-        ("greeter-theme.css",         prefix / "greeter/greeter.css"),
-        ("regreet-greeter.toml",      prefix / "greeter/regreet.toml"),
+        tl.Artifact(
+            "hyprland-decorations.lua", prefix / "hypr/conf/decorations.lua"
+        ),
+        tl.Artifact(
+            "quickshell-theme.json", prefix / "hypr/themes/.active/theme.json"
+        ),
+        tl.Artifact("kitty-theme.conf", prefix / "kitty/theme/current-theme.conf"),
+        tl.Artifact("zsh-theme.zsh", prefix / "zsh/current-theme.zsh"),
+        tl.Artifact("rofi-theme.rasi", prefix / "rofi/color-themes/current.rasi"),
+        tl.Artifact(
+            "rofi-powermenu-theme.rasi", prefix / "rofi/powermenu/theme.rasi"
+        ),
+        tl.Artifact("hyprlock-colors.conf", prefix / "hyprlock/colors.conf"),
+        tl.Artifact("swaync-style.css", prefix / "swaync/style.css"),
+        tl.Artifact("wofi-style.css", prefix / "wofi/style.css"),
+        tl.Artifact("noctalia-colors.json", prefix / "noctalia/colors.json"),
+        tl.Artifact("greeter-theme.css", prefix / "greeter/greeter.css"),
+        tl.Artifact("regreet-greeter.toml", prefix / "greeter/regreet.toml"),
+        tl.Artifact(
+            "neovim-theme.lua", prefix / f"nvim/colors/{theme.slug}.lua"
+        ),
+        tl.Artifact(
+            "btop-theme.tpl", prefix / f"btop/themes/{theme.slug}.theme",
+            validator=".theme",
+        ),
+        tl.Artifact(
+            "obsidian-theme.css",
+            prefix / "obsidian/snippets/generated-theme.css",
+        ),
     ]
+
+
+def deployed_targets(
+    artifacts: list[tl.Artifact],
+    live_prefix: Path,
+) -> tuple[list[tl.Artifact], list[str]]:
+    """Keep optional adapters whose live Stow-created directory exists.
+
+    Artifact destinations may point at a harmless ``--prefix`` preview tree;
+    deployment is always determined from the live config tree instead.
+    """
+    selected: list[tl.Artifact] = []
+    messages: list[str] = []
+    for artifact in artifacts:
+        app = OPTIONAL_TARGETS.get(artifact.template)
+        if app and not (live_prefix / OPTIONAL_DEPLOY_DIRS[app]).is_dir():
+            messages.append(f"  {app}: skipped (not deployed)")
+            continue
+        selected.append(artifact)
+    return selected, messages
 
 
 # The greeter CSS/TOML get an extra check beyond "does it parse": did the
@@ -123,17 +173,24 @@ def _check_regreet_toml(out: Path) -> None:
             raise tl.ThemeError(f"{out.name}: [{table}] is missing required key '{key}'")
 
 
-def build(theme: tl.Theme, stage: Path, prefix: Path) -> list[tuple[Path, Path]]:
+def build(
+    theme: tl.Theme,
+    stage: Path,
+    prefix: Path,
+    artifacts: list[tl.Artifact] | None = None,
+) -> list[tuple[Path, Path]]:
     """Render every template into `stage` and validate it. Returns the
     (staged, destination) pairs ready for install."""
     staged: list[tuple[Path, Path]] = []
-    for name, dest in targets(prefix):
+    chosen = artifacts if artifacts is not None else targets(prefix, theme)
+    for artifact in chosen:
+        name, dest = artifact.template, artifact.dest
         template = TEMPLATES / name
         if not template.is_file():
             raise tl.ThemeError(f"missing template: {template}")
         out = stage / name
         out.write_text(tl.render(template.read_text(), theme, origin=name))
-        validator = tl.VALIDATORS.get(out.suffix)
+        validator = tl.VALIDATORS.get(artifact.validator or out.suffix)
         if validator:
             validator(out)
         if name == "greeter-theme.css":
@@ -225,6 +282,59 @@ def link_rofi(prefix: Path, slug: str) -> None:
     os.replace(tmp, link)
 
 
+def link_optional_themes(
+    prefix: Path,
+    theme: tl.Theme,
+    installed_apps: set[str] | None = None,
+) -> list[str]:
+    """Keep stable aliases without making a completed install fail."""
+    messages: list[str] = []
+    outputs = (
+        ("neovim", prefix / "nvim/colors", ".lua", "generated Neovim colorscheme"),
+        ("btop", prefix / "btop/themes", ".theme", "generated btop theme"),
+    )
+    for app, directory, suffix, marker in outputs:
+        if installed_apps is not None and app not in installed_apps:
+            continue
+        try:
+            current = directory / f"{theme.slug}{suffix}"
+            if not current.is_file():
+                continue
+            for candidate in directory.glob(f"*{suffix}"):
+                if candidate == current or candidate.name == f"current{suffix}":
+                    continue
+                try:
+                    with candidate.open(encoding="utf-8") as handle:
+                        first_line = handle.readline()
+                except (OSError, UnicodeDecodeError):
+                    continue
+                if marker in first_line:
+                    candidate.unlink()
+            link = directory / f"current{suffix}"
+            if link.is_file() and not link.is_symlink():
+                try:
+                    with link.open(encoding="utf-8") as handle:
+                        first_line = handle.readline()
+                except (OSError, UnicodeDecodeError):
+                    first_line = ""
+                if marker not in first_line:
+                    messages.append(
+                        f"  {app}: warning ({link.name} is a user-owned file; "
+                        "alias not updated)"
+                    )
+                    continue
+            tmp = directory / f".current{suffix}.new"
+            if tmp.is_symlink() or tmp.exists():
+                tmp.unlink()
+            tmp.symlink_to(current.name)
+            os.replace(tmp, link)
+        except OSError as exc:
+            messages.append(
+                f"  {app}: warning (could not update current theme alias: {exc})"
+            )
+    return messages
+
+
 def sync_noctalia(prefix: Path, theme: tl.Theme) -> None:
     """Register the generated colours as a Noctalia user scheme named after the
     theme. The previous generator hardcoded "Windows-7" here for every theme,
@@ -278,6 +388,11 @@ def sync_fastfetch(prefix: Path, theme: tl.Theme) -> None:
         tmp = cfg.parent / ".config.jsonc.new"
         tmp.write_text(new)
         os.replace(tmp, cfg)
+
+
+def sync_btop_config(_prefix: Path, _theme: tl.Theme) -> str:
+    """Advise without reading or modifying user-owned btop configuration."""
+    return '  btop: set color_theme = "current" in btop.conf once'
 
 
 # ── Wallpaper ────────────────────────────────────────────────────────────────
@@ -467,7 +582,10 @@ def cmd_set(args: argparse.Namespace) -> int:
     stage = Path(tempfile.mkdtemp(prefix="theme-stage.", dir=stage_root))
     try:
         try:
-            staged = build(theme, stage, prefix)
+            selected, target_messages = deployed_targets(
+                targets(prefix, theme), CONFIG_HOME
+            )
+            staged = build(theme, stage, prefix, selected)
         except tl.ThemeError as exc:
             print(f"{RED('error')}: {exc}", file=sys.stderr)
             print("Nothing was installed; previous theme left untouched.",
@@ -477,20 +595,55 @@ def cmd_set(args: argparse.Namespace) -> int:
         for w in theme.warnings:
             print(f"{YELLOW('warning')}: {w}", file=sys.stderr)
 
-        tl.install(staged)
+        mandatory_staged: list[tuple[Path, Path]] = []
+        optional_staged: list[tuple[str, tuple[Path, Path]]] = []
+        for artifact, staged_pair in zip(selected, staged, strict=True):
+            app = OPTIONAL_TARGETS.get(artifact.template)
+            if app:
+                optional_staged.append((app, staged_pair))
+            else:
+                mandatory_staged.append(staged_pair)
+
+        tl.install(mandatory_staged)
         link_rofi(prefix, theme.slug)
         sync_noctalia(prefix, theme)
         sync_fastfetch(prefix, theme)
+
+        installed_optional: set[str] = set()
+        for app, staged_pair in optional_staged:
+            try:
+                tl.install([staged_pair])
+            except OSError as exc:
+                target_messages.append(
+                    f"  {app}: warning (could not install generated theme: {exc})"
+                )
+            else:
+                installed_optional.add(app)
+
+        target_messages.extend(
+            link_optional_themes(prefix, theme, installed_optional)
+        )
+        if "btop" in installed_optional:
+            target_messages.append(sync_btop_config(prefix, theme))
+        if "obsidian" in installed_optional:
+            target_messages.append(
+                "  obsidian: enable generated-theme.css in Settings > Appearance "
+                "> CSS snippets"
+            )
     finally:
         shutil.rmtree(stage, ignore_errors=True)
 
     if dry:
         print(f"{GREEN('rendered')} {theme.name} into {prefix} "
               f"(no state written, nothing reloaded)")
+        for message in target_messages:
+            print(DIM(message))
         return 0
 
     write_state(theme)
     print(f"{GREEN('theme')} {BOLD(theme.name)} ({theme.mode})")
+    for message in target_messages:
+        print(DIM(message))
 
     if args.no_reload:
         print(DIM("  reload skipped"))

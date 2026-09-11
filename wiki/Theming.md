@@ -34,7 +34,7 @@ WCAG AA contrast checks — then renders every template into a staging directory
 Nothing moves into place until all of it passes, so **a broken theme leaves the
 previous one running**.
 
-Twelve templates live in `hypr/.config/hypr/theme/templates/`:
+Fifteen templates live in `hypr/.config/hypr/theme/templates/`:
 
 | Template | Renders to |
 | --- | --- |
@@ -50,12 +50,30 @@ Twelve templates live in `hypr/.config/hypr/theme/templates/`:
 | `noctalia-colors.json` | `noctalia/.config/noctalia/colors.json` and scheme data |
 | `greeter-theme.css` | `greeter/.config/greeter/greeter.css` |
 | `regreet-greeter.toml` | `greeter/.config/greeter/regreet.toml` |
+| `neovim-theme.lua` | `neovim/.config/nvim/colors/<slug>.lua` and `current.lua` |
+| `btop-theme.tpl` | `btop/.config/btop/themes/<slug>.theme` and `current.theme` |
+| `obsidian-theme.css` | `obsidian/.config/obsidian/snippets/generated-theme.css` (link into each vault) |
 
 Fastfetch's `keyColor` is also updated. Every one of these destinations is in
 `.gitignore` — edit the palette or the template, never the output.
 
 The Zsh target is the odd one: it is written directly into `~/.config/zsh/`
 rather than through a tracked Stow path, and `.zshrc` sources it.
+
+The optional Neovim and btop aliases let configuration use `current` once;
+theme switches repoint the aliases and prune older generated slug files.
+Obsidian requires a manual symlink from each vault's
+`.obsidian/snippets/generated-theme.css` to the generated file, followed by
+enabling the snippet in that vault's Appearance settings.
+
+Deploy these optional packages with `stow --no-folding neovim btop obsidian`.
+This keeps application-created state outside the checkout; a package-level
+`.gitignore` does not by itself stop Stow from folding a missing target tree.
+
+With `theme set <slug> --prefix <dir>`, optional-target deployment is detected
+from the live XDG config tree (`$XDG_CONFIG_HOME`, or `~/.config`). Selected
+outputs are still rendered only beneath `<dir>`, so the preview reports what a
+live switch would target without writing those generated files to the live tree.
 
 ## The `theme` CLI
 

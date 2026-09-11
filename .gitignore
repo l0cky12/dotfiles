@@ -23,6 +23,9 @@ noctalia/.config/noctalia/colors.json
 noctalia/.config/noctalia/colorschemes/
 greeter/.config/greeter/greeter.css
 greeter/.config/greeter/regreet.toml
+neovim/.config/nvim/colors/*.lua
+btop/.config/btop/themes/*.theme
+obsidian/.config/obsidian/snippets/generated-theme.css
 
 # ── Generated monitor/workspace state ─────────────────────────────────────────
 # Sources of truth are hypr/.config/hypr/monitor_profiles/<profile>.*.lua.

@@ -36,11 +36,12 @@ contents into `~`.
 > `system/` holds root-owned `/etc` templates that `yubikey-auth` deploys;
 > stowing it would create `~/greetd` and `~/pam.d`.
 
-**Deploy everything at once:**
+**Deploy the standard packages at once:**
 
 ```bash
-stow ai browser cliphist fastfetch greeter hypr hyprlock kitty modes noctalia quickshell \
-     rofi screensaver security swaync systemd windows wallpaper wofi xdg zsh
+stow ai browser cliphist fastfetch greeter hypr hyprlock kitty modes noctalia \
+     quickshell rofi screensaver security swaync systemd windows \
+     wallpaper wofi xdg zsh
 ```
 
 **Or deploy packages individually:**
@@ -66,6 +67,18 @@ stow cliphist    # ~/.config/cliphist
 stow xdg         # ~/.config/mimeapps.list, ~/.local/share/applications
 stow zsh         # ~/.zshrc, ~/.p10k.zsh (see Shell setup below)
 ```
+
+The generated app-theme packages are optional. Deploy them without directory
+folding so application-created files stay outside the Git checkout:
+
+```bash
+stow --no-folding neovim btop obsidian
+```
+
+Their package-level `.gitignore` files keep accidental app state untracked, but
+do not prevent Stow from folding a missing target directory into one symlink.
+Without `--no-folding`, a later `git clean -xfd` could therefore delete app
+state written through that symlink.
 
 ## ASCII Screensaver
 
@@ -352,6 +365,9 @@ Each theme consistently updates:
 - **Wofi** — launcher CSS
 - **Noctalia** — shell colour scheme
 - **Fastfetch** — section key colours
+- **Neovim** — generated colorscheme, with a stable `current` alias
+- **btop** — generated theme, with a stable `current` alias
+- **Obsidian** — generated CSS snippet source for manually linked vault snippets
 - **Wallpaper** — set via `hyprpaper` over `hyprctl` for the 10 themes that have
   an asset; the other 13 leave your current wallpaper alone rather than clearing it.
   `theme index` prints which is which
@@ -392,7 +408,9 @@ theme set <slug>
 1. Create `hypr/.config/hypr/themes/<slug>/colors.toml` (copy `tokyo-night/colors.toml` for the format and required keys).
 2. Run `theme set <slug>`.
 
-No per-application config changes are needed — every app is generated from the palette.
+Most applications consume generated output directly. Set btop's `color_theme`
+to `"current"` once, and symlink then enable the generated Obsidian CSS snippet
+in each vault as described in [Themes and appearance](docs/themes.md).
 
 ### Validation
 

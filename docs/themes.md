@@ -46,9 +46,35 @@ A theme selection renders coordinated output for:
 | Wofi | `wofi/.config/wofi/style.css` |
 | Noctalia | generated colors/scheme data |
 | Fastfetch | configured `keyColor` |
+| Neovim | `neovim/.config/nvim/colors/<slug>.lua` plus stable `current.lua` alias |
+| btop | `btop/.config/btop/themes/<slug>.theme` plus stable `current.theme` alias |
+| Obsidian | `obsidian/.config/obsidian/snippets/generated-theme.css` (link into a vault and enable manually) |
 | Greeter (regreet) | `greeter/.config/greeter/{greeter.css,regreet.toml}` -- a further, opt-in `theme set --install-greeter` root-owned copy is required to reach `/etc/greetd/`; see `greeter/README.md` |
 
 The generator also synchronizes relevant Noctalia settings and scheme metadata.
+Neovim, btop, and Obsidian are optional. Deploy them with `stow --no-folding
+neovim btop obsidian` before running `theme set`; `--no-folding` keeps app state
+out of the checkout. If an output directory is absent, the generator reports
+`skipped (not deployed)` and continues. This repository does not currently track
+a `btop.conf`, so set `color_theme = "current"` once in your own config. Neovim
+can likewise use `:colorscheme current`; each theme set repoints both stable
+aliases and removes superseded generated slug files.
+`current.lua` and `current.theme` are reserved for those stable aliases. If
+either name is already a regular file without the generator marker, the
+generator treats it as user-owned, leaves it untouched, and prints a warning.
+
+Obsidian only reads snippets inside a vault. For every vault that should follow
+the generated palette, create this symlink (replace `<vault>` with its path),
+then enable `generated-theme.css` in that vault's Settings > Appearance > CSS
+snippets:
+
+```bash
+mkdir -p "<vault>/.obsidian/snippets"
+ln -sfn "$HOME/.config/obsidian/snippets/generated-theme.css" \
+  "<vault>/.obsidian/snippets/generated-theme.css"
+```
+
+The generator never searches for or changes vault files.
 
 ## Theme bootstrap
 
@@ -76,7 +102,8 @@ On selection, the theme system can:
 - notify the Quickshell theme watcher;
 - update running Kitty windows through remote control;
 - signal SwayNC when it is running; and
-- leave generated output ready for applications that load it later.
+- leave generated output ready for applications that load it later, including
+  Neovim (`:colorscheme current`) and btop (`color_theme = "current"`).
 
 This means `theme set` is not a purely read-only renderer, although it does not
 change the wallpaper unless explicitly passed `--wallpaper`. Use its validation
