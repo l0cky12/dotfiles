@@ -9,16 +9,23 @@ import "battery/BatteryLogic.js" as BatteryLogic
 Singleton {
   id: root
 
-  readonly property var device: UPower.displayDevice
+  // The override exists for the headless smoke fixture; production always uses
+  // UPower's display device.
+  property var deviceOverride: null
+  readonly property var device: root.deviceOverride || UPower.displayDevice
+  readonly property bool fixtureMode: Quickshell.env("BATTERY_SMOKE_TEST") === "1"
   readonly property int refreshInterval: 30 * 1000
 
   property bool hasBattery: false
   property int percent: 0
   property bool charging: false
   property bool discharging: false
+  property string powerState: "indeterminate"
   property string state: "unknown"
   property var alertState: BatteryLogic.initialState()
   property var notificationQueue: []
+  property bool notificationStarted: false
+  property bool notificationExited: false
 
   function stateName(deviceState) {
     switch (deviceState) {
@@ -43,7 +50,7 @@ Singleton {
     const result = BatteryLogic.update(root.alertState, {
       hasBattery: root.hasBattery,
       percent: root.percent,
-      discharging: root.discharging
+      powerState: root.powerState
     }, {
       warn: Battery.BatteryConfig.warnPercent,
       severe: Battery.BatteryConfig.severePercent,
@@ -55,6 +62,8 @@ Singleton {
   }
 
   function refresh() {
+    if (root.fixtureMode && !root.deviceOverride)
+      return
     const battery = root.device
     const present = battery && battery.ready
                     && battery.isLaptopBattery && battery.isPresent
@@ -63,6 +72,7 @@ Singleton {
       root.percent = 0
       root.charging = false
       root.discharging = false
+      root.powerState = "indeterminate"
       root.state = "unknown"
       root.evaluateAlerts()
       return
@@ -75,6 +85,11 @@ Singleton {
                     || battery.state === UPowerDeviceState.PendingCharge
     root.discharging = battery.state === UPowerDeviceState.Discharging
                        || battery.state === UPowerDeviceState.PendingDischarge
+    root.powerState = root.charging
+      || battery.state === UPowerDeviceState.FullyCharged
+      || UPower.onBattery === false
+      ? "charging"
+      : (root.discharging ? "discharging" : "indeterminate")
     root.evaluateAlerts()
   }
 
@@ -89,11 +104,8 @@ Singleton {
     root.startNextNotification()
   }
 
-  function startNextNotification() {
-    if (notifyProcess.running || root.notificationQueue.length === 0)
-      return
-    const alert = root.notificationQueue[0]
-    notifyProcess.command = [
+  function notificationCommand(alert) {
+    return [
       "notify-send",
       "-a", "Battery",
       "-u", "critical",
@@ -102,6 +114,23 @@ Singleton {
       root.alertTitle(alert.level),
       alert.percent + "% remaining. Connect a charger."
     ]
+  }
+
+  function finishNotification(succeeded, reason) {
+    if (root.notificationQueue.length === 0)
+      return
+    if (!succeeded)
+      console.warn("battery: notify-send failed" + (reason ? ": " + reason : ""))
+    root.notificationQueue = root.notificationQueue.slice(1)
+  }
+
+  function startNextNotification() {
+    if (notifyProcess.running || root.notificationQueue.length === 0)
+      return
+    const alert = root.notificationQueue[0]
+    root.notificationStarted = false
+    root.notificationExited = false
+    notifyProcess.command = root.notificationCommand(alert)
     notifyProcess.running = true
   }
 
@@ -110,8 +139,18 @@ Singleton {
     running: false
     stdout: StdioCollector {}
     stderr: StdioCollector {}
-    onExited: function() {
-      root.notificationQueue = root.notificationQueue.slice(1)
+    onStarted: root.notificationStarted = true
+    onExited: function(code) {
+      root.notificationExited = true
+      root.finishNotification(code === 0, "exit code " + code)
+    }
+    onRunningChanged: {
+      if (running)
+        return
+      if (!root.notificationExited && !root.notificationStarted)
+        root.finishNotification(false, "failed to start")
+      root.notificationStarted = false
+      root.notificationExited = false
       Qt.callLater(root.startNextNotification)
     }
   }

@@ -64,7 +64,11 @@ While discharging, crossings at 20%, 10%, and 5% emit persistent critical
 notifications through the existing `notify-send`/Quickshell notification path.
 Each threshold fires once per discharge cycle; charging or returning to AC
 resets the session-scoped suppression state. Thresholds are configurable in
-`quickshell/.config/quickshell/battery/config.json`.
+`quickshell/.config/quickshell/battery/config.json`. Each threshold accepts an
+integer percentage from 0 through 100; 0 disables that threshold. Enabled
+thresholds must be strictly descending (`warnPercent` > `severePercent` >
+`criticalPercent`, ignoring disabled entries), or all three fall back to the
+20/10/5 defaults with a warning.
 
 `quickshell/.config/quickshell/Theme.qml` watches
 `~/.config/hypr/themes/.active/theme.json` and updates live. It uses a sans-serif

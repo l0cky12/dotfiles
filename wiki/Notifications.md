@@ -87,7 +87,7 @@ seconds, and ordinary requests are clamped to 30 seconds.
 | `animationMs`, `closeFadeMs` | 130, 100 |
 | `borderWidths` | `[]` — per side, `[top, right, bottom, left]` |
 | `debug` | `false` |
-| `dndBypassApps` | `Do Not Disturb`, `Night Light`, `Capture`, `Web Apps` |
+| `dndBypassApps` | `Do Not Disturb`, `Night Light`, `Capture`, `Battery`, `Web Apps` |
 
 A DND bypass requires **both** an allow-listed app name **and** an explicit local
 bypass hint. Urgency alone never bypasses DND.

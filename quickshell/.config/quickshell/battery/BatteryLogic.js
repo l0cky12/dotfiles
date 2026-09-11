@@ -39,11 +39,13 @@ function update(previousState, sample, configuredThresholds) {
     return { state: state, alerts: alerts }
 
   var percent = boundedPercent(current.percent, 0)
-  if (current.discharging !== true) {
+  if (current.powerState === "charging") {
     state = initialState()
     state.lastPercent = percent
     return { state: state, alerts: alerts }
   }
+  if (current.powerState !== "discharging")
+    return { state: state, alerts: alerts }
 
   var thresholds = configuredThresholds || {}
   var levels = [
@@ -51,12 +53,10 @@ function update(previousState, sample, configuredThresholds) {
     { level: "severe", threshold: boundedPercent(thresholds.severe, 10) },
     { level: "critical", threshold: boundedPercent(thresholds.critical, 5) }
   ]
-  var startsCycle = !state.discharging
-
   for (var i = 0; i < levels.length; i++) {
     var item = levels[i]
-    var crossed = percent <= item.threshold &&
-      (startsCycle || state.lastPercent === null || state.lastPercent > item.threshold)
+    var crossed = item.threshold > 0 && percent <= item.threshold &&
+      (state.lastPercent === null || state.lastPercent > item.threshold)
     if (!state.alerted[item.level] && crossed) {
       alerts.push({ level: item.level, threshold: item.threshold, percent: percent })
       state.alerted[item.level] = true
