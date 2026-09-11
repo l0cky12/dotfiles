@@ -65,16 +65,23 @@ function update(previousState, sample, configuredThresholds) {
     return { state: state, alerts: alerts }
 
   var percent = boundedPercent(current.percent, 0)
+  var thresholds = normalizedThresholds(configuredThresholds)
   if (current.powerState === "charging") {
-    state = initialState()
-    state.lastPercent = percent
+    var highestEnabled = Math.max(thresholds.warn, thresholds.severe,
+                                  thresholds.critical)
+    var roseEnough = state.lastPercent !== null
+      && percent > state.lastPercent + 2
+    if (roseEnough || percent > highestEnabled)
+      state.alerted = initialState().alerted
+    // The next discharge reading is a cold start. Suppression is retained
+    // above unless charging proves this is a genuinely replenished cycle.
+    state.lastPercent = null
     return { state: state, alerts: alerts }
   }
   if (current.powerState !== "discharging"
       && !(current.powerState === "indeterminate" && current.onBattery === true))
     return { state: state, alerts: alerts }
 
-  var thresholds = normalizedThresholds(configuredThresholds)
   var levels = [
     { level: "warn", threshold: thresholds.warn },
     { level: "severe", threshold: thresholds.severe },
@@ -84,7 +91,15 @@ function update(previousState, sample, configuredThresholds) {
     var mostSevere = -1
     for (var coldIndex = 0; coldIndex < levels.length; coldIndex++) {
       var coldItem = levels[coldIndex]
-      if (!state.alerted[coldItem.level] && coldItem.threshold > 0
+      var superseded = false
+      for (var severeIndex = coldIndex + 1;
+           severeIndex < levels.length; severeIndex++) {
+        if (state.alerted[levels[severeIndex].level]) {
+          superseded = true
+          break
+        }
+      }
+      if (!superseded && !state.alerted[coldItem.level] && coldItem.threshold > 0
           && percent <= coldItem.threshold)
         mostSevere = coldIndex
     }

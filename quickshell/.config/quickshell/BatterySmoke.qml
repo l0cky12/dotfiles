@@ -3,8 +3,8 @@ import Quickshell.Services.UPower
 import QtQuick
 import "battery" as Battery
 
-// Headless parse/instantiation and behavior harness. It never starts a Process
-// or sends a notification; command construction is exercised as a pure value.
+// Headless parse/instantiation and behavior harness. BatteryState fixture mode
+// records notification commands at the Process boundary without starting it.
 Scope {
   id: smoke
 
@@ -99,6 +99,18 @@ Scope {
     check("notify command contains title and body",
           command[9] === "Battery critically low"
           && command[10] === "5% remaining. Connect a charger.")
+
+    state.notificationQueue = []
+    state.fixtureCommands = []
+    fakeDevice.state = UPowerDeviceState.Discharging
+    fakeDevice.percentage = 0.20
+    state.refresh()
+    check("fake discharging device queues warning",
+          state.notificationQueue.length === 1
+          && state.fixtureCommands.length === 1
+          && state.fixtureCommands[0][9] === "Battery low")
+    check("fixture mode never starts notification Process",
+          !state.notificationStarted && !state.notificationProcessRunning)
 
     console.log(smoke.failures === 0
       ? "ok: BatteryState logic"

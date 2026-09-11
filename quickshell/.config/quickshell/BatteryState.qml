@@ -9,11 +9,13 @@ import "battery/BatteryLogic.js" as BatteryLogic
 Singleton {
   id: root
 
+  // Add/add reconciliation with PR #24: #24 owns the singleton base, and
+  // whichever PR merges second must reconcile its BatteryState additions.
   // The override exists for the headless smoke fixture; production always uses
   // UPower's display device.
   property var deviceOverride: null
   readonly property var device: root.deviceOverride || UPower.displayDevice
-  readonly property bool fixtureMode: Quickshell.env("BATTERY_SMOKE_TEST") === "1"
+  readonly property bool fixtureMode: Boolean(Quickshell.env("BATTERY_SMOKE_TEST"))
   readonly property int refreshInterval: 30 * 1000
 
   property bool hasBattery: false
@@ -25,8 +27,10 @@ Singleton {
   property var alertState: BatteryLogic.initialState()
   property var alertThresholds: null
   property var notificationQueue: []
+  property var fixtureCommands: []
   property bool notificationStarted: false
   property bool notificationExited: false
+  readonly property bool notificationProcessRunning: notifyProcess.running
 
   function stateName(deviceState) {
     switch (deviceState) {
@@ -104,11 +108,13 @@ Singleton {
                     || battery.state === UPowerDeviceState.PendingCharge
     root.discharging = battery.state === UPowerDeviceState.Discharging
                        || battery.state === UPowerDeviceState.PendingDischarge
+    const onBattery = root.fixtureMode && root.deviceOverride
+      ? root.discharging : UPower.onBattery
     root.powerState = root.charging
       || battery.state === UPowerDeviceState.FullyCharged
-      || UPower.onBattery === false
+      || onBattery === false
       ? "charging"
-      : (root.discharging || UPower.onBattery === true
+      : (root.discharging || onBattery === true
          ? "discharging" : "indeterminate")
     root.evaluateAlerts()
   }
@@ -150,7 +156,12 @@ Singleton {
     const alert = root.notificationQueue[0]
     root.notificationStarted = false
     root.notificationExited = false
-    notifyProcess.command = root.notificationCommand(alert)
+    const command = root.notificationCommand(alert)
+    if (root.fixtureMode) {
+      root.fixtureCommands = root.fixtureCommands.concat([command])
+      return
+    }
+    notifyProcess.command = command
     notifyProcess.running = true
   }
 

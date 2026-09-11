@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 state="$repo_root/quickshell/.config/quickshell/BatteryState.qml"
 logic="$repo_root/quickshell/.config/quickshell/battery/BatteryLogic.js"
+logic_test="$repo_root/tests/battery-alerts.logic.test.js"
 battery_config="$repo_root/quickshell/.config/quickshell/battery/config.json"
 notification_config="$repo_root/quickshell/.config/quickshell/notifications/config.json"
 smoke="$repo_root/quickshell/.config/quickshell/BatterySmoke.qml"
@@ -16,71 +17,7 @@ fail() {
 
 actual='node unavailable'
 if command -v node >/dev/null 2>&1; then
-  actual=$(node - "$logic" <<'JS'
-const logic = require(process.argv[2]);
-const thresholds = {warn: 20, severe: 10, critical: 5};
-let state = logic.initialState();
-const alerts = [];
-
-function sample(percent, powerState, hasBattery = true) {
-  const result = logic.update(state, {hasBattery, percent, powerState}, thresholds);
-  state = result.state;
-  for (const alert of result.alerts)
-    alerts.push(`${alert.level}:${alert.percent}`);
-}
-
-sample(21, "discharging");
-sample(20, "discharging");
-sample(19, "indeterminate"); // A transient Unknown state must not re-arm warn.
-sample(19, "discharging");
-sample(12, "discharging");
-sample(12, "charging");      // A short charge blip clears the cycle at 12%.
-sample(12, "discharging");   // It must not replay warn below its crossing.
-sample(10, "discharging");
-sample(5, "discharging");
-sample(0, "indeterminate", false); // Missing hardware is inert.
-
-// Charging above warn establishes a new downward crossing and discharge cycle.
-sample(21, "charging");
-sample(20, "discharging");
-
-// Zero disables an individual threshold.
-let disabledState = logic.initialState();
-const disabled = logic.update(disabledState,
-  {hasBattery: true, percent: 0, powerState: "discharging"},
-  {warn: 0, severe: 0, critical: 0});
-if (disabled.alerts.length !== 0)
-  throw new Error("disabled thresholds emitted alerts");
-
-// A cold-start sample emits only its most severe crossed threshold and
-// suppresses the less-severe alerts for the rest of that cycle.
-const cold = logic.update(logic.initialState(),
-  {hasBattery: true, percent: 4, powerState: "discharging"}, thresholds);
-if (cold.alerts.length !== 1 || cold.alerts[0].level !== "critical"
-    || !cold.state.alerted.warn || !cold.state.alerted.severe)
-  throw new Error("cold start did not select only the most severe alert");
-
-// UPower can report an Unknown device state while confirming that the system
-// is on battery; that combination must still participate in alerting.
-const unknown = logic.update(logic.initialState(),
-  {hasBattery: true, percent: 20, powerState: "indeterminate", onBattery: true},
-  thresholds);
-if (unknown.alerts.length !== 1 || unknown.alerts[0].level !== "warn")
-  throw new Error("Unknown + onBattery was not treated as discharging");
-
-// Raising a threshold at runtime re-arms that level against the current sample.
-let reloadState = logic.update(logic.initialState(),
-  {hasBattery: true, percent: 25, powerState: "discharging"}, thresholds).state;
-const reloadedThresholds = {warn: 30, severe: 10, critical: 5};
-reloadState = logic.rearmChanged(reloadState, thresholds, reloadedThresholds);
-const reloaded = logic.update(reloadState,
-  {hasBattery: true, percent: 25, powerState: "discharging"}, reloadedThresholds);
-if (reloaded.alerts.length !== 1 || reloaded.alerts[0].level !== "warn")
-  throw new Error("changed threshold was not re-armed");
-
-process.stdout.write(alerts.join("\n") + "\n");
-JS
-  )
+  actual=$(node "$logic_test" "$logic")
 
   expected=$'warn:20\nsevere:10\ncritical:5\nwarn:20'
   [[ "$actual" == "$expected" ]] || {
