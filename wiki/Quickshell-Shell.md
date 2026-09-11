@@ -10,6 +10,7 @@ Hyprland starts `quickshell`, which loads `shell.qml`:
 
 ```qml
 Scope {
+  readonly property var batteryState: BatteryState
   Bar {}
   Variants {
     model: Quickshell.screens
@@ -20,8 +21,8 @@ Scope {
 }
 ```
 
-Four things: the bar, one desktop clock per screen, the notification service, and
-the browser-video progress service.
+Five things: battery monitoring, the bar, one desktop clock per screen, the
+notification service, and the browser-video progress service.
 
 A second instance runs separately as `quickshell -c cava-visualizer`, configured
 from `quickshell/.config/quickshell/cava-visualizer/`.
@@ -151,6 +152,7 @@ dropdown.
 | Display | `DisplayState/Icon/Panel.qml` |
 | Clipboard | `ClipboardState/Icon/Panel.qml` |
 | Notifications | `notifications/` (see [Notifications](Notifications.md)), `NotifyState.qml`, `NotifyIcon.qml`, `DndIcon.qml` |
+| Battery | `BatteryState.qml`, `battery/BatteryLogic.js`, `battery/BatteryConfig.qml`, `battery/config.json` |
 | Modes | `ModesState.qml`, `ModesPanel.qml`, `ModeIndicators.qml` |
 | Theme | `Theme.qml`, `ThemeState.qml`, `ThemePicker.qml`, `ThemePreview.qml`, `ThemeSlice.qml` |
 | Wallpaper | `WallpaperState.qml` |
@@ -171,7 +173,8 @@ seconds, and quits:
 QT_QPA_PLATFORM=offscreen quickshell -p quickshell/.config/quickshell/OmakubBarSmoke.qml
 ```
 
-Available: `OmakubBarSmoke`, `NotificationSmoke`, `BluetoothSmoke`,
+Available: `OmakubBarSmoke`, `NotificationSmoke`, `BatterySmoke` (requires
+`BATTERY_SMOKE_TEST=1`), `BluetoothSmoke`,
 `NetworkSmoke`, `ModesSmoke`, `UpdatesSmoke`,
 `VideoDownloadSmoke`, `WindowsVmSmoke`, `ClockWidgetSmoke`.
 

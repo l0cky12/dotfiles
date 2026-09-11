@@ -59,6 +59,32 @@ Workspace buttons switch to their numbered workspace. Other interactions include
 IPC targets let keybindings toggle network, Bluetooth, display, media, clipboard,
 dashboard, keybindings, theme, wallpaper, and web-app panels.
 
+### Battery monitoring
+
+`BatteryState.qml` reads the UPower display battery and reconciles its state at
+most every 30 seconds. The state is inert on systems without a laptop battery.
+While discharging, crossings at 20%, 10%, and 5% emit persistent critical
+notifications through the existing `notify-send`/Quickshell notification path.
+Each threshold fires once per discharge cycle. A charging sample makes the next
+discharging sample a cold start, but suppression resets only after the charge
+has risen by more than two percentage points or above the highest enabled
+threshold, preventing charger flapping from replaying alerts. Thresholds are
+configurable in `quickshell/.config/quickshell/battery/config.json`. Each
+threshold accepts an
+integer percentage from 0 through 100; 0 disables that threshold. Enabled
+thresholds must be strictly descending (`warnPercent` > `severePercent` >
+`criticalPercent`, ignoring disabled entries), or all three fall back to the
+20/10/5 defaults with a warning.
+
+Changing a threshold live re-arms that level at the current percentage, unless
+an alert from a more-severe level has already fired in the same discharge cycle.
+
+Run `bash tests/battery-alerts.test.sh` for configuration, wiring, and
+notification-policy checks; its Node coverage lives in
+`tests/battery-alerts.logic.test.js`. The optional Quickshell smoke fixture runs
+with `BATTERY_SMOKE_TEST=1`, records commands at the notification Process
+boundary, and never starts that Process or sends live battery notifications.
+
 `quickshell/.config/quickshell/Theme.qml` watches
 `~/.config/hypr/themes/.active/theme.json` and updates live. It uses a sans-serif
 UI font and JetBrainsMono Nerd Font for glyphs, with font scaling persisted via
@@ -86,7 +112,7 @@ State, history, and cached images are stored under
 `$XDG_STATE_HOME/hyprland-desktop/notifications`, with
 `~/.local/state` as fallback. `notificationctl` provides the stable command-line
 interface used by keybindings. DND bypasses are configured for selected system
-apps such as capture, night light, and web-app management.
+apps such as battery monitoring, capture, night light, and web-app management.
 
 The `swaync/` package is a retained rollback configuration. Its Hyprland
 autostart line is commented and its generated CSS is maintained only by the

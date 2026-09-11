@@ -1,0 +1,2 @@
+module Battery
+singleton BatteryConfig 1.0 BatteryConfig.qml
