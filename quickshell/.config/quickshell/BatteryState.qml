@@ -123,6 +123,10 @@ Singleton {
     function onTimeToEmptyChanged() { root.refresh() }
     function onTimeToFullChanged() { root.refresh() }
   }
-  Connections { target: Battery.BatteryConfig; function onLoadedChanged() { root.applyConfigChange() }; function onValuesChanged() { root.applyConfigChange() } }
+  Connections {
+    target: Battery.BatteryConfig
+    function onLoadedChanged() { root.applyConfigChange() }
+    function onValuesChanged() { root.applyConfigChange() }
+  }
   Timer { interval: root.refreshInterval; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.refresh() }
 }
