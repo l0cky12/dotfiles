@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import re
+import runpy
 import shutil
 import subprocess
 import tempfile
@@ -14,8 +14,29 @@ import tempfile
 
 REPO = Path(__file__).resolve().parent.parent
 COLLECTOR = REPO / "hypr/.config/hypr/scripts/keybinds-collector"
-REPLAY = REPO / "hypr/.config/hypr/scripts/keybinds-replay.lua"
 KEYBINDS_STATE = REPO / "quickshell/.config/quickshell/KeybindsState.qml"
+KEYBINDING_CONF = REPO / "hypr/.config/hypr/conf/keybinding.conf"
+
+
+def conf_descriptions(conf: str) -> list[str]:
+    dispatchers = (
+        "exec|fullscreen|killactive|layoutmsg|movecurrentworkspacetomonitor|"
+        "movefocus|movetoworkspace|movetoworkspacesilent|movewindow|"
+        "resizeactive|swapwindow|togglefloating|workspace"
+    )
+    descriptions = []
+    for line in conf.splitlines():
+        match = re.search(rf",\s*(?:{dispatchers})\s*,", line)
+        if not match:
+            continue
+        fields = line[:match.start()].partition("=")[2].split(",", 2)
+        if len(fields) != 3:
+            continue
+        description = fields[2].strip()
+        if description == "Delete, close all windows":
+            description = "close all windows"
+        descriptions.append(description)
+    return descriptions
 
 
 def invoke(*args: str) -> subprocess.CompletedProcess[str]:
@@ -29,6 +50,46 @@ def write_json(path: Path, value: object) -> None:
 
 def main() -> None:
     qml = KEYBINDS_STATE.read_text(encoding="utf-8")
+    conf = KEYBINDING_CONF.read_text(encoding="utf-8")
+    collector_globals = runpy.run_path(str(COLLECTOR), run_name="keybinds_collector_test")
+    priority = collector_globals["PRIORITY"]
+    rank = collector_globals["rank"]
+
+    qml_priority = [pattern.replace(r"\/", "/") for pattern in re.findall(
+        r"\{ rank: \d+, re: /((?:\\.|[^/])*)/i \}", qml)]
+    assert tuple(qml_priority) == priority, \
+        "QML and collector priority ladders differ in content or order"
+    descriptions = conf_descriptions(conf)
+    unmatched = sorted({description for description in descriptions
+                        if rank(description) == 999})
+    assert not unmatched, f"repository descriptions missing priority rules: {unmatched}"
+    required_families = (
+        r"^focus ", r"^move window ", r"^swap window ",
+        r"^move workspace to .* monitor$", r"resize|expand window|shrink window",
+        r"^workspace [0-9]+$", r"^move to workspace",
+        r"^move silently to workspace", r"^(next|previous|former) workspace$",
+        r"reminder", r"Windows VM|Gaming VM", r"^Zoom (in|out)$|^Reset zoom$",
+    )
+    for family in required_families:
+        matches = [description for description in descriptions
+                   if re.search(family, description, re.IGNORECASE)]
+        assert matches, f"repository fixture has no descriptions for family: {family}"
+        assert all(rank(description) != 999 for description in matches), family
+    print(f"ok: identical priority ladders rank all {len(set(descriptions))} "
+          "repository descriptions")
+
+    keywords = re.findall(r"^\s*(bind[a-z]*)\s*=", conf, re.MULTILINE)
+    valid_flags = set("lrcgoenmtisdpuw")
+    invalid_keywords = sorted({keyword for keyword in keywords
+                               if not set(keyword.removeprefix("bind")) <= valid_flags})
+    assert not invalid_keywords, f"invalid Hyprland bind keywords: {invalid_keywords}"
+    described_repeat_lines = [line for line in conf.splitlines()
+                              if re.match(r"^\s*bind(?=[a-z]*d)(?=[a-z]*[el])[a-z]*\s*=", line)]
+    assert all(re.search(r",\s*[^,]+,\s*(?:exec|resizeactive)\s*,", line)
+               for line in described_repeat_lines), \
+        "described repeat/locked binds must retain description and dispatcher columns"
+    print(f"ok: all {len(keywords)} bind keywords use documented flags and retain descriptions")
+
     lua_activation = re.search(
         r'else if \(r\.dispatcher === "lua"\) \{\s*'
         r'actionProc\.command = \["hyprctl", "([^"]+)", r\.arg\]', qml)
@@ -136,31 +197,15 @@ bind("SUPER + Q", "close window", hl.dsp.window.close())
         print("--- first 30 prioritized fixture rows ---")
         print(dry_run.stdout, end="")
 
-        # Exercise the repository's real Lua file as the fixture replay source,
-        # then feed an equivalent synthetic hyprctl JSON snapshot back through
-        # the complete collector for a useful 30-row ordering artifact.
-        runner = next((name for name in ("lua", "lua5.4", "lua5.3")
-                       if shutil.which(name)), None)
+        # Feed the real keybinding.conf descriptions through the complete
+        # collector for a useful ordering artifact.
         actual_config = REPO / "hypr/.config/hypr"
-        command = ([runner, str(REPLAY), str(actual_config / "conf/keybindings.lua"),
-                    str(actual_config)] if runner else
-                   [shutil.which("nvim"), "--headless", "-u", "NONE", "-l", str(REPLAY),
-                    str(actual_config / "conf/keybindings.lua"), str(actual_config)])
-        environment = os.environ.copy()
-        environment["NVIM_LOG_FILE"] = os.devnull
-        replayed = json.loads(subprocess.run(command, check=True, text=True,
-                                             capture_output=True,
-                                             env=environment).stdout)
         repository_binds = []
-        for index, row in enumerate(replayed, 1000):
-            if not row["description"]:
-                continue
-            key = row["key"]
-            keycode = int(key.removeprefix("code:")) if key.startswith("code:") else 0
+        for index, description in enumerate(descriptions, 1000):
             repository_binds.append({
-                "modmask": row["modmask"], "key": "" if keycode else key,
-                "keycode": keycode, "description": row["description"],
-                "dispatcher": "__lua", "arg": str(index), "mouse": False,
+                "modmask": 64, "key": f"code:{index}", "keycode": index,
+                "description": description, "dispatcher": "exec",
+                "arg": f"fixture-{index}", "mouse": False,
             })
         repository_binds_path = root / "repository-binds.json"
         write_json(repository_binds_path, repository_binds)
@@ -168,9 +213,9 @@ bind("SUPER + Q", "close window", hl.dsp.window.close())
             "--binds-json", str(repository_binds_path),
             "--keymap-summary", str(keymap),
             "--keybindings", str(actual_config / "conf/keybindings.lua"),
-            "--dry-run", "--limit", "30")
-        assert len(repository_rows.stdout.splitlines()) == 30
-        print("--- first 30 prioritized repository-fixture rows ---")
+            "--dry-run", "--limit", "40")
+        assert len(repository_rows.stdout.splitlines()) == 40
+        print("--- first 40 prioritized repository-fixture rows ---")
         print(repository_rows.stdout, end="")
 
     if shutil.which("qmllint"):
