@@ -1,3 +1,6 @@
+// Canonical battery singleton base. PR #25 must reconcile onto this file;
+// powerState and the alert engine belong to #25. deviceOverride is the agreed
+// fixture injection mechanism for downstream battery work.
 pragma Singleton
 import Quickshell
 import Quickshell.Services.UPower
@@ -6,10 +9,22 @@ import QtQuick
 Singleton {
   id: root
 
-  // Writable so headless tests and downstream battery features can inject a
-  // device without replacing this singleton.
-  property var device: UPower.displayDevice
+  property var deviceOverride: null
+  readonly property var device: deviceOverride || UPower.displayDevice
+  readonly property var devices: deviceOverride ? [] : UPower.devices.values
   readonly property int refreshInterval: 30 * 1000
+
+  readonly property bool displayBatteryPresent: Boolean(
+    device && device.type === UPowerDeviceType.Battery && device.isPresent)
+  readonly property bool laptopBatteryPresent: {
+    const connectedDevices = root.devices
+    for (let i = 0; i < connectedDevices.length; ++i) {
+      const candidate = connectedDevices[i]
+      if (candidate && candidate.isLaptopBattery && candidate.isPresent)
+        return true
+    }
+    return false
+  }
 
   property bool hasBattery: false
   property int percent: 0
@@ -18,7 +33,10 @@ Singleton {
   property string state: "unknown"
   property real timeToEmpty: 0
   property real timeToCharge: 0
-  property int criticalThreshold: 15
+  readonly property int criticalThreshold: 15
+
+  onDisplayBatteryPresentChanged: root.refresh()
+  onLaptopBatteryPresentChanged: root.refresh()
 
   function stateName(deviceState) {
     switch (deviceState) {
@@ -41,10 +59,9 @@ Singleton {
 
   function refresh() {
     const battery = root.device
-    const present = battery && battery.ready
-                    && battery.isLaptopBattery && battery.isPresent
+    const present = root.displayBatteryPresent || root.laptopBatteryPresent
     root.hasBattery = Boolean(present)
-    if (!present) {
+    if (!present || !battery || !battery.ready) {
       root.percent = 0
       root.charging = false
       root.discharging = false
@@ -75,7 +92,7 @@ Singleton {
     ignoreUnknownSignals: true
     function onReadyChanged() { root.refresh() }
     function onIsPresentChanged() { root.refresh() }
-    function onIsLaptopBatteryChanged() { root.refresh() }
+    function onTypeChanged() { root.refresh() }
     function onPercentageChanged() { root.refresh() }
     function onStateChanged() { root.refresh() }
     function onTimeToEmptyChanged() { root.refresh() }

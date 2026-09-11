@@ -14,8 +14,9 @@ Scope {
   QtObject {
     id: readyDevice
     property bool ready: true
-    property bool isLaptopBattery: true
+    property bool isLaptopBattery: false
     property bool isPresent: true
+    property int type: UPowerDeviceType.Battery
     property real percentage: 0.54
     property int state: UPowerDeviceState.Discharging
     property real timeToEmpty: 5400
@@ -25,8 +26,9 @@ Scope {
   QtObject {
     id: notReadyDevice
     property bool ready: false
-    property bool isLaptopBattery: true
-    property bool isPresent: true
+    property bool isLaptopBattery: false
+    property bool isPresent: false
+    property int type: UPowerDeviceType.Battery
     property real percentage: 0.88
     property int state: UPowerDeviceState.Charging
     property real timeToEmpty: 0
@@ -64,9 +66,9 @@ Scope {
 
   Component.onCompleted: {
     checkStateNames()
-    state.device = readyDevice
+    state.deviceOverride = readyDevice
     state.refresh()
-    check("ready laptop battery is present", state.hasBattery)
+    check("ready display battery is present", state.hasBattery)
     check("percentage ratio is converted and rounded", state.percent === 54)
     check("discharging projection is true",
           state.discharging && !state.charging)
@@ -78,6 +80,17 @@ Scope {
           batteryIcon.tooltipText.indexOf("Time remaining: 1h 30m") !== -1)
     check("non-finite estimates are safe",
           batteryIcon.formatTime(Number.NaN) === "estimating")
+
+    // Exercise the UPower signal path. The continuation observes the
+    // projection without calling refresh(), well before the 30s poll.
+    readyDevice.percentage = 0.42
+    Qt.callLater(smoke.continueAfterPercentagePush)
+  }
+
+  function continueAfterPercentagePush() {
+    check("percentage change signal updates the projection",
+          state.percent === 42)
+    readyDevice.percentage = 0.54
 
     readyDevice.state = UPowerDeviceState.Charging
     state.refresh()
@@ -124,7 +137,7 @@ Scope {
     check("high discharging charge does not use the full glyph",
           batteryIcon.glyph !== batteryIcon.glyphFor(0, "full", false))
 
-    state.device = notReadyDevice
+    state.deviceOverride = notReadyDevice
     state.refresh()
     Qt.callLater(smoke.finish)
   }

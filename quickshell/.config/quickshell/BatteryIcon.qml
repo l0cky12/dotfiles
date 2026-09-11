@@ -19,16 +19,16 @@ Item {
 
   function glyphFor(percent, state, charging) {
     if (charging)
-      return "󰂄"
+      return String.fromCodePoint(0xf0084) // md-battery_charging
     if (state === "full")
-      return "󰁹"
+      return String.fromCodePoint(0xf0079) // md-battery
     if (percent <= batteryState.criticalThreshold)
-      return "󰂃"
+      return String.fromCodePoint(0xf0083) // md-battery_alert
     if (percent <= 35)
-      return "󰁻"
+      return String.fromCodePoint(0xf007b) // md-battery_20
     if (percent <= 65)
-      return "󰁿"
-    return "󰂂"
+      return String.fromCodePoint(0xf007f) // md-battery_60
+    return String.fromCodePoint(0xf0082)   // md-battery_90
   }
 
   function formatTime(seconds) {
@@ -67,7 +67,8 @@ Item {
   Rectangle {
     anchors.fill: parent
     radius: Theme.radiusCell
-    color: root.batteryState.charging ? Theme.accent : "transparent"
+    color: root.batteryState.charging && !root.critical
+           ? Theme.accent : "transparent"
   }
 
   Row {
