@@ -47,13 +47,14 @@ A theme selection renders coordinated output for:
 | Noctalia | generated colors/scheme data |
 | Fastfetch | configured `keyColor` |
 | Neovim | `neovim/.config/nvim/colors/<slug>.lua` plus stable `current.lua` alias |
-| btop | `btop/.config/btop/themes/<slug>.theme` plus stable `current.theme` alias; tracked `btop.conf` is updated when present |
+| btop | `btop/.config/btop/themes/<slug>.theme` plus stable `current.theme` alias |
 | Obsidian | `obsidian/.config/obsidian/snippets/generated-theme.css` (link into a vault and enable manually) |
 | Greeter (regreet) | `greeter/.config/greeter/{greeter.css,regreet.toml}` -- a further, opt-in `theme set --install-greeter` root-owned copy is required to reach `/etc/greetd/`; see `greeter/README.md` |
 
 The generator also synchronizes relevant Noctalia settings and scheme metadata.
-Neovim, btop, and Obsidian are optional: Stow the corresponding package before
-running `theme set`. If its output directory is absent, the generator reports
+Neovim, btop, and Obsidian are optional. Deploy them with `stow --no-folding
+neovim btop obsidian` before running `theme set`; `--no-folding` keeps app state
+out of the checkout. If an output directory is absent, the generator reports
 `skipped (not deployed)` and continues. This repository does not currently track
 a `btop.conf`, so set `color_theme = "current"` once in your own config. Neovim
 can likewise use `:colorscheme current`; each theme set repoints both stable

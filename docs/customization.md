@@ -93,8 +93,9 @@ from themes. Cursor theme and GTK/Qt themes are not managed here, so add
 an explicit package/configuration if they should become repository-controlled.
 
 The optional `neovim/`, `btop/`, and `obsidian/` packages provide deployment
-directories for generated application themes. After Stowing the packages, run
-`theme set <slug>`. Neovim can load the stable alias with `:colorscheme current`,
+directories for generated application themes. Deploy them with `stow
+--no-folding neovim btop obsidian`, then run `theme set <slug>`. Neovim can load
+the stable alias with `:colorscheme current`,
 and btop can use `color_theme = "current"` in an untracked `btop.conf`.
 
 Obsidian does not read snippets from its Electron config directory. Link the

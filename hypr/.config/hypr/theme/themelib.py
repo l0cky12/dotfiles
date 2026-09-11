@@ -234,6 +234,10 @@ def load(path: Path) -> Theme:
             f"{where}: [theme].slug is '{slug}' but the directory is '{where}' — "
             "they must match so the state file resolves to one place"
         )
+    if slug == "current":
+        raise ThemeError(
+            f"{where}: [theme].slug 'current' is reserved for generated aliases"
+        )
     if meta["mode"] not in MODES:
         raise ThemeError(
             f"{where}: [theme].mode is '{meta['mode']}', expected one of {MODES}"

@@ -103,8 +103,10 @@ Rebuild the first group with `theme set <slug>` and the monitor group with
 
 A tracked `.stow-keep` retains an otherwise empty generated-output leaf.
 Packages that could capture application state also keep a tracked `.gitignore`
-at the app-config level; this prevents GNU Stow tree folding while ignoring
-runtime files written beside the generated output.
+at the app-config level to ignore runtime files written beside generated output.
+That ignore file does not prevent GNU Stow tree folding; deploy `neovim`, `btop`,
+and `obsidian` with `stow --no-folding neovim btop obsidian` so app state is not
+written through a directory symlink into the checkout.
 
 ## Runtime state, outside Git
 

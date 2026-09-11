@@ -66,6 +66,15 @@ Obsidian requires a manual symlink from each vault's
 `.obsidian/snippets/generated-theme.css` to the generated file, followed by
 enabling the snippet in that vault's Appearance settings.
 
+Deploy these optional packages with `stow --no-folding neovim btop obsidian`.
+This keeps application-created state outside the checkout; a package-level
+`.gitignore` does not by itself stop Stow from folding a missing target tree.
+
+With `theme set <slug> --prefix <dir>`, optional-target deployment is detected
+from the live XDG config tree (`$XDG_CONFIG_HOME`, or `~/.config`). Selected
+outputs are still rendered only beneath `<dir>`, so the preview reports what a
+live switch would target without writing those generated files to the live tree.
+
 ## The `theme` CLI
 
 ```bash

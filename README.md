@@ -36,11 +36,11 @@ contents into `~`.
 > `system/` holds root-owned `/etc` templates that `yubikey-auth` deploys;
 > stowing it would create `~/greetd` and `~/pam.d`.
 
-**Deploy everything at once:**
+**Deploy the standard packages at once:**
 
 ```bash
-stow ai browser btop cliphist fastfetch greeter hypr hyprlock kitty modes neovim \
-     noctalia obsidian quickshell rofi screensaver security swaync systemd windows \
+stow ai browser cliphist fastfetch greeter hypr hyprlock kitty modes noctalia \
+     quickshell rofi screensaver security swaync systemd windows \
      wallpaper wofi xdg zsh
 ```
 
@@ -61,15 +61,24 @@ stow wofi        # ~/.config/wofi
 stow swaync      # ~/.config/swaync
 stow fastfetch   # ~/.config/fastfetch
 stow noctalia    # ~/.config/noctalia
-stow neovim      # generated Neovim colorschemes
-stow btop        # generated btop themes
-stow obsidian    # generated CSS source to link into each Obsidian vault
 stow quickshell  # ~/.config/quickshell
 stow windows     # Windows VM helper, Compose template, and application entry
 stow cliphist    # ~/.config/cliphist
 stow xdg         # ~/.config/mimeapps.list, ~/.local/share/applications
 stow zsh         # ~/.zshrc, ~/.p10k.zsh (see Shell setup below)
 ```
+
+The generated app-theme packages are optional. Deploy them without directory
+folding so application-created files stay outside the Git checkout:
+
+```bash
+stow --no-folding neovim btop obsidian
+```
+
+Their package-level `.gitignore` files keep accidental app state untracked, but
+do not prevent Stow from folding a missing target directory into one symlink.
+Without `--no-folding`, a later `git clean -xfd` could therefore delete app
+state written through that symlink.
 
 ## ASCII Screensaver
 

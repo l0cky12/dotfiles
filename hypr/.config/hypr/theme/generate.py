@@ -31,8 +31,6 @@ HERE = Path(__file__).resolve().parent
 TEMPLATES = HERE / "templates"
 THEMES_DIR = HERE.parent / "themes"
 STATE_FILE = THEMES_DIR / "current-theme"
-BTOP_STOW_CONFIG = tl.repo_root() / "btop/.config/btop/btop.conf"
-
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 CACHE_HOME = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
 WALLPAPER_STATE_FILE = Path(os.environ.get(
@@ -56,6 +54,12 @@ OPTIONAL_TARGETS = {
     "neovim-theme.lua": "neovim",
     "btop-theme.tpl": "btop",
     "obsidian-theme.css": "obsidian",
+}
+
+OPTIONAL_DEPLOY_DIRS = {
+    "neovim": Path("nvim/colors"),
+    "btop": Path("btop/themes"),
+    "obsidian": Path("obsidian/snippets"),
 }
 
 
@@ -101,13 +105,18 @@ def targets(prefix: Path, theme: tl.Theme) -> list[tl.Artifact]:
 
 def deployed_targets(
     artifacts: list[tl.Artifact],
+    live_prefix: Path,
 ) -> tuple[list[tl.Artifact], list[str]]:
-    """Keep optional adapters only when their Stow-created directory exists."""
+    """Keep optional adapters whose live Stow-created directory exists.
+
+    Artifact destinations may point at a harmless ``--prefix`` preview tree;
+    deployment is always determined from the live config tree instead.
+    """
     selected: list[tl.Artifact] = []
     messages: list[str] = []
     for artifact in artifacts:
         app = OPTIONAL_TARGETS.get(artifact.template)
-        if app and not artifact.dest.parent.is_dir():
+        if app and not (live_prefix / OPTIONAL_DEPLOY_DIRS[app]).is_dir():
             messages.append(f"  {app}: skipped (not deployed)")
             continue
         selected.append(artifact)
@@ -272,32 +281,39 @@ def link_rofi(prefix: Path, slug: str) -> None:
     os.replace(tmp, link)
 
 
-def link_optional_themes(prefix: Path, theme: tl.Theme) -> None:
-    """Keep stable app aliases and remove superseded generated slug files."""
+def link_optional_themes(prefix: Path, theme: tl.Theme) -> list[str]:
+    """Keep stable aliases without making a completed install fail."""
+    messages: list[str] = []
     outputs = (
-        (prefix / "nvim/colors", ".lua", "generated Neovim colorscheme"),
-        (prefix / "btop/themes", ".theme", "generated btop theme"),
+        ("neovim", prefix / "nvim/colors", ".lua", "generated Neovim colorscheme"),
+        ("btop", prefix / "btop/themes", ".theme", "generated btop theme"),
     )
-    for directory, suffix, marker in outputs:
-        current = directory / f"{theme.slug}{suffix}"
-        if not current.is_file():
-            continue
-        for candidate in directory.glob(f"*{suffix}"):
-            if candidate == current or candidate.name == f"current{suffix}":
+    for app, directory, suffix, marker in outputs:
+        try:
+            current = directory / f"{theme.slug}{suffix}"
+            if not current.is_file():
                 continue
-            try:
-                with candidate.open(encoding="utf-8") as handle:
-                    first_line = handle.readline()
-            except OSError:
-                continue
-            if marker in first_line:
-                candidate.unlink()
-        link = directory / f"current{suffix}"
-        tmp = directory / f".current{suffix}.new"
-        if tmp.is_symlink() or tmp.exists():
-            tmp.unlink()
-        tmp.symlink_to(current.name)
-        os.replace(tmp, link)
+            for candidate in directory.glob(f"*{suffix}"):
+                if candidate == current or candidate.name == f"current{suffix}":
+                    continue
+                try:
+                    with candidate.open(encoding="utf-8") as handle:
+                        first_line = handle.readline()
+                except (OSError, UnicodeDecodeError):
+                    continue
+                if marker in first_line:
+                    candidate.unlink()
+            link = directory / f"current{suffix}"
+            tmp = directory / f".current{suffix}.new"
+            if tmp.is_symlink() or tmp.exists():
+                tmp.unlink()
+            tmp.symlink_to(current.name)
+            os.replace(tmp, link)
+        except OSError as exc:
+            messages.append(
+                f"  {app}: warning (could not update current theme alias: {exc})"
+            )
+    return messages
 
 
 def sync_noctalia(prefix: Path, theme: tl.Theme) -> None:
@@ -355,53 +371,9 @@ def sync_fastfetch(prefix: Path, theme: tl.Theme) -> None:
         os.replace(tmp, cfg)
 
 
-def btop_config_is_tracked() -> bool:
-    """Only a Git index entry establishes repository ownership of btop.conf."""
-    root = tl.repo_root()
-    try:
-        pathspec = BTOP_STOW_CONFIG.relative_to(root)
-    except ValueError:
-        return False
-    try:
-        result = subprocess.run(
-            [
-                "git", "-C", str(root), "ls-files", "--error-unmatch", "--",
-                str(pathspec),
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=5,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-    return result.returncode == 0
-
-
-def sync_btop_config(prefix: Path, theme: tl.Theme) -> str:
-    """Select the generated theme only when btop.conf belongs to this repo."""
-    if not btop_config_is_tracked():
-        return (f"  btop: set color_theme = \"{theme.slug}\" in btop.conf "
-                "to select the generated theme")
-
-    cfg = prefix / "btop/btop.conf"
-    if not cfg.is_file():
-        return "  btop: btop.conf is tracked but not deployed; selection unchanged"
-    try:
-        text = cfg.read_text()
-        setting = f'color_theme = "{theme.slug}"'
-        new, count = re.subn(
-            r"^\s*color_theme\s*=.*$", lambda _match: setting, text,
-            flags=re.MULTILINE,
-        )
-        if count == 0:
-            new = text.rstrip("\n") + "\n" + setting + "\n"
-        if new != text:
-            tmp = cfg.parent / ".btop.conf.new"
-            tmp.write_text(new)
-            os.replace(tmp, cfg)
-    except OSError as exc:
-        return f"  btop: warning (could not update tracked btop.conf: {exc})"
-    return f"  btop: selected {theme.slug} in tracked btop.conf"
+def sync_btop_config(_prefix: Path, _theme: tl.Theme) -> str:
+    """Advise without reading or modifying user-owned btop configuration."""
+    return '  btop: set color_theme = "current" in btop.conf once'
 
 
 # ── Wallpaper ────────────────────────────────────────────────────────────────
@@ -591,7 +563,9 @@ def cmd_set(args: argparse.Namespace) -> int:
     stage = Path(tempfile.mkdtemp(prefix="theme-stage.", dir=stage_root))
     try:
         try:
-            selected, target_messages = deployed_targets(targets(prefix, theme))
+            selected, target_messages = deployed_targets(
+                targets(prefix, theme), CONFIG_HOME
+            )
             staged = build(theme, stage, prefix, selected)
         except tl.ThemeError as exc:
             print(f"{RED('error')}: {exc}", file=sys.stderr)
@@ -604,7 +578,7 @@ def cmd_set(args: argparse.Namespace) -> int:
 
         tl.install(staged)
         link_rofi(prefix, theme.slug)
-        link_optional_themes(prefix, theme)
+        target_messages.extend(link_optional_themes(prefix, theme))
         sync_noctalia(prefix, theme)
         sync_fastfetch(prefix, theme)
         rendered_optional = {

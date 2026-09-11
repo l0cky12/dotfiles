@@ -1,3 +1,7 @@
-# Tracked package-level placeholder: prevents GNU Stow from folding this tree.
+# Ignore Obsidian-owned state if this package is folded despite the documented
+# --no-folding deployment command. This file does not itself prevent folding.
 *
 !.gitignore
+!snippets/
+snippets/*
+!snippets/.stow-keep
