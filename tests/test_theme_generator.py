@@ -235,6 +235,52 @@ class ThemeGeneratorTest(unittest.TestCase):
         self.assertTrue((prefix / f"nvim/colors/{theme.slug}.lua").is_file())
         self.assertIn("could not update current theme alias", stdout.getvalue())
 
+    def test_user_owned_current_alias_name_is_preserved(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = self.root / "prefix"
+        (generate.CONFIG_HOME / "nvim/colors").mkdir(parents=True)
+        colors = prefix / "nvim/colors"
+        colors.mkdir(parents=True)
+        alias = colors / "current.lua"
+        contents = "-- Hand-written colorscheme; not generator-owned.\n"
+        alias.write_text(contents)
+        stdout = io.StringIO()
+
+        with redirect_stdout(stdout):
+            result = generate.main([
+                "set", theme.slug, "--prefix", str(prefix), "--no-reload",
+            ])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        self.assertTrue(alias.is_file())
+        self.assertFalse(alias.is_symlink())
+        self.assertEqual(alias.read_text(), contents)
+        self.assertIn("current.lua is a user-owned file", stdout.getvalue())
+
+    def test_optional_install_permission_failure_is_non_fatal(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = generate.CONFIG_HOME
+        colors = prefix / "nvim/colors"
+        colors.mkdir(parents=True)
+        colors.chmod(0o500)
+        self.addCleanup(colors.chmod, 0o700)
+        state = self.root / "state/current-theme"
+        state.parent.mkdir(parents=True)
+        state.write_text("catppuccin")
+        stdout = io.StringIO()
+
+        with (
+            unittest.mock.patch.object(generate, "STATE_FILE", state),
+            redirect_stdout(stdout),
+        ):
+            result = generate.main(["set", theme.slug, "--no-reload"])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        self.assertTrue((prefix / "hypr/conf/decorations.lua").is_file())
+        self.assertFalse((colors / f"{theme.slug}.lua").exists())
+        self.assertIn("could not install generated theme", stdout.getvalue())
+        self.assertEqual(state.read_text().strip(), theme.slug)
+
     def test_optional_theme_aliases_replace_and_prune_generated_slugs(self) -> None:
         prefix = self.root / "prefix"
         for directory in ("nvim/colors", "btop/themes"):

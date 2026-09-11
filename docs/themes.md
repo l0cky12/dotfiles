@@ -59,6 +59,9 @@ out of the checkout. If an output directory is absent, the generator reports
 a `btop.conf`, so set `color_theme = "current"` once in your own config. Neovim
 can likewise use `:colorscheme current`; each theme set repoints both stable
 aliases and removes superseded generated slug files.
+`current.lua` and `current.theme` are reserved for those stable aliases. If
+either name is already a regular file without the generator marker, the
+generator treats it as user-owned, leaves it untouched, and prints a warning.
 
 Obsidian only reads snippets inside a vault. For every vault that should follow
 the generated palette, create this symlink (replace `<vault>` with its path),

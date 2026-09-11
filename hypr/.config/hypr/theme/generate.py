@@ -281,7 +281,11 @@ def link_rofi(prefix: Path, slug: str) -> None:
     os.replace(tmp, link)
 
 
-def link_optional_themes(prefix: Path, theme: tl.Theme) -> list[str]:
+def link_optional_themes(
+    prefix: Path,
+    theme: tl.Theme,
+    installed_apps: set[str] | None = None,
+) -> list[str]:
     """Keep stable aliases without making a completed install fail."""
     messages: list[str] = []
     outputs = (
@@ -289,6 +293,8 @@ def link_optional_themes(prefix: Path, theme: tl.Theme) -> list[str]:
         ("btop", prefix / "btop/themes", ".theme", "generated btop theme"),
     )
     for app, directory, suffix, marker in outputs:
+        if installed_apps is not None and app not in installed_apps:
+            continue
         try:
             current = directory / f"{theme.slug}{suffix}"
             if not current.is_file():
@@ -304,6 +310,18 @@ def link_optional_themes(prefix: Path, theme: tl.Theme) -> list[str]:
                 if marker in first_line:
                     candidate.unlink()
             link = directory / f"current{suffix}"
+            if link.is_file() and not link.is_symlink():
+                try:
+                    with link.open(encoding="utf-8") as handle:
+                        first_line = handle.readline()
+                except (OSError, UnicodeDecodeError):
+                    first_line = ""
+                if marker not in first_line:
+                    messages.append(
+                        f"  {app}: warning ({link.name} is a user-owned file; "
+                        "alias not updated)"
+                    )
+                    continue
             tmp = directory / f".current{suffix}.new"
             if tmp.is_symlink() or tmp.exists():
                 tmp.unlink()
@@ -576,18 +594,37 @@ def cmd_set(args: argparse.Namespace) -> int:
         for w in theme.warnings:
             print(f"{YELLOW('warning')}: {w}", file=sys.stderr)
 
-        tl.install(staged)
+        mandatory_staged: list[tuple[Path, Path]] = []
+        optional_staged: list[tuple[str, tuple[Path, Path]]] = []
+        for artifact, staged_pair in zip(selected, staged, strict=True):
+            app = OPTIONAL_TARGETS.get(artifact.template)
+            if app:
+                optional_staged.append((app, staged_pair))
+            else:
+                mandatory_staged.append(staged_pair)
+
+        tl.install(mandatory_staged)
         link_rofi(prefix, theme.slug)
-        target_messages.extend(link_optional_themes(prefix, theme))
         sync_noctalia(prefix, theme)
         sync_fastfetch(prefix, theme)
-        rendered_optional = {
-            artifact.template for artifact in selected
-            if artifact.template in OPTIONAL_TARGETS
-        }
-        if "btop-theme.tpl" in rendered_optional:
+
+        installed_optional: set[str] = set()
+        for app, staged_pair in optional_staged:
+            try:
+                tl.install([staged_pair])
+            except OSError as exc:
+                target_messages.append(
+                    f"  {app}: warning (could not install generated theme: {exc})"
+                )
+            else:
+                installed_optional.add(app)
+
+        target_messages.extend(
+            link_optional_themes(prefix, theme, installed_optional)
+        )
+        if "btop" in installed_optional:
             target_messages.append(sync_btop_config(prefix, theme))
-        if "obsidian-theme.css" in rendered_optional:
+        if "obsidian" in installed_optional:
             target_messages.append(
                 "  obsidian: enable generated-theme.css in Settings > Appearance "
                 "> CSS snippets"
