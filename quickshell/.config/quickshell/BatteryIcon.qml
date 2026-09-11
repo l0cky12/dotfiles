@@ -7,8 +7,9 @@ Item {
   property real barScale: 1.0
   property var batteryState: BatteryState
   readonly property bool critical: batteryState.hasBattery
-                                   && !batteryState.charging
-                                   && batteryState.percent <= 15
+                                   && batteryState.discharging
+                                   && batteryState.percent
+                                      <= batteryState.criticalThreshold
   readonly property string glyph: glyphFor(batteryState.percent,
                                              batteryState.state,
                                              batteryState.charging)
@@ -21,7 +22,7 @@ Item {
       return "󰂄"
     if (state === "full" || percent >= 95)
       return "󰁹"
-    if (percent <= 15)
+    if (percent <= batteryState.criticalThreshold)
       return "󰂃"
     if (percent <= 35)
       return "󰁻"
@@ -32,7 +33,7 @@ Item {
 
   function formatTime(seconds) {
     const minutes = Math.max(0, Math.round(Number(seconds) / 60))
-    if (minutes <= 0)
+    if (!isFinite(minutes) || minutes <= 0)
       return "estimating"
     const hours = Math.floor(minutes / 60)
     const remainder = minutes % 60
@@ -48,22 +49,25 @@ Item {
   }
 
   function tooltipFor(battery) {
-    const estimate = battery.charging ? battery.timeToCharge : battery.timeToEmpty
-    const estimateLabel = battery.charging ? "Time to full" : "Time remaining"
-    return battery.percent + "% · " + stateLabel(battery.state)
-           + "\n" + estimateLabel + ": " + formatTime(estimate)
+    const summary = battery.percent + "% · " + stateLabel(battery.state)
+    if (battery.state === "charging" || battery.state === "pending charge")
+      return summary + "\nTime to full: " + formatTime(battery.timeToCharge)
+    if (battery.state === "discharging"
+        || battery.state === "pending discharge")
+      return summary + "\nTime remaining: " + formatTime(battery.timeToEmpty)
+    if (battery.state === "full")
+      return battery.percent + "% · Full"
+    return battery.percent + "% · On AC"
   }
 
   visible: batteryState.hasBattery
-  implicitWidth: visible ? content.implicitWidth + root.s(12) : 0
-  implicitHeight: visible ? content.implicitHeight + root.s(6) : 0
+  implicitWidth: content.implicitWidth + root.s(12)
+  implicitHeight: content.implicitHeight + root.s(6)
 
   Rectangle {
     anchors.fill: parent
     radius: Theme.radiusCell
-    color: "transparent"
-    border.width: Theme.borderWidth
-    border.color: root.critical ? Theme.critical : Theme.surface
+    color: root.batteryState.charging ? Theme.accent : "transparent"
   }
 
   Row {
@@ -75,7 +79,7 @@ Item {
       anchors.verticalCenter: parent.verticalCenter
       text: root.glyph
       color: root.critical ? Theme.critical
-                           : (root.batteryState.charging ? Theme.accent : Theme.text)
+                           : (root.batteryState.charging ? Theme.onAccent : Theme.text)
       font.family: Theme.glyphFamily
       font.pixelSize: root.s(15)
     }
@@ -83,7 +87,8 @@ Item {
     Text {
       anchors.verticalCenter: parent.verticalCenter
       text: root.percentText
-      color: root.critical ? Theme.critical : Theme.textDim
+      color: root.critical ? Theme.critical
+                           : (root.batteryState.charging ? Theme.onAccent : Theme.textDim)
       font.family: Theme.uiFamily
       font.pixelSize: root.s(12)
     }

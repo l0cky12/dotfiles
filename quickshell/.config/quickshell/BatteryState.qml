@@ -6,15 +6,26 @@ import QtQuick
 Singleton {
   id: root
 
-  readonly property var device: UPower.displayDevice
+  // Writable so headless tests and downstream battery features can inject a
+  // device without replacing this singleton.
+  property var device: UPower.displayDevice
   readonly property int refreshInterval: 30 * 1000
 
   property bool hasBattery: false
   property int percent: 0
   property bool charging: false
+  property bool discharging: false
   property string state: "unknown"
   property real timeToEmpty: 0
   property real timeToCharge: 0
+  property int criticalThreshold: 15
+
+  // Extension surface for the low-battery alerts feature. The base singleton
+  // deliberately does not implement alert policy or notification delivery.
+  property var alertState: ({})
+  property var notificationQueue: []
+
+  function evaluateAlerts() {}
 
   function stateName(deviceState) {
     switch (deviceState) {
@@ -43,9 +54,11 @@ Singleton {
     if (!present) {
       root.percent = 0
       root.charging = false
+      root.discharging = false
       root.state = "unknown"
       root.timeToEmpty = 0
       root.timeToCharge = 0
+      root.evaluateAlerts()
       return
     }
 
@@ -54,8 +67,13 @@ Singleton {
     root.state = root.stateName(battery.state)
     root.charging = battery.state === UPowerDeviceState.Charging
                     || battery.state === UPowerDeviceState.PendingCharge
-    root.timeToEmpty = Math.max(0, Number(battery.timeToEmpty) || 0)
-    root.timeToCharge = Math.max(0, Number(battery.timeToFull) || 0)
+    root.discharging = battery.state === UPowerDeviceState.Discharging
+                       || battery.state === UPowerDeviceState.PendingDischarge
+    root.timeToEmpty = root.discharging
+      ? Math.max(0, Number(battery.timeToEmpty) || 0) : 0
+    root.timeToCharge = root.charging
+      ? Math.max(0, Number(battery.timeToFull) || 0) : 0
+    root.evaluateAlerts()
   }
 
   // UPower pushes changes over D-Bus. Snapshot them immediately, with the

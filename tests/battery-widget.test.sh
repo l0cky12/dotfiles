@@ -17,13 +17,7 @@ grep -Fq 'import Quickshell.Services.UPower' "$state" \
   || fail 'BatteryState does not use the built-in UPower service'
 grep -Fq 'refreshInterval: 30 * 1000' "$state" \
   || fail 'battery reconciliation interval is not 30 seconds'
-grep -Fq 'battery.percentage * 100' "$state" \
-  || fail 'Quickshell battery ratio is not converted to a percentage'
 grep -Fq 'BatteryIcon {' "$bar" || fail 'bar does not mount BatteryIcon'
-grep -Fq 'implicitWidth: visible ?' "$icon" \
-  || fail 'BatteryIcon does not collapse its width when hidden'
-grep -Fq 'implicitHeight: visible ?' "$icon" \
-  || fail 'BatteryIcon does not collapse its height when hidden'
 grep -Fq 'Theme.critical' "$icon" \
   || fail 'critical battery does not use the theme critical token'
 
