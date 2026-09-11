@@ -13,6 +13,7 @@ for component in \
   'WorkspacesModule {' \
   'ModeIndicators {' \
   'UpdatesIcon {' \
+  'BatteryIcon {' \
   'KeyboardLayoutWidget {' \
   'SystemTrayWidget {' \
   'AgentIcon {' \
