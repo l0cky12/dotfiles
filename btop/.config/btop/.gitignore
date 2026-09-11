@@ -1,0 +1,7 @@
+# Ignore btop-owned state if this package is folded despite the documented
+# --no-folding deployment command. This file does not itself prevent folding.
+*
+!.gitignore
+!themes/
+themes/*
+!themes/.stow-keep

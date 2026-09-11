@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import sys
 import tempfile
 import unittest
 import unittest.mock
+from contextlib import redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -52,7 +54,9 @@ def render_all(theme: tl.Theme, root: Path) -> list[Path]:
 def summary(theme: tl.Theme, outputs: list[Path]) -> dict[str, object]:
     """The stable subset worth snapshotting: identity and rendered bytes."""
     files = {
-        output.name: hashlib.sha256(output.read_bytes()).hexdigest()
+        output.name: hashlib.sha256(
+            output.read_text().replace(str(tl.repo_root()), ".").encode()
+        ).hexdigest()
         for output in outputs
     }
     return {
@@ -79,9 +83,17 @@ class ThemeGeneratorTest(unittest.TestCase):
             "XDG_CACHE_HOME": str(self.root / "cache"),
             "XDG_RUNTIME_DIR": str(self.root / "runtime"),
         }
+        Path(env["XDG_RUNTIME_DIR"]).mkdir(parents=True)
         patcher = unittest.mock.patch.dict(os.environ, env)
         patcher.start()
         self.addCleanup(patcher.stop)
+        wallpaper_patcher = unittest.mock.patch.object(
+            tl,
+            "wallpaper_roots",
+            return_value=[tl.repo_root() / "wallpaper/theme"],
+        )
+        wallpaper_patcher.start()
+        self.addCleanup(wallpaper_patcher.stop)
         original_config_home = generate.CONFIG_HOME
         original_cache_home = generate.CACHE_HOME
         original_wallpaper_state_file = generate.WALLPAPER_STATE_FILE
@@ -102,7 +114,9 @@ class ThemeGeneratorTest(unittest.TestCase):
         for slug, theme in self.themes.items():
             with self.subTest(theme=slug):
                 outputs = render_all(theme, self.root / slug)
-                self.assertEqual(len(outputs), len(list(generate.targets(self.root))))
+                self.assertEqual(
+                    len(outputs), len(generate.targets(self.root, theme))
+                )
 
                 accent = theme.colors["accent"]
                 self.assertTrue(accent.startswith("#"))
@@ -127,6 +141,194 @@ class ThemeGeneratorTest(unittest.TestCase):
                 self.assertEqual(quickshell["colors"]["accent"], accent)
                 for name in ("kitty-theme.conf", "rofi-theme.rasi"):
                     self.assertIn(accent, (self.root / slug / "stage" / name).read_text())
+
+    def test_prefix_preview_renders_targets_deployed_in_live_config(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = self.root / "prefix"
+        for directory in ("nvim/colors", "btop/themes", "obsidian/snippets"):
+            (generate.CONFIG_HOME / directory).mkdir(parents=True)
+
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            result = generate.main([
+                "set", theme.slug, "--prefix", str(prefix), "--no-reload",
+            ])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        neovim = (prefix / f"nvim/colors/{theme.slug}.lua").read_text()
+        self.assertIn(f'vim.g.colors_name = "{theme.slug}"', neovim)
+        self.assertIn(
+            f'vim.g.terminal_color_12 = "{theme.ansi["bright_blue"]}"', neovim
+        )
+        self.assertIn(
+            f'Normal = {{ fg = "{theme.colors["foreground"]}", '
+            f'bg = "{theme.colors["background"]}" }}',
+            neovim,
+        )
+
+        btop = (prefix / f"btop/themes/{theme.slug}.theme").read_text()
+        self.assertIn(f'theme[main_bg]="{theme.colors["background"]}"', btop)
+        self.assertIn(f'theme[hi_fg]="{theme.colors["accent"]}"', btop)
+
+        obsidian = (prefix / "obsidian/snippets/generated-theme.css").read_text()
+        self.assertIn(
+            f"--background-primary: {theme.colors['background']};", obsidian
+        )
+        self.assertIn(f"--interactive-accent: {theme.colors['accent']};", obsidian)
+        self.assertIn(f"--text-muted: {theme.colors['muted']};", obsidian)
+        self.assertIn("set color_theme", stdout.getvalue())
+        self.assertIn("enable generated-theme.css", stdout.getvalue())
+
+    def test_optional_app_targets_skip_cleanly_when_absent(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = self.root / "prefix"
+        prefix.mkdir()
+        stdout = io.StringIO()
+
+        with redirect_stdout(stdout):
+            result = generate.main([
+                "set", theme.slug, "--prefix", str(prefix), "--no-reload",
+            ])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        for app in ("neovim", "btop", "obsidian"):
+            self.assertIn(f"{app}: skipped (not deployed)", stdout.getvalue())
+        self.assertFalse((prefix / "nvim").exists())
+        self.assertFalse((prefix / "btop").exists())
+        self.assertFalse((prefix / "obsidian").exists())
+
+    def test_btop_sync_is_advisory_and_ignores_its_arguments(self) -> None:
+        prefix = unittest.mock.MagicMock(spec=Path)
+        theme = unittest.mock.MagicMock(spec=tl.Theme)
+
+        message = generate.sync_btop_config(prefix, theme)
+
+        self.assertEqual(
+            message, '  btop: set color_theme = "current" in btop.conf once'
+        )
+        self.assertEqual(prefix.mock_calls, [])
+        self.assertEqual(theme.mock_calls, [])
+
+    def test_optional_link_failure_keeps_installed_theme_and_state_aligned(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = generate.CONFIG_HOME
+        (prefix / "nvim/colors").mkdir(parents=True)
+        state = self.root / "state/current-theme"
+        state.parent.mkdir(parents=True)
+        state.write_text("catppuccin")
+        stdout = io.StringIO()
+        original_symlink_to = Path.symlink_to
+
+        def fail_nvim_link(path: Path, *args: object, **kwargs: object) -> None:
+            if path == prefix / "nvim/colors/.current.lua.new":
+                raise PermissionError("fixture link failure")
+            original_symlink_to(path, *args, **kwargs)
+
+        with (
+            unittest.mock.patch.object(generate, "STATE_FILE", state),
+            unittest.mock.patch.object(
+                Path, "symlink_to", autospec=True, side_effect=fail_nvim_link
+            ),
+            redirect_stdout(stdout),
+        ):
+            result = generate.main(["set", theme.slug, "--no-reload"])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        self.assertEqual(state.read_text().strip(), theme.slug)
+        self.assertTrue((prefix / f"nvim/colors/{theme.slug}.lua").is_file())
+        self.assertIn("could not update current theme alias", stdout.getvalue())
+
+    def test_user_owned_current_alias_name_is_preserved(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = self.root / "prefix"
+        (generate.CONFIG_HOME / "nvim/colors").mkdir(parents=True)
+        colors = prefix / "nvim/colors"
+        colors.mkdir(parents=True)
+        alias = colors / "current.lua"
+        contents = "-- Hand-written colorscheme; not generator-owned.\n"
+        alias.write_text(contents)
+        stdout = io.StringIO()
+
+        with redirect_stdout(stdout):
+            result = generate.main([
+                "set", theme.slug, "--prefix", str(prefix), "--no-reload",
+            ])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        self.assertTrue(alias.is_file())
+        self.assertFalse(alias.is_symlink())
+        self.assertEqual(alias.read_text(), contents)
+        self.assertIn("current.lua is a user-owned file", stdout.getvalue())
+
+    def test_optional_install_permission_failure_is_non_fatal(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = generate.CONFIG_HOME
+        colors = prefix / "nvim/colors"
+        colors.mkdir(parents=True)
+        colors.chmod(0o500)
+        self.addCleanup(colors.chmod, 0o700)
+        state = self.root / "state/current-theme"
+        state.parent.mkdir(parents=True)
+        state.write_text("catppuccin")
+        stdout = io.StringIO()
+
+        with (
+            unittest.mock.patch.object(generate, "STATE_FILE", state),
+            redirect_stdout(stdout),
+        ):
+            result = generate.main(["set", theme.slug, "--no-reload"])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        self.assertTrue((prefix / "hypr/conf/decorations.lua").is_file())
+        self.assertFalse((colors / f"{theme.slug}.lua").exists())
+        self.assertIn("could not install generated theme", stdout.getvalue())
+        self.assertEqual(state.read_text().strip(), theme.slug)
+
+    def test_optional_theme_aliases_replace_and_prune_generated_slugs(self) -> None:
+        prefix = self.root / "prefix"
+        for directory in ("nvim/colors", "btop/themes"):
+            (generate.CONFIG_HOME / directory).mkdir(parents=True)
+        for directory in (prefix / "nvim/colors", prefix / "btop/themes"):
+            directory.mkdir(parents=True)
+        custom = prefix / "nvim/colors/custom.lua"
+        custom.write_text("-- User colorscheme; theme generator must preserve it.\n")
+        first = self.themes["tokyo-night"]
+        second = self.themes["catppuccin"]
+
+        for theme in (first, second):
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                result = generate.main([
+                    "set", theme.slug, "--prefix", str(prefix), "--no-reload",
+                ])
+            self.assertEqual(result, 0, stdout.getvalue())
+
+        self.assertFalse((prefix / f"nvim/colors/{first.slug}.lua").exists())
+        self.assertFalse((prefix / f"btop/themes/{first.slug}.theme").exists())
+        self.assertEqual(
+            (prefix / "nvim/colors/current.lua").readlink(),
+            Path(f"{second.slug}.lua"),
+        )
+        self.assertEqual(
+            (prefix / "btop/themes/current.theme").readlink(),
+            Path(f"{second.slug}.theme"),
+        )
+        self.assertTrue((prefix / f"nvim/colors/{second.slug}.lua").is_file())
+        self.assertTrue((prefix / f"btop/themes/{second.slug}.theme").is_file())
+        self.assertTrue(custom.is_file())
+
+    def test_current_slug_is_reserved_for_generated_aliases(self) -> None:
+        source = THEMES / "tokyo-night/colors.toml"
+        theme_dir = self.root / "current"
+        theme_dir.mkdir()
+        (theme_dir / "colors.toml").write_text(
+            source.read_text().replace(
+                'slug = "tokyo-night"', 'slug = "current"', 1
+            )
+        )
+
+        with self.assertRaisesRegex(tl.ThemeError, "reserved"):
+            tl.load(theme_dir / "colors.toml")
 
     def test_contrast_warnings_match_palette_metadata(self) -> None:
         for slug, theme in self.themes.items():

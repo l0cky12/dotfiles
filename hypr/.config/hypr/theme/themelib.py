@@ -234,6 +234,10 @@ def load(path: Path) -> Theme:
             f"{where}: [theme].slug is '{slug}' but the directory is '{where}' — "
             "they must match so the state file resolves to one place"
         )
+    if slug == "current":
+        raise ThemeError(
+            f"{where}: [theme].slug 'current' is reserved for generated aliases"
+        )
     if meta["mode"] not in MODES:
         raise ThemeError(
             f"{where}: [theme].mode is '{meta['mode']}', expected one of {MODES}"
@@ -672,6 +676,24 @@ def validate_toml(path: Path) -> None:
         raise ThemeError(f"{path.name}: generated TOML is invalid: {exc}") from None
 
 
+def validate_btop_theme(path: Path) -> None:
+    """Check btop's theme[key]=\"#RRGGBB\" format and essential roles."""
+    seen: set[str] = set()
+    for lineno, line in enumerate(path.read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = re.fullmatch(r'theme\[([a-z_]+)\]\s*=\s*"(#[0-9a-fA-F]{6})"', line)
+        if not match:
+            raise ThemeError(
+                f"{path.name}:{lineno}: expected theme[key]=\"#RRGGBB\""
+            )
+        seen.add(match.group(1))
+    required = {"main_bg", "main_fg", "title", "hi_fg", "selected_bg"}
+    if missing := sorted(required - seen):
+        raise ThemeError(f"{path.name}: missing btop keys: {', '.join(missing)}")
+
+
 VALIDATORS = {
     ".json": validate_json,
     ".css": validate_css,
@@ -680,6 +702,7 @@ VALIDATORS = {
     ".zsh": validate_zsh,
     ".lua": validate_lua,
     ".toml": validate_toml,
+    ".theme": validate_btop_theme,
 }
 
 
@@ -697,9 +720,9 @@ def install(staged: list[tuple[Path, Path]]) -> None:
     """Move every staged file to its destination.
 
     Each move is `os.replace` against a temp file in the destination's own
-    directory, so no reader ever sees a partial file. This runs only after all
-    rendering and validation has succeeded, which is what makes a failed switch
-    a no-op rather than a half-switched desktop.
+    directory, so no reader ever sees a partial file. Callers run this only
+    after rendering and validation succeed; separate optional app-owned sets
+    may still fail without rolling back an already installed mandatory set.
     """
     for src, dest in staged:
         dest.parent.mkdir(parents=True, exist_ok=True)
