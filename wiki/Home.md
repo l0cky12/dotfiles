@@ -25,6 +25,7 @@ new; dip in per task if you are not.
 | 2 | [Daily use](user/Daily-Use.md) | Track 2: recipes — wallpaper, themes, Wi-Fi and the QR share, notifications, capture, lock and modes, clipboard. |
 | 3 | [Features](user/Features.md) | Short walkthroughs of the theme system, Quickshell bar/panels, desktop modes, notifications, lmenu, and PATH scripts. |
 | 4 | [Fixing things](user/Fixing-Things.md) | Symptom-first troubleshooting in plain language. |
+| 5 | [Keybindings guide](user/Keybindings-Guide.md) | Every binding in plain English, grouped by what you want to do, with "when would I use this" hints. |
 
 ## Reference pages
 

@@ -70,7 +70,8 @@ searchable palette of every binding on the system.
 | `Super+L` | Lock the screen (hyprlock, wrapped by `screensaver-lock`). |
 | `Super+P` | Open the power menu (lock, suspend, reboot, shutdown). |
 
-The full grouped list lives in [Keybindings](Keybindings.md).
+The full grouped list lives in [Keybindings](Keybindings.md), and for every
+binding explained in plain English, see the [Keybindings guide](Keybindings-Guide.md).
 
 ## Your first 10 minutes
 

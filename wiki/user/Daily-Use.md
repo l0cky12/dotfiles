@@ -3,7 +3,8 @@
 Everyday recipes. Each one tells you the fast way (a keybinding), the menu way
 (lmenu — the settings-and-actions menu opened with `Super+Shift+A`), and where
 to read more. All keybindings are verified against the live config in
-`hypr/.config/hypr/conf/keybindings.lua`.
+`hypr/.config/hypr/conf/keybindings.lua`. For the full plain-English tour of
+every binding, see the [Keybindings guide](Keybindings-Guide.md).
 
 ## Change the wallpaper
 
