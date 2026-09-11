@@ -31,9 +31,10 @@ Workspace buttons switch to their numbered workspace. Other interactions include
   first.
 - Audio: panel on left/middle click, mute on right click, 3% wheel adjustment.
   The panel keeps the master output controls and adds live output/input device
-  switching, available PipeWire port/profile labels, and per-application
-  playback volume and mute controls. Empty device or application sections
-  collapse, with a muted unavailable state when PipeWire has no useful nodes.
+  switching, available PipeWire node descriptions, and per-application
+  playback volume and mute controls capped at 100%. Empty device or application
+  sections collapse, with a muted unavailable state when PipeWire has no useful
+  nodes.
 - Recording indicator: appears while recording and stops it when clicked.
 - Desktop-mode indicators: active night light, DND, stay-awake,
   automatic-screensaver-disabled, and error states; click to open the modes panel.

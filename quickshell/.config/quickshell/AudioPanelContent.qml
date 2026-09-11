@@ -47,7 +47,8 @@ Item {
             font.pixelSize: Theme.fs(15)
           }
           Text {
-            text: !root.audio.available ? "PipeWire unavailable"
+            objectName: "audio-status"
+            text: !root.audio.available ? "PipeWire syncing…"
               : root.audio.muted ? "Muted"
               : root.audio.sink ? root.audio.volumePct + "%" : "No output"
             color: Theme.textDim
@@ -72,7 +73,7 @@ Item {
       height: Theme.fs(72)
       title: "MASTER OUTPUT"
       unavailable: !(root.audio.sink && root.audio.sink.audio)
-      unavailableText: root.audio.available ? "No output device" : "Audio unavailable"
+      unavailableText: root.audio.available ? "No output device" : "Audio syncing…"
 
       Item {
         anchors.fill: parent
@@ -172,7 +173,7 @@ Item {
               Text {
                 visible: outputRow.ports.length > 0
                 width: parent.width
-                text: "Port: " + outputRow.ports.join(" · ")
+                text: "Device: " + outputRow.ports.join(" · ")
                 color: Theme.textDim
                 font.pixelSize: Theme.fs(9)
                 elide: Text.ElideRight
@@ -260,7 +261,7 @@ Item {
               Text {
                 visible: inputRow.ports.length > 0
                 width: parent.width
-                text: "Port: " + inputRow.ports.join(" · ")
+                text: "Device: " + inputRow.ports.join(" · ")
                 color: Theme.textDim
                 font.pixelSize: Theme.fs(9)
                 elide: Text.ElideRight
@@ -298,14 +299,17 @@ Item {
           }
         }
 
-        VolumeSlider {
-          visible: !!(root.audio.source && root.audio.source.audio)
-          width: parent.width
-          value: root.audio.source && root.audio.source.audio
-            ? root.audio.source.audio.volume : 0
-          onMoved: fraction => root.audio.setInputVolume(fraction)
-        }
       }
+    }
+
+    VolumeSlider {
+      objectName: "audio-input-volume"
+      visible: !!(root.audio.source && root.audio.source.audio)
+      width: parent.width
+      height: visible ? implicitHeight : 0
+      value: root.audio.source && root.audio.source.audio
+        ? root.audio.source.audio.volume : 0
+      onMoved: fraction => root.audio.setInputVolume(fraction)
     }
 
     Column {
@@ -417,9 +421,17 @@ Item {
       visible: root.isEmpty
       width: parent.width
       height: visible ? Theme.fs(76) : 0
-      unavailable: true
+      unavailable: root.audio.available
       unavailableText: root.audio.available
-        ? "No audio devices or playback streams" : "PipeWire unavailable"
+        ? "PipeWire unavailable" : "PipeWire syncing…"
+
+      Text {
+        anchors.centerIn: parent
+        visible: !root.audio.available
+        text: "PipeWire syncing…"
+        color: Theme.textMuted
+        font.pixelSize: Theme.fs(11)
+      }
     }
   }
 }

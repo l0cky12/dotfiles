@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 shell_dir="$repo_root/quickshell/.config/quickshell"
 state="$shell_dir/AudioState.qml"
+helpers="$shell_dir/AudioHelpers.js"
 panel="$shell_dir/AudioPanel.qml"
 content="$shell_dir/AudioPanelContent.qml"
 smoke="$shell_dir/AudioPanelSmoke.qml"
@@ -16,36 +17,50 @@ fail() {
   exit 1
 }
 
-assert_contains() {
-  grep -Fq -- "$2" "$1" || fail "$1 does not contain [$2]"
-}
+if command -v node >/dev/null 2>&1; then
+  node - "$helpers" <<'NODE'
+const assert = require("node:assert/strict")
+const helpers = require(process.argv[2])
 
-assert_contains "$state" 'return list.concat(root.sinks).concat(root.sources).concat(root.streams)'
-assert_contains "$state" 'n => n && n.audio && n.isStream && !n.isSink'
-assert_contains "$state" 'Pipewire.preferredDefaultAudioSink = node'
-assert_contains "$state" 'Pipewire.preferredDefaultAudioSource = node'
-assert_contains "$state" 'node.audio.volume = Math.max(0, Math.min(1, fraction))'
-assert_contains "$state" 'node.audio.muted = !node.audio.muted'
-assert_contains "$state" 'DesktopEntries.heuristicLookup(lookup)'
+assert.deepEqual(helpers.devicePorts({properties: {
+  "device.description": "USB DAC",
+  "node.description": "fallback",
+  "port.alias": "undocumented"
+}}), ["USB DAC"])
+assert.deepEqual(helpers.devicePorts({properties: {
+  "node.description": "Built-in Audio",
+  "api.alsa.path": "pci-0000:00:1f.3"
+}}), ["Built-in Audio"])
+assert.deepEqual(helpers.devicePorts({properties: {
+  "api.alsa.path": "pci-0000:00:1f.3"
+}}), ["pci-0000:00:1f.3"])
+assert.deepEqual(helpers.devicePorts({properties: {
+  "card.profile.device": 0
+}}), ["0"])
+assert.deepEqual(helpers.devicePorts({properties: {
+  "port.alias": "Line Out",
+  "device.profile.name": "analog-stereo"
+}}), [])
 
-assert_contains "$panel" 'Keys.onEscapePressed: panel.audio.panelVisible = false'
-assert_contains "$panel" 'AudioPanelContent {'
-assert_contains "$content" 'title: "MASTER OUTPUT"'
-assert_contains "$content" 'text: "Devices"'
-assert_contains "$content" 'text: "Applications"'
-assert_contains "$content" 'VolumeSlider {'
-assert_contains "$content" 'IconButton {'
-assert_contains "$content" 'onClicked: root.audio.setSink(modelData)'
-assert_contains "$content" 'onClicked: root.audio.setSource(modelData)'
-assert_contains "$content" 'onClicked: root.audio.toggleStreamMute(modelData)'
-assert_contains "$content" 'root.audio.deviceDescription(modelData)'
-assert_contains "$content" 'root.audio.deviceName(modelData)'
-assert_contains "$content" 'unavailableText: root.audio.available'
+assert.equal(helpers.deviceDescription(null), "Unknown")
+assert.equal(helpers.deviceDescription({description: "Desk DAC", name: "raw"}), "Desk DAC")
+assert.equal(helpers.deviceDescription({nickname: "Mic", name: "raw"}), "Mic")
+assert.equal(helpers.streamLabel({properties: {"application.name": "Firefox"}}, null), "Firefox")
+assert.equal(helpers.streamLabel({properties: {"application.process.binary": "mpv"}}, null), "mpv")
+assert.equal(helpers.streamLabel({description: "Playback", properties: {}}, {name: "Music"}), "Music")
 
-assert_contains "$icon" 'AudioState.stepVolume(wheel.angleDelta.y > 0 ? 0.03 : -0.03)'
-assert_contains "$icon" 'AudioState.toggleMute()'
+assert.equal(helpers.clampVolume(-0.2), 0)
+assert.equal(helpers.clampVolume(0.42), 0.42)
+assert.equal(helpers.clampVolume(1.5), 1)
+assert.equal(helpers.volumePercent(1.5), 100)
+assert.equal(helpers.volumePercent(0.555), 56)
+console.log("ok: AudioHelpers.js executable assertions")
+NODE
+else
+  printf 'skip: node is not installed, AudioHelpers.js assertions not run\n'
+fi
 
-if grep -nE '"#[0-9a-fA-F]{3,8}"' "$state" "$panel" "$content" "$smoke"; then
+if grep -nE '"#[0-9a-fA-F]{3,8}"' "$helpers" "$state" "$panel" "$content" "$smoke"; then
   fail 'audio QML hardcodes a color instead of using Theme tokens'
 fi
 

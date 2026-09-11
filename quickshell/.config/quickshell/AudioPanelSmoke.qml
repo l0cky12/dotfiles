@@ -1,5 +1,6 @@
 import Quickshell
 import QtQuick
+import "AudioHelpers.js" as AudioHelpers
 
 // Headless render fixture for the real AudioPanel content. It deliberately
 // avoids constructing PopupWindow, which requires a live Wayland compositor.
@@ -18,7 +19,7 @@ Scope {
     property string name: "alsa_output.usb-dac"
     property string description: "Desk DAC"
     property string nickname: ""
-    property var properties: ({ "port.alias": "Line Out" })
+    property var properties: ({ "device.description": "Desk DAC profile" })
     property QtObject audio: outputOneAudio
   }
   QtObject {
@@ -34,7 +35,7 @@ Scope {
     property string name: "alsa_input.usb-mic"
     property string description: "USB Microphone"
     property string nickname: ""
-    property var properties: ({ "port.name": "Microphone" })
+    property var properties: ({ "node.description": "USB microphone profile" })
     property QtObject audio: inputAudio
   }
   QtObject {
@@ -65,23 +66,19 @@ Scope {
     property var sources: [inputOne]
     property var streams: [browserStream, playerStream]
     property bool muted: outputOneAudio.muted
-    property int volumePct: Math.round(outputOneAudio.volume * 100)
-    property int inputVolumePct: Math.round(inputAudio.volume * 100)
+    property int volumePct: AudioHelpers.volumePercent(outputOneAudio.volume)
+    property int inputVolumePct: AudioHelpers.volumePercent(inputAudio.volume)
     property string glyph: String.fromCodePoint(0xf057e)
 
-    function deviceLabel(node) { return node.nickname || node.description || node.name || "Unknown" }
     function deviceName(node) { return node && node.name ? node.name : "" }
-    function deviceDescription(node) { return node.description || node.nickname || node.name || "Unknown" }
-    function devicePorts(node) {
-      const props = node.properties || ({})
-      return [props["port.alias"] || props["port.name"]].filter(v => !!v)
-    }
-    function streamLabel(node) { return node.properties["application.name"] || node.name }
+    function deviceDescription(node) { return AudioHelpers.deviceDescription(node) }
+    function devicePorts(node) { return AudioHelpers.devicePorts(node) }
+    function streamLabel(node) { return AudioHelpers.streamLabel(node, null) }
     function streamIcon(node) { return "" }
-    function streamVolumePct(node) { return Math.round(node.audio.volume * 100) }
-    function setVolume(value) { sink.audio.volume = value }
-    function setInputVolume(value) { source.audio.volume = value }
-    function setStreamVolume(node, value) { node.audio.volume = value }
+    function streamVolumePct(node) { return AudioHelpers.volumePercent(node.audio.volume) }
+    function setVolume(value) { sink.audio.volume = AudioHelpers.clampVolume(value) }
+    function setInputVolume(value) { source.audio.volume = AudioHelpers.clampVolume(value) }
+    function setStreamVolume(node, value) { node.audio.volume = AudioHelpers.clampVolume(value) }
     function toggleMute() { sink.audio.muted = !sink.audio.muted }
     function toggleStreamMute(node) { node.audio.muted = !node.audio.muted }
     function setSink(node) { sink = node }
@@ -131,6 +128,7 @@ Scope {
       const input0 = smoke.findObject(panelContent, "audio-input-row-0")
       const stream0 = smoke.findObject(panelContent, "audio-stream-row-0")
       const stream1 = smoke.findObject(panelContent, "audio-stream-row-1")
+      const inputVolume = smoke.findObject(panelContent, "audio-input-volume")
 
       smoke.check("renders both output devices", output0 && output1)
       smoke.check("renders device descriptions",
@@ -145,9 +143,47 @@ Scope {
         && stream1 && stream1.applicationTitle === "Music")
       smoke.check("projects per-stream mute state",
         stream0 && !stream0.streamMuted && stream1 && stream1.streamMuted)
-      smoke.check("renders published port metadata",
-        output0 && output0.ports.length === 1 && output0.ports[0] === "Line Out")
+      smoke.check("renders documented node metadata",
+        output0 && output0.ports.length === 1
+        && output0.ports[0] === "Desk DAC profile")
+      smoke.check("renders master input volume", inputVolume && inputVolume.visible)
       smoke.check("does not show the empty state with fixture rows", !panelContent.isEmpty)
+
+      fixture.available = false
+      fixture.sink = null
+      fixture.source = null
+      fixture.sinks = []
+      fixture.sources = []
+      fixture.streams = []
+      emptyTimer.start()
+    }
+  }
+
+  Timer {
+    id: emptyTimer
+    interval: 100
+    onTriggered: {
+      const emptyState = smoke.findObject(panelContent, "audio-empty-state")
+      const status = smoke.findObject(panelContent, "audio-status")
+      smoke.check("renders empty lists", panelContent.isEmpty && emptyState.visible)
+      smoke.check("labels initial PipeWire sync neutrally",
+        status.text === "PipeWire syncing…"
+        && emptyState.unavailableText === "PipeWire syncing…"
+        && !emptyState.unavailable)
+
+      fixture.available = true
+      unavailableTimer.start()
+    }
+  }
+
+  Timer {
+    id: unavailableTimer
+    interval: 100
+    onTriggered: {
+      const emptyState = smoke.findObject(panelContent, "audio-empty-state")
+      smoke.check("marks synced empty PipeWire unavailable",
+        emptyState.visible && emptyState.unavailable
+        && emptyState.unavailableText === "PipeWire unavailable")
 
       console.log(smoke.failures === 0
         ? "ok: AudioPanel fixture rendering"

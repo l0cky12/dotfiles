@@ -143,7 +143,7 @@ dropdown.
 | Clock and calendar | `ClockState.qml`, `ClockWidget.qml`, `DesktopClock.qml`, `CalendarGrid.qml`, `CalendarPopup.qml`, `TimezonePopup.qml`, `DateTimeCard.qml` |
 | Dashboard | `DashboardState.qml`, `DashboardPanel.qml`, `TabBar.qml`, `DashTab.qml`, `MediaTab.qml`, `PerfTab.qml`, `WorkspacesTab.qml`, `WeatherTab.qml`, `MetricCard.qml`, `Gauge.qml`, `HeroGauge.qml`, `ProfileCard.qml`, `SysState.qml` |
 | Network | `NetworkState/Icon/Panel.qml` |
-| Audio and media | `AudioState/Icon/Panel.qml`, `VolumeSlider.qml`, `MediaState/Icon/Panel.qml`, `MediaPreviewCard.qml`, `LyricsState.qml`, `LyricsView.qml` |
+| Audio and media | `AudioState/Icon/Panel.qml`, `AudioPanelContent.qml`, `VolumeSlider.qml`, `MediaState/Icon/Panel.qml`, `MediaPreviewCard.qml`, `LyricsState.qml`, `LyricsView.qml` |
 | Visualiser | `CavaState.qml`, `CavaBars.qml`, `CavaEdgeVisualizer.qml`, `VisualizerState.qml` |
 | Bluetooth | `BluetoothState/Icon/Panel.qml` |
 | Display | `DisplayState/Icon/Panel.qml` |
@@ -171,7 +171,7 @@ QT_QPA_PLATFORM=offscreen quickshell -p quickshell/.config/quickshell/OmakubBarS
 
 Available: `OmakubBarSmoke`, `NotificationSmoke`, `BluetoothSmoke`,
 `NetworkSmoke`, `ModesSmoke`, `UpdatesSmoke`,
-`VideoDownloadSmoke`, `WindowsVmSmoke`, `ClockWidgetSmoke`.
+`VideoDownloadSmoke`, `WindowsVmSmoke`, `ClockWidgetSmoke`, `AudioPanelSmoke`.
 
 ## Reloading
 

@@ -2,6 +2,7 @@ pragma Singleton
 import Quickshell
 import Quickshell.Services.Pipewire
 import QtQuick
+import "AudioHelpers.js" as AudioHelpers
 
 Singleton {
   id: root
@@ -52,9 +53,9 @@ Singleton {
 
   readonly property bool muted: sink && sink.audio ? sink.audio.muted : false
   readonly property int volumePct: sink && sink.audio
-    ? Math.round(sink.audio.volume * 100) : 0
+    ? AudioHelpers.volumePercent(sink.audio.volume) : 0
   readonly property int inputVolumePct: source && source.audio
-    ? Math.round(source.audio.volume * 100) : 0
+    ? AudioHelpers.volumePercent(source.audio.volume) : 0
   readonly property bool inputMuted: source && source.audio ? source.audio.muted : false
 
   // Four volume tiers plus a muted state. Codepoints verified against the
@@ -80,9 +81,7 @@ Singleton {
   }
 
   function deviceDescription(node) {
-    if (!node)
-      return "Unknown"
-    return node.description || node.nickname || node.name || "Unknown"
+    return AudioHelpers.deviceDescription(node)
   }
 
   function nodeProperties(node) {
@@ -90,23 +89,9 @@ Singleton {
   }
 
   // Quickshell exposes PipeWire's node property map rather than a dedicated
-  // port model. Surface the port/profile fields when the backend publishes
-  // them, de-duplicated because some devices use the same value for both.
+  // port model. Use only documented node properties, in preference order.
   function devicePorts(node) {
-    const props = root.nodeProperties(node)
-    const candidates = [
-      props["port.alias"],
-      props["port.name"],
-      props["device.profile.description"],
-      props["device.profile.name"]
-    ]
-    const ports = []
-    for (const candidate of candidates) {
-      const value = String(candidate || "").trim()
-      if (value !== "" && ports.indexOf(value) < 0)
-        ports.push(value)
-    }
-    return ports
+    return AudioHelpers.devicePorts(node)
   }
 
   function desktopEntryFor(node) {
@@ -125,12 +110,7 @@ Singleton {
   }
 
   function streamLabel(node) {
-    const entry = root.desktopEntryFor(node)
-    if (entry && entry.name)
-      return entry.name
-    const props = root.nodeProperties(node)
-    return String(props["application.name"] || props["application.process.binary"]
-      || node.description || node.nickname || node.name || "Application")
+    return AudioHelpers.streamLabel(node, root.desktopEntryFor(node))
   }
 
   function streamIcon(node) {
@@ -142,31 +122,31 @@ Singleton {
   }
 
   function streamVolumePct(node) {
-    return node && node.audio ? Math.round(node.audio.volume * 100) : 0
+    return node && node.audio ? AudioHelpers.volumePercent(node.audio.volume) : 0
   }
 
   function setVolume(fraction) {
     if (!sink || !sink.audio)
       return
-    sink.audio.volume = Math.max(0, Math.min(1, fraction))
+    sink.audio.volume = AudioHelpers.clampVolume(fraction)
   }
 
   function stepVolume(delta) {
     if (!sink || !sink.audio)
       return
-    sink.audio.volume = Math.max(0, Math.min(1, sink.audio.volume + delta))
+    sink.audio.volume = AudioHelpers.clampVolume(sink.audio.volume + delta)
   }
 
   function setInputVolume(fraction) {
     if (!source || !source.audio)
       return
-    source.audio.volume = Math.max(0, Math.min(1, fraction))
+    source.audio.volume = AudioHelpers.clampVolume(fraction)
   }
 
   function setStreamVolume(node, fraction) {
     if (!node || !node.audio)
       return
-    node.audio.volume = Math.max(0, Math.min(1, fraction))
+    node.audio.volume = AudioHelpers.clampVolume(fraction)
   }
 
   function toggleStreamMute(node) {
