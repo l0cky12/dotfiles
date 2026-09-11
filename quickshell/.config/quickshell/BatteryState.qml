@@ -20,13 +20,6 @@ Singleton {
   property real timeToCharge: 0
   property int criticalThreshold: 15
 
-  // Extension surface for the low-battery alerts feature. The base singleton
-  // deliberately does not implement alert policy or notification delivery.
-  property var alertState: ({})
-  property var notificationQueue: []
-
-  function evaluateAlerts() {}
-
   function stateName(deviceState) {
     switch (deviceState) {
     case UPowerDeviceState.Charging:
@@ -58,12 +51,12 @@ Singleton {
       root.state = "unknown"
       root.timeToEmpty = 0
       root.timeToCharge = 0
-      root.evaluateAlerts()
       return
     }
 
-    root.percent = Math.max(0, Math.min(100,
-                                       Math.round(battery.percentage * 100)))
+    // Quickshell exposes UPower percentage as a 0..1 ratio. Do not hide a
+    // source-scale regression by clamping values above 100.
+    root.percent = Math.max(0, Math.round(battery.percentage * 100))
     root.state = root.stateName(battery.state)
     root.charging = battery.state === UPowerDeviceState.Charging
                     || battery.state === UPowerDeviceState.PendingCharge
@@ -73,7 +66,6 @@ Singleton {
       ? Math.max(0, Number(battery.timeToEmpty) || 0) : 0
     root.timeToCharge = root.charging
       ? Math.max(0, Number(battery.timeToFull) || 0) : 0
-    root.evaluateAlerts()
   }
 
   // UPower pushes changes over D-Bus. Snapshot them immediately, with the

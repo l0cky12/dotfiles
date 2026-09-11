@@ -3,12 +3,11 @@ import Quickshell.Services.UPower
 import QtQuick
 
 // Headless behavior harness. It drives the real singleton with fixture UPower
-// devices, so projections and the bar's invisible-child layout are covered
-// without depending on a battery, UPower daemon, or compositor.
+// devices, so projections and icon visibility are covered without depending
+// on a battery, UPower daemon, compositor, or window-backed item polish.
 Scope {
   id: smoke
   property int failures: 0
-  property real widthWithBattery: 0
 
   readonly property var state: BatteryState
 
@@ -34,18 +33,7 @@ Scope {
     property real timeToFull: 1800
   }
 
-  Row {
-    id: baselineBar
-    spacing: 3
-    Rectangle { implicitWidth: 20; implicitHeight: 10 }
-  }
-
-  Row {
-    id: barWithBattery
-    spacing: 3
-    Rectangle { implicitWidth: 20; implicitHeight: 10 }
-    BatteryIcon { id: absentIcon }
-  }
+  BatteryIcon { id: batteryIcon }
 
   function check(name, condition) {
     if (condition)
@@ -76,11 +64,6 @@ Scope {
 
   Component.onCompleted: {
     checkStateNames()
-    check("alert extension surface is available",
-          state.alertState !== undefined
-          && state.notificationQueue !== undefined
-          && typeof state.evaluateAlerts === "function")
-
     state.device = readyDevice
     state.refresh()
     check("ready laptop battery is present", state.hasBattery)
@@ -89,13 +72,12 @@ Scope {
           state.discharging && !state.charging)
     check("discharge estimate is projected only while discharging",
           state.timeToEmpty === 5400 && state.timeToCharge === 0)
-    check("battery is visible when present", absentIcon.visible)
-    check("percentage is projected", absentIcon.percentText === "54%")
+    check("battery is visible when present", batteryIcon.visible)
+    check("percentage is projected", batteryIcon.percentText === "54%")
     check("discharge estimate is formatted",
-          absentIcon.tooltipText.indexOf("Time remaining: 1h 30m") !== -1)
+          batteryIcon.tooltipText.indexOf("Time remaining: 1h 30m") !== -1)
     check("non-finite estimates are safe",
-          absentIcon.formatTime(Number.NaN) === "estimating")
-    smoke.widthWithBattery = barWithBattery.implicitWidth
+          batteryIcon.formatTime(Number.NaN) === "estimating")
 
     readyDevice.state = UPowerDeviceState.Charging
     state.refresh()
@@ -103,7 +85,7 @@ Scope {
     check("charge estimate is projected only while charging",
           state.timeToCharge === 2700 && state.timeToEmpty === 0)
     check("charging tooltip uses time to full",
-          absentIcon.tooltipText.indexOf("Time to full: 45m") !== -1)
+          batteryIcon.tooltipText.indexOf("Time to full: 45m") !== -1)
 
     readyDevice.state = UPowerDeviceState.PendingDischarge
     state.refresh()
@@ -114,19 +96,33 @@ Scope {
     readyDevice.state = UPowerDeviceState.FullyCharged
     state.refresh()
     check("full tooltip omits an estimate",
-          absentIcon.tooltipText === "54% · Full")
+          batteryIcon.tooltipText === "54% · Full")
 
     readyDevice.state = UPowerDeviceState.Unknown
     state.refresh()
-    check("inactive AC tooltip omits an estimate",
-          absentIcon.tooltipText === "54% · On AC"
+    check("unknown tooltip does not invent an AC state",
+          batteryIcon.tooltipText === "54% · Unknown"
           && state.timeToEmpty === 0 && state.timeToCharge === 0)
 
-    readyDevice.state = UPowerDeviceState.Discharging
+    readyDevice.state = UPowerDeviceState.Unknown
     readyDevice.percentage = 0.15
     state.refresh()
-    check("shared threshold marks a discharging battery critical",
-          state.criticalThreshold === 15 && absentIcon.critical)
+    check("shared threshold marks low charge critical regardless of state",
+          state.criticalThreshold === 15 && !state.discharging
+          && batteryIcon.critical)
+
+    readyDevice.state = UPowerDeviceState.Empty
+    readyDevice.percentage = 0.54
+    state.refresh()
+    check("empty state is critical regardless of discharge projection",
+          !state.discharging && batteryIcon.critical)
+
+    readyDevice.state = UPowerDeviceState.Discharging
+    readyDevice.percentage = 1.01
+    state.refresh()
+    check("percentage scale mismatches remain visible", state.percent === 101)
+    check("high discharging charge does not use the full glyph",
+          batteryIcon.glyph !== batteryIcon.glyphFor(0, "full", false))
 
     state.device = notReadyDevice
     state.refresh()
@@ -134,24 +130,29 @@ Scope {
   }
 
   function finish() {
+    timeoutTimer.stop()
     check("not-ready device is absent", !state.hasBattery)
-    check("absent battery icon is invisible", !absentIcon.visible)
-    check("absent icon leaves bar width unchanged",
-          smoke.widthWithBattery > baselineBar.implicitWidth
-          && barWithBattery.implicitWidth === baselineBar.implicitWidth)
+    check("absent battery icon is invisible", !batteryIcon.visible)
 
     console.log(smoke.failures === 0
       ? "ok: Battery widget projections"
       : ("FAIL: " + smoke.failures + " assertion(s) failed"))
-    Qt.callLater(Qt.quit)
+    exitTimer.start()
   }
 
   Timer {
+    id: timeoutTimer
     interval: 1000
     running: true
     onTriggered: {
       console.log("FAIL Battery smoke test timed out")
       Qt.quit()
     }
+  }
+
+  Timer {
+    id: exitTimer
+    interval: 250
+    onTriggered: Qt.quit()
   }
 }

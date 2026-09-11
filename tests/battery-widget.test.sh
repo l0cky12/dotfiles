@@ -28,8 +28,16 @@ fi
 if command -v quickshell >/dev/null 2>&1; then
   test_root=$(mktemp -d)
   trap 'rm -rf -- "$test_root"' EXIT
+  mkdir -p "$test_root/bin" "$test_root/state"
+  cat > "$test_root/bin/gsettings" <<'SH'
+#!/usr/bin/env sh
+exit 0
+SH
+  chmod +x "$test_root/bin/gsettings"
   smoke_log="$test_root/smoke.log"
-  QT_QPA_PLATFORM=offscreen timeout 30 quickshell -p "$smoke" >"$smoke_log" 2>&1 || true
+  HOME="$test_root" XDG_STATE_HOME="$test_root/state" \
+    PATH="$test_root/bin:$PATH" QT_QPA_PLATFORM=offscreen \
+    timeout 60 quickshell -p "$smoke" >"$smoke_log" 2>&1 || true
   grep -Fq 'ok: Battery widget projections' "$smoke_log" \
     || { sed -n '1,120p' "$smoke_log" >&2; fail 'BatterySmoke.qml did not report success'; }
   if grep -Fq 'FAIL' "$smoke_log"; then

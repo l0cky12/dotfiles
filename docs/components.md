@@ -13,8 +13,10 @@ One top-layer bar is created per screen. Its active layout is:
 | Area | Modules |
 | --- | --- |
 | Left | fixed workspace cells 1–10 |
-| Center | MPRIS media display |
-| Right | display, network, Bluetooth, audio, recording status, desktop-mode status, clipboard, battery (when present), clock |
+| Center, left of clock | recording status, desktop-mode status, updates, battery (when present) |
+| Center | clock |
+| Center, right of clock | keyboard layout and weather |
+| Right | system tray, agent, Windows VM, clipboard, Bluetooth, network, audio, display, power |
 
 Workspace buttons switch to their numbered workspace. Other interactions include:
 

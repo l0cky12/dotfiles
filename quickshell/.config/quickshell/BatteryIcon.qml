@@ -7,9 +7,9 @@ Item {
   property real barScale: 1.0
   property var batteryState: BatteryState
   readonly property bool critical: batteryState.hasBattery
-                                   && batteryState.discharging
-                                   && batteryState.percent
-                                      <= batteryState.criticalThreshold
+                                   && (batteryState.percent
+                                       <= batteryState.criticalThreshold
+                                       || batteryState.state === "empty")
   readonly property string glyph: glyphFor(batteryState.percent,
                                              batteryState.state,
                                              batteryState.charging)
@@ -20,7 +20,7 @@ Item {
   function glyphFor(percent, state, charging) {
     if (charging)
       return "󰂄"
-    if (state === "full" || percent >= 95)
+    if (state === "full")
       return "󰁹"
     if (percent <= batteryState.criticalThreshold)
       return "󰂃"
@@ -57,7 +57,7 @@ Item {
       return summary + "\nTime remaining: " + formatTime(battery.timeToEmpty)
     if (battery.state === "full")
       return battery.percent + "% · Full"
-    return battery.percent + "% · On AC"
+    return summary
   }
 
   visible: batteryState.hasBattery

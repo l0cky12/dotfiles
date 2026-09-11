@@ -40,7 +40,7 @@ changing either side never nudges the time.
 
 | Position | Widget |
 | --- | --- |
-| left of the clock | `RecordIcon`, `ModeIndicators`, `UpdatesIcon` |
+| left of the clock | `RecordIcon`, `ModeIndicators`, `UpdatesIcon`, `BatteryIcon` (when a laptop battery is present) |
 | the anchor | the clock itself |
 | right of the clock | `KeyboardLayoutWidget`, weather glyph, weather temperature |
 
@@ -70,6 +70,8 @@ set, so adding or removing a widget means updating that list.
   success.
 - **Updates**: hover shows repo and AUR counts; clicking opens a Kitty update
   window.
+- **Battery**: shows charge percentage and state; hidden when no laptop battery
+  is present.
 - **Windows VM icon**: appears while the container runs. Pulses amber while
   installation or startup waits for RDP, then goes solid accent when RDP is
   ready. Disappears when the VM stops.
