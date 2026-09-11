@@ -70,6 +70,11 @@ thresholds must be strictly descending (`warnPercent` > `severePercent` >
 `criticalPercent`, ignoring disabled entries), or all three fall back to the
 20/10/5 defaults with a warning.
 
+Run `bash tests/battery-alerts.test.sh` for the battery logic, configuration,
+wiring, and notification-policy checks. Its optional Quickshell smoke fixture is
+protected by a kill switch and runs with `BATTERY_SMOKE_TEST=1` so it cannot send
+live battery notifications.
+
 `quickshell/.config/quickshell/Theme.qml` watches
 `~/.config/hypr/themes/.active/theme.json` and updates live. It uses a sans-serif
 UI font and JetBrainsMono Nerd Font for glyphs, with font scaling persisted via

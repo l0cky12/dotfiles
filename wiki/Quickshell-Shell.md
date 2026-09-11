@@ -171,7 +171,8 @@ seconds, and quits:
 QT_QPA_PLATFORM=offscreen quickshell -p quickshell/.config/quickshell/OmakubBarSmoke.qml
 ```
 
-Available: `OmakubBarSmoke`, `NotificationSmoke`, `BatterySmoke`, `BluetoothSmoke`,
+Available: `OmakubBarSmoke`, `NotificationSmoke`, `BatterySmoke` (requires
+`BATTERY_SMOKE_TEST=1`), `BluetoothSmoke`,
 `NetworkSmoke`, `ModesSmoke`, `UpdatesSmoke`,
 `VideoDownloadSmoke`, `WindowsVmSmoke`, `ClockWidgetSmoke`.
 

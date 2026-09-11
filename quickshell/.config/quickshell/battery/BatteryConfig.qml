@@ -63,7 +63,8 @@ Singleton {
         root.loaded = true
       }
     }
-    onLoadFailed: {
+    onLoadFailed: function(error) {
+      console.warn("battery: could not load config.json:", error)
       root.values = ({})
       root.loaded = true
     }

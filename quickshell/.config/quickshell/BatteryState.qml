@@ -23,6 +23,7 @@ Singleton {
   property string powerState: "indeterminate"
   property string state: "unknown"
   property var alertState: BatteryLogic.initialState()
+  property var alertThresholds: null
   property var notificationQueue: []
   property bool notificationStarted: false
   property bool notificationExited: false
@@ -47,18 +48,36 @@ Singleton {
   }
 
   function evaluateAlerts() {
+    if (!Battery.BatteryConfig.loaded)
+      return
     const result = BatteryLogic.update(root.alertState, {
       hasBattery: root.hasBattery,
       percent: root.percent,
-      powerState: root.powerState
-    }, {
-      warn: Battery.BatteryConfig.warnPercent,
-      severe: Battery.BatteryConfig.severePercent,
-      critical: Battery.BatteryConfig.criticalPercent
-    })
+      powerState: root.powerState,
+      onBattery: UPower.onBattery
+    }, root.currentThresholds())
     root.alertState = result.state
     for (let i = 0; i < result.alerts.length; i++)
       root.queueAlert(result.alerts[i])
+  }
+
+  function currentThresholds() {
+    return {
+      warn: Battery.BatteryConfig.warnPercent,
+      severe: Battery.BatteryConfig.severePercent,
+      critical: Battery.BatteryConfig.criticalPercent
+    }
+  }
+
+  function applyConfigChange() {
+    if (!Battery.BatteryConfig.loaded)
+      return
+    const next = root.currentThresholds()
+    if (root.alertThresholds !== null)
+      root.alertState = BatteryLogic.rearmChanged(root.alertState,
+                                                  root.alertThresholds, next)
+    root.alertThresholds = next
+    root.evaluateAlerts()
   }
 
   function refresh() {
@@ -89,7 +108,8 @@ Singleton {
       || battery.state === UPowerDeviceState.FullyCharged
       || UPower.onBattery === false
       ? "charging"
-      : (root.discharging ? "discharging" : "indeterminate")
+      : (root.discharging || UPower.onBattery === true
+         ? "discharging" : "indeterminate")
     root.evaluateAlerts()
   }
 
@@ -165,6 +185,12 @@ Singleton {
     function onIsLaptopBatteryChanged() { root.refresh() }
     function onPercentageChanged() { root.refresh() }
     function onStateChanged() { root.refresh() }
+  }
+
+  Connections {
+    target: Battery.BatteryConfig
+    function onLoadedChanged() { root.applyConfigChange() }
+    function onValuesChanged() { root.applyConfigChange() }
   }
 
   Timer {
