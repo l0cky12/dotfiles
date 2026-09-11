@@ -2,6 +2,9 @@ import Quickshell
 import "notifications" as Notifications
 
 Scope {
+  // Instantiate battery monitoring even when no bar battery widget is present.
+  readonly property var batteryState: BatteryState
+
   Bar {}
   Variants {
     model: Quickshell.screens

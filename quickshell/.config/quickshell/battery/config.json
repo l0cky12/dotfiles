@@ -1,0 +1,5 @@
+{
+  "warnPercent": 20,
+  "severePercent": 10,
+  "criticalPercent": 5
+}
