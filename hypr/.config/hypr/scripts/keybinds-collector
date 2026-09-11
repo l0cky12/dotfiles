@@ -185,12 +185,31 @@ def normalized_key(bind: dict[str, Any]) -> str:
 
 
 def reconcile(binds: list[dict[str, Any]], replayed: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    recovered: dict[tuple[int, str, str], list[dict[str, Any]]] = {}
-    for item in replayed:
-        identity = (int(item.get("modmask") or 0),
-                    str(item.get("description") or "").strip().lower(),
-                    normalized_key(item))
-        recovered.setdefault(identity, []).append(item)
+    # Two indexes over the same replayed rows. The exact one is preferred; the
+    # keyless one exists because `hyprctl binds` reports a `code:N` bind with
+    # key "" AND keycode 0 -- the keycode is absent from the output entirely,
+    # so there is nothing to match on and nothing to display. Every workspace
+    # bind is declared that way (number_row_keys in conf/keybindings.lua), so
+    # without this the whole workspace block arrives blank.
+    # Indexes hold positions, not rows: a replayed row answers for exactly one
+    # bind, and both indexes list the same rows, so consumption is tracked per
+    # call instead of by popping one list or marking the caller's data.
+    exact: dict[tuple[int, str, str], list[int]] = {}
+    by_action: dict[tuple[int, str], list[int]] = {}
+    for position, item in enumerate(replayed):
+        action = (int(item.get("modmask") or 0),
+                  str(item.get("description") or "").strip().lower())
+        exact.setdefault(action + (normalized_key(item),), []).append(position)
+        by_action.setdefault(action, []).append(position)
+
+    claimed: set[int] = set()
+
+    def take(choices: list[int]) -> dict[str, Any] | None:
+        for position in choices:
+            if position not in claimed:
+                claimed.add(position)
+                return replayed[position]
+        return None
 
     result: list[dict[str, Any]] = []
     for original in binds:
@@ -201,14 +220,19 @@ def reconcile(binds: list[dict[str, Any]], replayed: list[dict[str, Any]]) -> li
             # modmask already owns the modifiers, so retain only the final key.
             bind["key"] = display_key(bind)
         if bind.get("dispatcher") == "__lua":
-            identity = (int(bind.get("modmask") or 0),
-                        str(bind.get("description") or "").strip().lower(), key)
-            choices = recovered.get(identity, [])
-            if choices:
-                item = choices.pop(0)
-                if item.get("dispatcher"):
-                    bind["dispatcher"] = item["dispatcher"]
-                    bind["arg"] = item.get("arg", "")
+            action = (int(bind.get("modmask") or 0),
+                      str(bind.get("description") or "").strip().lower())
+            item = take(exact.get(action + (key,), []))
+            if item is None and not key:
+                item = take(by_action.get(action, []))
+                if item is not None:
+                    # The key the palette shows, recovered from the config the
+                    # same way the action is. add_key_labels turns the
+                    # resulting "code:10" into "1".
+                    bind["key"] = display_key(item)
+            if item is not None and item.get("dispatcher"):
+                bind["dispatcher"] = item["dispatcher"]
+                bind["arg"] = item.get("arg", "")
         result.append(bind)
     result.extend(dict(item) for item in STATIC_BINDINGS)
     return result

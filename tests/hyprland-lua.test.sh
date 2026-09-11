@@ -171,9 +171,15 @@ for workspace = 1, 10 do
     expect("SUPER + " .. number_keys[workspace], "workspace " .. workspace,
         "focus", workspace, nil)
 end
-for workspace = 1, 4 do
-    expect_move("SUPER + SHIFT + ALT + " .. number_keys[workspace], "move silently to workspace " .. workspace,
-        workspace, false)
+-- Workspaces 11-15 are reached by adding ALT to the same number keys, which
+-- is how focus already reaches that bank. Plain "1".."5", not code:N.
+for workspace = 11, 15 do
+    expect("SUPER + ALT + " .. (workspace - 10), "workspace " .. workspace,
+        "focus", workspace, nil)
+    expect_move("SUPER + SHIFT + ALT + " .. (workspace - 10),
+        "move to workspace " .. workspace, workspace, true)
+    expect_move("SUPER + CTRL + ALT + " .. (workspace - 10),
+        "move silently to workspace " .. workspace, workspace, false)
 end
 LUA
 

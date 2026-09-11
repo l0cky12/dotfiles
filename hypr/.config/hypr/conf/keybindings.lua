@@ -114,8 +114,13 @@ bind(mod .. " + SHIFT + bracketleft", "move to previous workspace", hl.dsp.windo
 bind(mod .. " + SHIFT + bracketright", "move to next workspace", hl.dsp.window.move({ workspace = "+1", follow = true }))
 bind(mod .. " + CTRL + bracketleft", "move silently to previous workspace", hl.dsp.window.move({ workspace = "-1", follow = false }))
 bind(mod .. " + CTRL + bracketright", "move silently to next workspace", hl.dsp.window.move({ workspace = "+1", follow = false }))
-for workspace = 1, 4 do
-    bind(mod .. " + SHIFT + ALT + " .. number_row_keys[workspace], "move silently to workspace " .. workspace,
+-- Workspaces 11-15 live on the same number keys with ALT added, matching how
+-- focus reaches them (Super+Alt+1..5 below). Plain "1".."5" rather than
+-- code:N because that is what the focus binds for this bank already use.
+for workspace = 11, 15 do
+    bind(mod .. " + SHIFT + ALT + " .. (workspace - 10), "move to workspace " .. workspace,
+        move_active_window_dispatcher(workspace, true))
+    bind(mod .. " + CTRL + ALT + " .. (workspace - 10), "move silently to workspace " .. workspace,
         move_active_window_dispatcher(workspace, false))
 end
 

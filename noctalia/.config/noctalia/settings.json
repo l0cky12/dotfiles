@@ -290,7 +290,7 @@
     "manualSunrise": "06:30",
     "manualSunset": "18:30",
     "monitorForColors": "",
-    "predefinedScheme": "kanagawa",
+    "predefinedScheme": "vantablack",
     "schedulingMode": "off",
     "syncGsettings": true,
     "useWallpaperColors": false

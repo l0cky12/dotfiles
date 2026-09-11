@@ -97,6 +97,48 @@ def main() -> None:
         "reconciled lua rows must activate through hyprctl eval"
     print("ok: reconciled Lua rows activate through hyprctl eval")
 
+    # `hyprctl binds` reports a `code:N` bind with key "" AND keycode 0, so the
+    # workspace block (number_row_keys in conf/keybindings.lua) reaches the
+    # collector with nothing to match on and nothing to display. The keyless
+    # fallback has to recover the action and the key, or the palette shows the
+    # whole workspace family blank.
+    reconcile = collector_globals["reconcile"]
+    add_key_labels = collector_globals["add_key_labels"]
+    keyless = [
+        {"modmask": 64, "key": "", "keycode": 0, "description": "workspace 1",
+         "dispatcher": "__lua", "arg": "228", "mouse": False},
+        {"modmask": 65, "key": "", "keycode": 0, "description": "move to workspace 1",
+         "dispatcher": "__lua", "arg": "122", "mouse": False},
+        {"modmask": 68, "key": "", "keycode": 0,
+         "description": "move silently to workspace 1",
+         "dispatcher": "__lua", "arg": "124", "mouse": False},
+    ]
+    replayed_keyless = [
+        {"modmask": 64, "description": "workspace 1", "key": "code:10",
+         "dispatcher": "lua", "arg": "hl.dsp.focus({ workspace = 1 })"},
+        {"modmask": 65, "description": "move to workspace 1", "key": "code:10",
+         "dispatcher": "exec", "arg": "move-follow-true"},
+        {"modmask": 68, "description": "move silently to workspace 1", "key": "code:10",
+         "dispatcher": "exec", "arg": "move-follow-false"},
+    ]
+    rows = reconcile(keyless, replayed_keyless)
+    add_key_labels(rows)
+    by_description = {row.get("description"): row for row in rows}
+    for description, dispatcher in (("workspace 1", "lua"),
+                                    ("move to workspace 1", "exec"),
+                                    ("move silently to workspace 1", "exec")):
+        row = by_description[description]
+        assert row["dispatcher"] == dispatcher, (description, row)
+        assert row.get("key_label") == "1", (description, row)
+    # One replayed row answers for one bind, and reconcile must not leave marks
+    # on its arguments: a repeated call has to behave the same way.
+    repeated = reconcile(keyless, replayed_keyless)
+    assert not [row for row in repeated if row.get("dispatcher") == "__lua"], repeated
+    duplicated = reconcile(keyless + [dict(keyless[0])], replayed_keyless)
+    assert len([row for row in duplicated
+                if row.get("dispatcher") == "__lua"]) == 1, duplicated
+    print("ok: keycode-only workspace binds recover both action and key")
+
     with tempfile.TemporaryDirectory(prefix="keybinds-collector-test.") as directory:
         root = Path(directory)
         config = root / "hypr"
