@@ -13,8 +13,10 @@ One top-layer bar is created per screen. Its active layout is:
 | Area | Modules |
 | --- | --- |
 | Left | fixed workspace cells 1–10 |
-| Center | MPRIS media display |
-| Right | display, network, Bluetooth, audio, recording status, desktop-mode status, clipboard, clock |
+| Center, left of clock | recording status, desktop-mode status, updates, battery (when present) |
+| Center | clock |
+| Center, right of clock | keyboard layout and weather |
+| Right | system tray, agent, Windows VM, clipboard, Bluetooth, network, audio, display, power |
 
 Workspace buttons switch to their numbered workspace. Other interactions include:
 
@@ -34,6 +36,7 @@ Workspace buttons switch to their numbered workspace. Other interactions include
 - Desktop-mode indicators: active night light, DND, stay-awake,
   automatic-screensaver-disabled, and error states; click to open the modes panel.
 - Clipboard: clipboard-history panel.
+- Battery: charge percentage and state; hidden entirely when no laptop battery is present.
 - Clock: calendar on left click, time-format cycle on right click, timezone cycle
   on middle click.
 

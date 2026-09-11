@@ -31,6 +31,7 @@ can run without it, but that feature cannot.
 | `playerctl` | media integration | bindings and Spotify/lock helpers |
 | `udiskie` | configured startup tool | removable media |
 | PipeWire/WirePlumber tools | configured audio path | `wpctl`, Quickshell PipeWire |
+| `upower` | required for battery widget | UPower daemon used by `Quickshell.Services.UPower`; without it the widget remains hidden |
 | NetworkManager | configured network path | `nmcli`, `nmtui`, Network panel connection/DNS/IPv4 controls |
 | `qrencode` | network-panel Wi-Fi sharing | renders the runtime-only Wi-Fi QR SVG; never stores a plaintext secret |
 | `bluez-utils` | configured Bluetooth widget | `bluetoothctl` |
