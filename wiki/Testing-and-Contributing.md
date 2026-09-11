@@ -58,6 +58,7 @@ python3 -m unittest tests.test_theme_generator
 | `screensaver.test.sh` | monitor spawn planning and the lock handoff |
 | `arch-updates.test.sh` | update counting, including a failed mirror sync |
 | `omakub-bar-layout.test.sh` | the bar still mounts the expected component set |
+| `audio-panel.test.sh` | shared audio helper behavior and headless panel rendering |
 | `omakub-toggles.test.sh` | the toggles menu |
 | `bluetooth-control.test.sh`, `network-control.test.sh` | the Quickshell panel backends |
 | `browser-native-tools.test.sh` | both native hosts, with mocked clipboard, downloader, notification, player, and OSD commands |
