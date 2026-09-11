@@ -127,6 +127,8 @@ expect_exec("SUPER + ALT + A", "web app manager",
     "quickshell ipc call webapps toggle")
 expect_exec("SUPER + CTRL + T", "activity (btop, floating)",
     "/home/liam/.config/hypr/scripts/btop-float.sh")
+expect_exec("SUPER + CTRL + SHIFT + G", "play temporary dotfiles history",
+    "/home/liam/.config/hypr/scripts/gource-dotfiles.sh")
 expect_exec("SUPER + SHIFT + Backspace", "toggle window gaps on all workspaces",
     "/home/liam/.config/hypr/scripts/toggle-gaps.sh")
 expect_exec("SUPER + Backspace", "toggle window transparency on all workspaces",
@@ -178,6 +180,10 @@ LUA
 grep -Fqx 'bindd = $mainMod CTRL, Escape, start ASCII screensaver, exec, $scriptsDir/run-if-deployed.sh screensaver ascii-screensaver force' \
   "$hypr_root/conf/keybinding.conf" ||
   fail 'legacy screensaver binding does not use the screensaver package'
+
+grep -Fqx 'bindd = $mainMod CTRL SHIFT, G, play temporary dotfiles history, exec, $scriptsDir/gource-dotfiles.sh' \
+  "$hypr_root/conf/keybinding.conf" ||
+  fail 'legacy Gource binding is missing or changed'
 
 grep -Fqx 'hl.window_rule({ match = { class = "^t3code$" }, workspace = "4 silent" })' \
   "$hypr_root/conf/window_rules.lua" ||
