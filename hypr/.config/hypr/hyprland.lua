@@ -41,6 +41,16 @@ hl.config({
         -- ponytail: software cursor avoids rotated-output glitches; retry hardware cursors after an upstream fix.
         no_hardware_cursors = 1,
     },
+    misc = {
+        -- A theme switch rewrites conf/decorations.lua, and autoreload answers
+        -- every such write with a full config re-parse on the compositor's main
+        -- thread -- roughly a second of frozen screen and swallowed input. The
+        -- theme generator applies its own changes with `hyprctl eval` in a few
+        -- milliseconds instead (see theme/generate.py reload_apps), so nothing
+        -- needs the file watcher. Cost: hand-edits to these files now want an
+        -- explicit `hyprctl reload`.
+        disable_autoreload = true,
+    },
     input = {
         kb_layout = "us",
         kb_variant = "",
