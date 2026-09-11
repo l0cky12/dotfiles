@@ -56,6 +56,7 @@ Item {
   MouseArea {
     id: dragArea
     anchors.fill: parent
+    preventStealing: true
     onPressed: mouse => root.emitFromX(mouse.x)
     onPositionChanged: mouse => {
       if (pressed)

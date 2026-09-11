@@ -32,13 +32,13 @@ Singleton {
   // *accepts* audio (i.e. it is an output device); false means it produces
   // audio (an input). isStream filters out application streams.
   readonly property var sinks: Pipewire.nodes.values.filter(
-    n => n && n.audio && n.isSink && !n.isStream)
+    n => AudioHelpers.isOutputDevice(n))
   readonly property var sources: Pipewire.nodes.values.filter(
-    n => n && n.audio && !n.isSink && !n.isStream)
+    n => AudioHelpers.isInputDevice(n))
   // Playback streams produce audio, so unlike hardware output devices they
   // have isSink === false. Recording streams accept audio and are excluded.
   readonly property var streams: Pipewire.nodes.values.filter(
-    n => n && n.audio && n.isStream && !n.isSink)
+    n => AudioHelpers.isPlaybackStream(n))
 
   // audio.* properties are invalid until the node is bound, so track both the
   // active devices and every device offered in the switcher lists.
@@ -84,37 +84,22 @@ Singleton {
     return AudioHelpers.deviceDescription(node)
   }
 
-  function nodeProperties(node) {
-    return node && node.properties ? node.properties : ({})
-  }
-
   // Quickshell exposes PipeWire's node property map rather than a dedicated
   // port model. Use only documented node properties, in preference order.
-  function devicePorts(node) {
-    return AudioHelpers.devicePorts(node)
+  function deviceDetail(node) {
+    return AudioHelpers.deviceDetail(node)
   }
 
   function desktopEntryFor(node) {
-    const props = root.nodeProperties(node)
-    const desktopId = String(props["application.desktop-entry"] || "").trim()
-    if (desktopId !== "") {
-      const exact = DesktopEntries.byId(desktopId)
-        || DesktopEntries.byId(desktopId.replace(/\.desktop$/, ""))
-      if (exact)
-        return exact
-    }
-
-    const lookup = String(props["application.name"]
-      || props["application.process.binary"] || root.deviceLabel(node)).trim()
-    return lookup === "" ? null : DesktopEntries.heuristicLookup(lookup)
+    return AudioHelpers.desktopEntryFor(node, DesktopEntries)
   }
 
   function streamLabel(node) {
-    return AudioHelpers.streamLabel(node, root.desktopEntryFor(node))
+    return AudioHelpers.streamLabel(node)
   }
 
   function streamIcon(node) {
-    const props = root.nodeProperties(node)
+    const props = node && node.properties ? node.properties : ({})
     const entry = root.desktopEntryFor(node)
     const iconName = String(props["application.icon-name"]
       || (entry ? entry.icon : "") || "").trim()

@@ -16,6 +16,8 @@ Scope {
 
   QtObject {
     id: outputOne
+    property bool isSink: true
+    property bool isStream: false
     property string name: "alsa_output.usb-dac"
     property string description: "Desk DAC"
     property string nickname: ""
@@ -24,6 +26,8 @@ Scope {
   }
   QtObject {
     id: outputTwo
+    property bool isSink: true
+    property bool isStream: false
     property string name: "bluez_output.headphones"
     property string description: "Wireless Headphones"
     property string nickname: ""
@@ -32,6 +36,8 @@ Scope {
   }
   QtObject {
     id: inputOne
+    property bool isSink: false
+    property bool isStream: false
     property string name: "alsa_input.usb-mic"
     property string description: "USB Microphone"
     property string nickname: ""
@@ -40,6 +46,8 @@ Scope {
   }
   QtObject {
     id: browserStream
+    property bool isSink: false
+    property bool isStream: true
     property string name: "Firefox"
     property string description: "Browser playback"
     property string nickname: ""
@@ -48,6 +56,8 @@ Scope {
   }
   QtObject {
     id: playerStream
+    property bool isSink: false
+    property bool isStream: true
     property string name: "Music"
     property string description: "Music playback"
     property string nickname: ""
@@ -62,9 +72,10 @@ Scope {
     property string panelScreen: "smoke"
     property var sink: outputOne
     property var source: inputOne
-    property var sinks: [outputOne, outputTwo]
-    property var sources: [inputOne]
-    property var streams: [browserStream, playerStream]
+    property var nodes: [outputOne, outputTwo, inputOne, browserStream, playerStream]
+    property var sinks: nodes.filter(node => AudioHelpers.isOutputDevice(node))
+    property var sources: nodes.filter(node => AudioHelpers.isInputDevice(node))
+    property var streams: nodes.filter(node => AudioHelpers.isPlaybackStream(node))
     property bool muted: outputOneAudio.muted
     property int volumePct: AudioHelpers.volumePercent(outputOneAudio.volume)
     property int inputVolumePct: AudioHelpers.volumePercent(inputAudio.volume)
@@ -72,8 +83,8 @@ Scope {
 
     function deviceName(node) { return node && node.name ? node.name : "" }
     function deviceDescription(node) { return AudioHelpers.deviceDescription(node) }
-    function devicePorts(node) { return AudioHelpers.devicePorts(node) }
-    function streamLabel(node) { return AudioHelpers.streamLabel(node, null) }
+    function deviceDetail(node) { return AudioHelpers.deviceDetail(node) }
+    function streamLabel(node) { return AudioHelpers.streamLabel(node) }
     function streamIcon(node) { return "" }
     function streamVolumePct(node) { return AudioHelpers.volumePercent(node.audio.volume) }
     function setVolume(value) { sink.audio.volume = AudioHelpers.clampVolume(value) }
@@ -144,17 +155,14 @@ Scope {
       smoke.check("projects per-stream mute state",
         stream0 && !stream0.streamMuted && stream1 && stream1.streamMuted)
       smoke.check("renders documented node metadata",
-        output0 && output0.ports.length === 1
-        && output0.ports[0] === "Desk DAC profile")
+        output0 && output0.deviceDetail === "Desk DAC profile")
       smoke.check("renders master input volume", inputVolume && inputVolume.visible)
       smoke.check("does not show the empty state with fixture rows", !panelContent.isEmpty)
 
       fixture.available = false
       fixture.sink = null
       fixture.source = null
-      fixture.sinks = []
-      fixture.sources = []
-      fixture.streams = []
+      fixture.nodes = []
       emptyTimer.start()
     }
   }
@@ -169,21 +177,22 @@ Scope {
       smoke.check("labels initial PipeWire sync neutrally",
         status.text === "PipeWire syncing…"
         && emptyState.unavailableText === "PipeWire syncing…"
-        && !emptyState.unavailable)
+        && emptyState.unavailable)
 
       fixture.available = true
-      unavailableTimer.start()
+      readyTimer.start()
     }
   }
 
   Timer {
-    id: unavailableTimer
+    id: readyTimer
     interval: 100
     onTriggered: {
       const emptyState = smoke.findObject(panelContent, "audio-empty-state")
-      smoke.check("marks synced empty PipeWire unavailable",
-        emptyState.visible && emptyState.unavailable
-        && emptyState.unavailableText === "PipeWire unavailable")
+      const emptyMessage = smoke.findObject(panelContent, "audio-empty-message")
+      smoke.check("labels a synced empty device list neutrally",
+        emptyState.visible && !emptyState.unavailable
+        && emptyMessage && emptyMessage.text === "No audio devices")
 
       console.log(smoke.failures === 0
         ? "ok: AudioPanel fixture rendering"

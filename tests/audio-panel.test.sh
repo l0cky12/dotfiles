@@ -22,37 +22,60 @@ if command -v node >/dev/null 2>&1; then
 const assert = require("node:assert/strict")
 const helpers = require(process.argv[2])
 
-assert.deepEqual(helpers.devicePorts({properties: {
+assert.equal(helpers.deviceDetail({properties: {
   "device.description": "USB DAC",
   "node.description": "fallback",
   "port.alias": "undocumented"
-}}), ["USB DAC"])
-assert.deepEqual(helpers.devicePorts({properties: {
+}}), "USB DAC")
+assert.equal(helpers.deviceDetail({properties: {
   "node.description": "Built-in Audio",
   "api.alsa.path": "pci-0000:00:1f.3"
-}}), ["Built-in Audio"])
-assert.deepEqual(helpers.devicePorts({properties: {
+}}), "Built-in Audio")
+assert.equal(helpers.deviceDetail({properties: {
   "api.alsa.path": "pci-0000:00:1f.3"
-}}), ["pci-0000:00:1f.3"])
-assert.deepEqual(helpers.devicePorts({properties: {
-  "card.profile.device": 0
-}}), ["0"])
-assert.deepEqual(helpers.devicePorts({properties: {
+}}), "pci-0000:00:1f.3")
+assert.equal(helpers.deviceDetail({properties: {
+  "card.profile.device": 0,
   "port.alias": "Line Out",
   "device.profile.name": "analog-stereo"
-}}), [])
+}}), "")
+
+const audio = {}
+assert.equal(helpers.isOutputDevice({audio, isSink: true, isStream: false}), true)
+assert.equal(helpers.isOutputDevice({audio, isSink: true, isStream: true}), false)
+assert.equal(helpers.isInputDevice({audio, isSink: false, isStream: false}), true)
+assert.equal(helpers.isPlaybackStream({audio, isStream: true, isSink: false}), true)
+assert.equal(helpers.isPlaybackStream({audio, isStream: true, isSink: true}), false)
 
 assert.equal(helpers.deviceDescription(null), "Unknown")
 assert.equal(helpers.deviceDescription({description: "Desk DAC", name: "raw"}), "Desk DAC")
 assert.equal(helpers.deviceDescription({nickname: "Mic", name: "raw"}), "Mic")
-assert.equal(helpers.streamLabel({properties: {"application.name": "Firefox"}}, null), "Firefox")
-assert.equal(helpers.streamLabel({properties: {"application.process.binary": "mpv"}}, null), "mpv")
-assert.equal(helpers.streamLabel({description: "Playback", properties: {}}, {name: "Music"}), "Music")
+assert.equal(helpers.streamLabel({properties: {"application.name": "Firefox"}}), "Firefox")
+assert.equal(helpers.streamLabel({properties: {"application.process.binary": "mpv"}}), "mpv")
+assert.equal(helpers.streamLabel({description: "Playback", properties: {}}), "Playback")
+
+const entries = {
+  byId(id) {
+    return id === "org.example.Player" ? {name: "Player", icon: "player"} : null
+  }
+}
+assert.equal(helpers.desktopEntryFor({properties: {
+  "application.desktop-entry": "org.example.Player.desktop",
+  "application.name": "Exact application name"
+}}, entries).name, "Player")
+assert.equal(helpers.desktopEntryFor({description: "Player", properties: {}}, entries), null)
+assert.equal(helpers.desktopEntryFor({properties: {
+  "application.desktop-entry": "org.example.Player"
+}}, {
+  byId(id) {
+    return {name: id === "org.example.Player" ? "Exact ID" : "Fallback ID"}
+  }
+}).name, "Exact ID")
 
 assert.equal(helpers.clampVolume(-0.2), 0)
 assert.equal(helpers.clampVolume(0.42), 0.42)
 assert.equal(helpers.clampVolume(1.5), 1)
-assert.equal(helpers.volumePercent(1.5), 100)
+assert.equal(helpers.volumePercent(1.5), 150)
 assert.equal(helpers.volumePercent(0.555), 56)
 console.log("ok: AudioHelpers.js executable assertions")
 NODE

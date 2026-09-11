@@ -39,6 +39,8 @@ PopupWindow {
         clip: true
         contentWidth: width
         contentHeight: body.implicitHeight
+        interactive: contentHeight > height
+        boundsBehavior: Flickable.StopAtBounds
 
         AudioPanelContent {
           id: body

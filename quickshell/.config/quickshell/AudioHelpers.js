@@ -7,20 +7,31 @@ function propertyText(properties, key) {
   return value === undefined || value === null ? "" : String(value).trim()
 }
 
-function devicePorts(node) {
+function isOutputDevice(node) {
+  return !!(node && node.audio && node.isSink && !node.isStream)
+}
+
+function isInputDevice(node) {
+  return !!(node && node.audio && !node.isSink && !node.isStream)
+}
+
+function isPlaybackStream(node) {
+  return !!(node && node.audio && node.isStream && !node.isSink)
+}
+
+function deviceDetail(node) {
   var properties = nodeProperties(node)
   var keys = [
     "device.description",
     "node.description",
-    "api.alsa.path",
-    "card.profile.device"
+    "api.alsa.path"
   ]
   for (var i = 0; i < keys.length; ++i) {
     var value = propertyText(properties, keys[i])
     if (value !== "")
-      return [value]
+      return value
   }
-  return []
+  return ""
 }
 
 function deviceDescription(node) {
@@ -29,9 +40,16 @@ function deviceDescription(node) {
   return node.description || node.nickname || node.name || "Unknown"
 }
 
-function streamLabel(node, desktopEntry) {
-  if (desktopEntry && desktopEntry.name)
-    return desktopEntry.name
+function desktopEntryFor(node, desktopEntries) {
+  var desktopId = propertyText(nodeProperties(node), "application.desktop-entry")
+  if (desktopId === "" || !desktopEntries)
+    return null
+  return desktopEntries.byId(desktopId)
+    || desktopEntries.byId(desktopId.replace(/\.desktop$/, ""))
+    || null
+}
+
+function streamLabel(node) {
   var properties = nodeProperties(node)
   return String(properties["application.name"]
     || properties["application.process.binary"]
@@ -47,13 +65,18 @@ function clampVolume(fraction) {
 }
 
 function volumePercent(fraction) {
-  return Math.round(clampVolume(fraction) * 100)
+  var value = Number(fraction)
+  return Math.round((isFinite(value) ? value : 0) * 100)
 }
 
 if (typeof module !== "undefined") {
   module.exports = {
-    devicePorts: devicePorts,
+    isOutputDevice: isOutputDevice,
+    isInputDevice: isInputDevice,
+    isPlaybackStream: isPlaybackStream,
+    deviceDetail: deviceDetail,
     deviceDescription: deviceDescription,
+    desktopEntryFor: desktopEntryFor,
     streamLabel: streamLabel,
     clampVolume: clampVolume,
     volumePercent: volumePercent

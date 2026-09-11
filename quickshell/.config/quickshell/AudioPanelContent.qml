@@ -137,7 +137,7 @@ Item {
             objectName: "audio-output-row-" + index
             readonly property bool activeDevice: root.audio.sink === modelData
             readonly property string deviceTitle: root.audio.deviceDescription(modelData)
-            readonly property var ports: root.audio.devicePorts(modelData)
+            readonly property string deviceDetail: root.audio.deviceDetail(modelData)
             width: outputDevices.width
             height: details.implicitHeight + Theme.gapS * 2
             radius: Theme.radiusCell
@@ -171,9 +171,9 @@ Item {
                 elide: Text.ElideRight
               }
               Text {
-                visible: outputRow.ports.length > 0
+                visible: outputRow.deviceDetail !== ""
                 width: parent.width
-                text: "Device: " + outputRow.ports.join(" · ")
+                text: "Device: " + outputRow.deviceDetail
                 color: Theme.textDim
                 font.pixelSize: Theme.fs(9)
                 elide: Text.ElideRight
@@ -225,7 +225,7 @@ Item {
             objectName: "audio-input-row-" + index
             readonly property bool activeDevice: root.audio.source === modelData
             readonly property string deviceTitle: root.audio.deviceDescription(modelData)
-            readonly property var ports: root.audio.devicePorts(modelData)
+            readonly property string deviceDetail: root.audio.deviceDetail(modelData)
             width: inputDevices.width
             height: inputDetails.implicitHeight + Theme.gapS * 2
             radius: Theme.radiusCell
@@ -259,9 +259,9 @@ Item {
                 elide: Text.ElideRight
               }
               Text {
-                visible: inputRow.ports.length > 0
+                visible: inputRow.deviceDetail !== ""
                 width: parent.width
-                text: "Device: " + inputRow.ports.join(" · ")
+                text: "Device: " + inputRow.deviceDetail
                 color: Theme.textDim
                 font.pixelSize: Theme.fs(9)
                 elide: Text.ElideRight
@@ -302,14 +302,35 @@ Item {
       }
     }
 
-    VolumeSlider {
-      objectName: "audio-input-volume"
+    Card {
       visible: !!(root.audio.source && root.audio.source.audio)
       width: parent.width
-      height: visible ? implicitHeight : 0
-      value: root.audio.source && root.audio.source.audio
-        ? root.audio.source.audio.volume : 0
-      onMoved: fraction => root.audio.setInputVolume(fraction)
+      height: visible ? Theme.fs(72) : 0
+      title: "INPUT"
+
+      Item {
+        anchors.fill: parent
+
+        VolumeSlider {
+          objectName: "audio-input-volume"
+          anchors.left: parent.left
+          anchors.right: inputLevel.left
+          anchors.rightMargin: Theme.gapS
+          anchors.verticalCenter: parent.verticalCenter
+          value: root.audio.source && root.audio.source.audio
+            ? root.audio.source.audio.volume : 0
+          onMoved: fraction => root.audio.setInputVolume(fraction)
+        }
+
+        Text {
+          id: inputLevel
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          text: root.audio.inputVolumePct + "%"
+          color: Theme.text
+          font.pixelSize: Theme.fs(11)
+        }
+      }
     }
 
     Column {
@@ -421,15 +442,14 @@ Item {
       visible: root.isEmpty
       width: parent.width
       height: visible ? Theme.fs(76) : 0
-      unavailable: root.audio.available
-      unavailableText: root.audio.available
-        ? "PipeWire unavailable" : "PipeWire syncing…"
+      unavailable: !root.audio.available
+      unavailableText: "PipeWire syncing…"
 
       Text {
+        objectName: "audio-empty-message"
         anchors.centerIn: parent
-        visible: !root.audio.available
-        text: "PipeWire syncing…"
-        color: Theme.textMuted
+        text: "No audio devices"
+        color: Theme.text
         font.pixelSize: Theme.fs(11)
       }
     }
