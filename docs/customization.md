@@ -92,6 +92,13 @@ Rofi's structural layout is in `comet-glass.rasi`; Wofi styles are generated
 from themes. Cursor theme and GTK/Qt themes are not managed here, so add
 an explicit package/configuration if they should become repository-controlled.
 
+The optional `neovim/`, `btop/`, and `obsidian/` packages provide deployment
+directories for generated application themes. After Stowing the packages, run
+`theme set <slug>`. Neovim can load the result with `:colorscheme <slug>`; set
+btop's `color_theme` to the slug when using an untracked `btop.conf`; and enable
+`generated-theme.css` manually in Obsidian's Appearance settings. The Obsidian
+adapter does not inspect or modify vault directories.
+
 ## Applying changes
 
 | Change | Typical application path |

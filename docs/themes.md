@@ -46,9 +46,18 @@ A theme selection renders coordinated output for:
 | Wofi | `wofi/.config/wofi/style.css` |
 | Noctalia | generated colors/scheme data |
 | Fastfetch | configured `keyColor` |
+| Neovim | `neovim/.config/nvim/colors/<slug>.lua` |
+| btop | `btop/.config/btop/themes/<slug>.theme`; tracked `btop.conf` is updated when present |
+| Obsidian | `obsidian/.config/obsidian/snippets/generated-theme.css` (enable manually) |
 | Greeter (regreet) | `greeter/.config/greeter/{greeter.css,regreet.toml}` -- a further, opt-in `theme set --install-greeter` root-owned copy is required to reach `/etc/greetd/`; see `greeter/README.md` |
 
 The generator also synchronizes relevant Noctalia settings and scheme metadata.
+Neovim, btop, and Obsidian are optional: Stow the corresponding package before
+running `theme set`. If its output directory is absent, the generator reports
+`skipped (not deployed)` and continues. This repository does not currently track
+a `btop.conf`, so select the generated slug as `color_theme` in your own config.
+Obsidian CSS snippets also require manual enablement in Appearance settings; the
+generator never searches for or changes vault files.
 
 ## Theme bootstrap
 
@@ -76,7 +85,8 @@ On selection, the theme system can:
 - notify the Quickshell theme watcher;
 - update running Kitty windows through remote control;
 - signal SwayNC when it is running; and
-- leave generated output ready for applications that load it later.
+- leave generated output ready for applications that load it later, including
+  Neovim (`:colorscheme <slug>`) and btop.
 
 This means `theme set` is not a purely read-only renderer, although it does not
 change the wallpaper unless explicitly passed `--wallpaper`. Use its validation
