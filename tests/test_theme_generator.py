@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import sys
 import tempfile
 import unittest
 import unittest.mock
+from contextlib import redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -79,9 +81,15 @@ class ThemeGeneratorTest(unittest.TestCase):
             "XDG_CACHE_HOME": str(self.root / "cache"),
             "XDG_RUNTIME_DIR": str(self.root / "runtime"),
         }
+        Path(env["XDG_RUNTIME_DIR"]).mkdir(parents=True)
         patcher = unittest.mock.patch.dict(os.environ, env)
         patcher.start()
         self.addCleanup(patcher.stop)
+        wallpaper_patcher = unittest.mock.patch.object(
+            tl, "wallpaper_roots", return_value=[]
+        )
+        wallpaper_patcher.start()
+        self.addCleanup(wallpaper_patcher.stop)
         original_config_home = generate.CONFIG_HOME
         original_cache_home = generate.CACHE_HOME
         original_wallpaper_state_file = generate.WALLPAPER_STATE_FILE
@@ -102,7 +110,9 @@ class ThemeGeneratorTest(unittest.TestCase):
         for slug, theme in self.themes.items():
             with self.subTest(theme=slug):
                 outputs = render_all(theme, self.root / slug)
-                self.assertEqual(len(outputs), len(list(generate.targets(self.root))))
+                self.assertEqual(
+                    len(outputs), len(generate.targets(self.root, theme))
+                )
 
                 accent = theme.colors["accent"]
                 self.assertTrue(accent.startswith("#"))
@@ -127,6 +137,80 @@ class ThemeGeneratorTest(unittest.TestCase):
                 self.assertEqual(quickshell["colors"]["accent"], accent)
                 for name in ("kitty-theme.conf", "rofi-theme.rasi"):
                     self.assertIn(accent, (self.root / slug / "stage" / name).read_text())
+
+    def test_optional_app_targets_render_fixture_palette(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = self.root / "prefix"
+        for directory in ("nvim/colors", "btop/themes", "obsidian/snippets"):
+            (prefix / directory).mkdir(parents=True)
+
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            result = generate.main([
+                "set", theme.slug, "--prefix", str(prefix), "--no-reload",
+            ])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        neovim = (prefix / f"nvim/colors/{theme.slug}.lua").read_text()
+        self.assertIn(f'vim.g.colors_name = "{theme.slug}"', neovim)
+        self.assertIn(
+            f'vim.g.terminal_color_12 = "{theme.ansi["bright_blue"]}"', neovim
+        )
+        self.assertIn(
+            f'Normal = {{ fg = "{theme.colors["foreground"]}", '
+            f'bg = "{theme.colors["background"]}" }}',
+            neovim,
+        )
+
+        btop = (prefix / f"btop/themes/{theme.slug}.theme").read_text()
+        self.assertIn(f'theme[main_bg]="{theme.colors["background"]}"', btop)
+        self.assertIn(f'theme[hi_fg]="{theme.colors["accent"]}"', btop)
+
+        obsidian = (prefix / "obsidian/snippets/generated-theme.css").read_text()
+        self.assertIn(
+            f"--background-primary: {theme.colors['background']};", obsidian
+        )
+        self.assertIn(f"--interactive-accent: {theme.colors['accent']};", obsidian)
+        self.assertIn(f"--text-muted: {theme.colors['muted']};", obsidian)
+        self.assertIn("set color_theme", stdout.getvalue())
+        self.assertIn("enable generated-theme.css", stdout.getvalue())
+
+    def test_optional_app_targets_skip_cleanly_when_absent(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = self.root / "prefix"
+        prefix.mkdir()
+        stdout = io.StringIO()
+
+        with redirect_stdout(stdout):
+            result = generate.main([
+                "set", theme.slug, "--prefix", str(prefix), "--no-reload",
+            ])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        for app in ("neovim", "btop", "obsidian"):
+            self.assertIn(f"{app}: skipped (not deployed)", stdout.getvalue())
+        self.assertFalse((prefix / "nvim").exists())
+        self.assertFalse((prefix / "btop").exists())
+        self.assertFalse((prefix / "obsidian").exists())
+
+    def test_tracked_btop_config_selects_generated_theme(self) -> None:
+        theme = self.themes["tokyo-night"]
+        tracked = self.root / "repo/btop/.config/btop/btop.conf"
+        tracked.parent.mkdir(parents=True)
+        tracked.write_text('color_theme = "Default"\nupdate_ms = 2000\n')
+        prefix = self.root / "prefix"
+        config = prefix / "btop/btop.conf"
+        config.parent.mkdir(parents=True)
+        config.write_text(tracked.read_text())
+
+        with unittest.mock.patch.object(generate, "BTOP_STOW_CONFIG", tracked):
+            message = generate.sync_btop_config(prefix, theme)
+
+        self.assertEqual(
+            config.read_text(),
+            f'color_theme = "{theme.slug}"\nupdate_ms = 2000\n',
+        )
+        self.assertIn("selected tokyo-night", message)
 
     def test_contrast_warnings_match_palette_metadata(self) -> None:
         for slug, theme in self.themes.items():

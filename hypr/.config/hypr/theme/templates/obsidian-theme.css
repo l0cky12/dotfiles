@@ -1,0 +1,15 @@
+/* {{ theme_name }} -- generated Obsidian CSS variables. Do not edit. */
+:root,
+.theme-dark,
+.theme-light {
+  --background-primary: {{ background }};
+  --background-primary-alt: {{ background_alt }};
+  --background-secondary: {{ surface }};
+  --background-secondary-alt: {{ surface_alt }};
+  --text-normal: {{ foreground }};
+  --text-muted: {{ muted }};
+  --text-faint: {{ disabled }};
+  --interactive-accent: {{ accent }};
+  --interactive-accent-hover: {{ accent_alt }};
+  --text-selection: {{ selection }};
+}

@@ -31,6 +31,7 @@ HERE = Path(__file__).resolve().parent
 TEMPLATES = HERE / "templates"
 THEMES_DIR = HERE.parent / "themes"
 STATE_FILE = THEMES_DIR / "current-theme"
+BTOP_STOW_CONFIG = tl.repo_root() / "btop/.config/btop/btop.conf"
 
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
 CACHE_HOME = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
@@ -51,27 +52,66 @@ RED = lambda s: _c("31", s)          # noqa: E731
 DIM = lambda s: _c("2", s)           # noqa: E731
 
 
-def targets(prefix: Path) -> list[tuple[str, Path]]:
-    """(template, destination) for every generated file.
+OPTIONAL_TARGETS = {
+    "neovim-theme.lua": "neovim",
+    "btop-theme.tpl": "btop",
+    "obsidian-theme.css": "obsidian",
+}
+
+
+def targets(prefix: Path, theme: tl.Theme) -> list[tl.Artifact]:
+    """Describe every template, destination, and validator.
 
     Destinations are real config paths, not copies: this repo is stowed, so
     ~/.config/<app> already points into it. `prefix` exists only so the test
     pass can render everything somewhere harmless.
     """
     return [
-        ("hyprland-decorations.lua",  prefix / "hypr/conf/decorations.lua"),
-        ("quickshell-theme.json",     prefix / "hypr/themes/.active/theme.json"),
-        ("kitty-theme.conf",          prefix / "kitty/theme/current-theme.conf"),
-        ("zsh-theme.zsh",             prefix / "zsh/current-theme.zsh"),
-        ("rofi-theme.rasi",           prefix / "rofi/color-themes/current.rasi"),
-        ("rofi-powermenu-theme.rasi", prefix / "rofi/powermenu/theme.rasi"),
-        ("hyprlock-colors.conf",      prefix / "hyprlock/colors.conf"),
-        ("swaync-style.css",          prefix / "swaync/style.css"),
-        ("wofi-style.css",            prefix / "wofi/style.css"),
-        ("noctalia-colors.json",      prefix / "noctalia/colors.json"),
-        ("greeter-theme.css",         prefix / "greeter/greeter.css"),
-        ("regreet-greeter.toml",      prefix / "greeter/regreet.toml"),
+        tl.Artifact(
+            "hyprland-decorations.lua", prefix / "hypr/conf/decorations.lua"
+        ),
+        tl.Artifact(
+            "quickshell-theme.json", prefix / "hypr/themes/.active/theme.json"
+        ),
+        tl.Artifact("kitty-theme.conf", prefix / "kitty/theme/current-theme.conf"),
+        tl.Artifact("zsh-theme.zsh", prefix / "zsh/current-theme.zsh"),
+        tl.Artifact("rofi-theme.rasi", prefix / "rofi/color-themes/current.rasi"),
+        tl.Artifact(
+            "rofi-powermenu-theme.rasi", prefix / "rofi/powermenu/theme.rasi"
+        ),
+        tl.Artifact("hyprlock-colors.conf", prefix / "hyprlock/colors.conf"),
+        tl.Artifact("swaync-style.css", prefix / "swaync/style.css"),
+        tl.Artifact("wofi-style.css", prefix / "wofi/style.css"),
+        tl.Artifact("noctalia-colors.json", prefix / "noctalia/colors.json"),
+        tl.Artifact("greeter-theme.css", prefix / "greeter/greeter.css"),
+        tl.Artifact("regreet-greeter.toml", prefix / "greeter/regreet.toml"),
+        tl.Artifact(
+            "neovim-theme.lua", prefix / f"nvim/colors/{theme.slug}.lua"
+        ),
+        tl.Artifact(
+            "btop-theme.tpl", prefix / f"btop/themes/{theme.slug}.theme",
+            validator=".theme",
+        ),
+        tl.Artifact(
+            "obsidian-theme.css",
+            prefix / "obsidian/snippets/generated-theme.css",
+        ),
     ]
+
+
+def deployed_targets(
+    artifacts: list[tl.Artifact],
+) -> tuple[list[tl.Artifact], list[str]]:
+    """Keep optional adapters only when their Stow-created directory exists."""
+    selected: list[tl.Artifact] = []
+    messages: list[str] = []
+    for artifact in artifacts:
+        app = OPTIONAL_TARGETS.get(artifact.template)
+        if app and not artifact.dest.parent.is_dir():
+            messages.append(f"  {app}: skipped (not deployed)")
+            continue
+        selected.append(artifact)
+    return selected, messages
 
 
 # The greeter CSS/TOML get an extra check beyond "does it parse": did the
@@ -123,17 +163,24 @@ def _check_regreet_toml(out: Path) -> None:
             raise tl.ThemeError(f"{out.name}: [{table}] is missing required key '{key}'")
 
 
-def build(theme: tl.Theme, stage: Path, prefix: Path) -> list[tuple[Path, Path]]:
+def build(
+    theme: tl.Theme,
+    stage: Path,
+    prefix: Path,
+    artifacts: list[tl.Artifact] | None = None,
+) -> list[tuple[Path, Path]]:
     """Render every template into `stage` and validate it. Returns the
     (staged, destination) pairs ready for install."""
     staged: list[tuple[Path, Path]] = []
-    for name, dest in targets(prefix):
+    chosen = artifacts if artifacts is not None else targets(prefix, theme)
+    for artifact in chosen:
+        name, dest = artifact.template, artifact.dest
         template = TEMPLATES / name
         if not template.is_file():
             raise tl.ThemeError(f"missing template: {template}")
         out = stage / name
         out.write_text(tl.render(template.read_text(), theme, origin=name))
-        validator = tl.VALIDATORS.get(out.suffix)
+        validator = tl.VALIDATORS.get(artifact.validator or out.suffix)
         if validator:
             validator(out)
         if name == "greeter-theme.css":
@@ -278,6 +325,29 @@ def sync_fastfetch(prefix: Path, theme: tl.Theme) -> None:
         tmp = cfg.parent / ".config.jsonc.new"
         tmp.write_text(new)
         os.replace(tmp, cfg)
+
+
+def sync_btop_config(prefix: Path, theme: tl.Theme) -> str:
+    """Select the generated theme only when btop.conf belongs to this repo."""
+    if not BTOP_STOW_CONFIG.is_file():
+        return (f"  btop: set color_theme = \"{theme.slug}\" in btop.conf "
+                "to select the generated theme")
+
+    cfg = prefix / "btop/btop.conf"
+    if not cfg.is_file():
+        return "  btop: btop.conf is tracked but not deployed; selection unchanged"
+    text = cfg.read_text()
+    setting = f'color_theme = "{theme.slug}"'
+    new, count = re.subn(
+        r"^\s*color_theme\s*=.*$", setting, text, flags=re.MULTILINE
+    )
+    if count == 0:
+        new = text.rstrip("\n") + "\n" + setting + "\n"
+    if new != text:
+        tmp = cfg.parent / ".btop.conf.new"
+        tmp.write_text(new)
+        os.replace(tmp, cfg)
+    return f"  btop: selected {theme.slug} in tracked btop.conf"
 
 
 # ── Wallpaper ────────────────────────────────────────────────────────────────
@@ -467,7 +537,8 @@ def cmd_set(args: argparse.Namespace) -> int:
     stage = Path(tempfile.mkdtemp(prefix="theme-stage.", dir=stage_root))
     try:
         try:
-            staged = build(theme, stage, prefix)
+            selected, target_messages = deployed_targets(targets(prefix, theme))
+            staged = build(theme, stage, prefix, selected)
         except tl.ThemeError as exc:
             print(f"{RED('error')}: {exc}", file=sys.stderr)
             print("Nothing was installed; previous theme left untouched.",
@@ -481,16 +552,31 @@ def cmd_set(args: argparse.Namespace) -> int:
         link_rofi(prefix, theme.slug)
         sync_noctalia(prefix, theme)
         sync_fastfetch(prefix, theme)
+        rendered_optional = {
+            artifact.template for artifact in selected
+            if artifact.template in OPTIONAL_TARGETS
+        }
+        if "btop-theme.tpl" in rendered_optional:
+            target_messages.append(sync_btop_config(prefix, theme))
+        if "obsidian-theme.css" in rendered_optional:
+            target_messages.append(
+                "  obsidian: enable generated-theme.css in Settings > Appearance "
+                "> CSS snippets"
+            )
     finally:
         shutil.rmtree(stage, ignore_errors=True)
 
     if dry:
         print(f"{GREEN('rendered')} {theme.name} into {prefix} "
               f"(no state written, nothing reloaded)")
+        for message in target_messages:
+            print(DIM(message))
         return 0
 
     write_state(theme)
     print(f"{GREEN('theme')} {BOLD(theme.name)} ({theme.mode})")
+    for message in target_messages:
+        print(DIM(message))
 
     if args.no_reload:
         print(DIM("  reload skipped"))

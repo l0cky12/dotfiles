@@ -672,6 +672,24 @@ def validate_toml(path: Path) -> None:
         raise ThemeError(f"{path.name}: generated TOML is invalid: {exc}") from None
 
 
+def validate_btop_theme(path: Path) -> None:
+    """Check btop's theme[key]=\"#RRGGBB\" format and essential roles."""
+    seen: set[str] = set()
+    for lineno, line in enumerate(path.read_text().splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = re.fullmatch(r'theme\[([a-z_]+)\]\s*=\s*"(#[0-9a-fA-F]{6})"', line)
+        if not match:
+            raise ThemeError(
+                f"{path.name}:{lineno}: expected theme[key]=\"#RRGGBB\""
+            )
+        seen.add(match.group(1))
+    required = {"main_bg", "main_fg", "title", "hi_fg", "selected_bg"}
+    if missing := sorted(required - seen):
+        raise ThemeError(f"{path.name}: missing btop keys: {', '.join(missing)}")
+
+
 VALIDATORS = {
     ".json": validate_json,
     ".css": validate_css,
@@ -680,6 +698,7 @@ VALIDATORS = {
     ".zsh": validate_zsh,
     ".lua": validate_lua,
     ".toml": validate_toml,
+    ".theme": validate_btop_theme,
 }
 
 
