@@ -25,6 +25,7 @@ Singleton {
 
   readonly property PwNode sink: Pipewire.defaultAudioSink
   readonly property PwNode source: Pipewire.defaultAudioSource
+  readonly property bool available: Pipewire.ready
 
   // Hardware output devices. Per the docs, isSink === true means the node
   // *accepts* audio (i.e. it is an output device); false means it produces
@@ -33,6 +34,10 @@ Singleton {
     n => n && n.audio && n.isSink && !n.isStream)
   readonly property var sources: Pipewire.nodes.values.filter(
     n => n && n.audio && !n.isSink && !n.isStream)
+  // Playback streams produce audio, so unlike hardware output devices they
+  // have isSink === false. Recording streams accept audio and are excluded.
+  readonly property var streams: Pipewire.nodes.values.filter(
+    n => n && n.audio && n.isStream && !n.isSink)
 
   // audio.* properties are invalid until the node is bound, so track both the
   // active devices and every device offered in the switcher lists.
@@ -41,7 +46,7 @@ Singleton {
       const list = []
       if (root.sink) list.push(root.sink)
       if (root.source) list.push(root.source)
-      return list.concat(root.sinks).concat(root.sources)
+      return list.concat(root.sinks).concat(root.sources).concat(root.streams)
     }
   }
 
@@ -70,6 +75,76 @@ Singleton {
     return node.nickname || node.description || node.name || "Unknown"
   }
 
+  function deviceName(node) {
+    return node && node.name ? String(node.name) : ""
+  }
+
+  function deviceDescription(node) {
+    if (!node)
+      return "Unknown"
+    return node.description || node.nickname || node.name || "Unknown"
+  }
+
+  function nodeProperties(node) {
+    return node && node.properties ? node.properties : ({})
+  }
+
+  // Quickshell exposes PipeWire's node property map rather than a dedicated
+  // port model. Surface the port/profile fields when the backend publishes
+  // them, de-duplicated because some devices use the same value for both.
+  function devicePorts(node) {
+    const props = root.nodeProperties(node)
+    const candidates = [
+      props["port.alias"],
+      props["port.name"],
+      props["device.profile.description"],
+      props["device.profile.name"]
+    ]
+    const ports = []
+    for (const candidate of candidates) {
+      const value = String(candidate || "").trim()
+      if (value !== "" && ports.indexOf(value) < 0)
+        ports.push(value)
+    }
+    return ports
+  }
+
+  function desktopEntryFor(node) {
+    const props = root.nodeProperties(node)
+    const desktopId = String(props["application.desktop-entry"] || "").trim()
+    if (desktopId !== "") {
+      const exact = DesktopEntries.byId(desktopId)
+        || DesktopEntries.byId(desktopId.replace(/\.desktop$/, ""))
+      if (exact)
+        return exact
+    }
+
+    const lookup = String(props["application.name"]
+      || props["application.process.binary"] || root.deviceLabel(node)).trim()
+    return lookup === "" ? null : DesktopEntries.heuristicLookup(lookup)
+  }
+
+  function streamLabel(node) {
+    const entry = root.desktopEntryFor(node)
+    if (entry && entry.name)
+      return entry.name
+    const props = root.nodeProperties(node)
+    return String(props["application.name"] || props["application.process.binary"]
+      || node.description || node.nickname || node.name || "Application")
+  }
+
+  function streamIcon(node) {
+    const props = root.nodeProperties(node)
+    const entry = root.desktopEntryFor(node)
+    const iconName = String(props["application.icon-name"]
+      || (entry ? entry.icon : "") || "").trim()
+    return iconName === "" ? "" : Quickshell.iconPath(iconName, true)
+  }
+
+  function streamVolumePct(node) {
+    return node && node.audio ? Math.round(node.audio.volume * 100) : 0
+  }
+
   function setVolume(fraction) {
     if (!sink || !sink.audio)
       return
@@ -86,6 +161,18 @@ Singleton {
     if (!source || !source.audio)
       return
     source.audio.volume = Math.max(0, Math.min(1, fraction))
+  }
+
+  function setStreamVolume(node, fraction) {
+    if (!node || !node.audio)
+      return
+    node.audio.volume = Math.max(0, Math.min(1, fraction))
+  }
+
+  function toggleStreamMute(node) {
+    if (!node || !node.audio)
+      return
+    node.audio.muted = !node.audio.muted
   }
 
   function toggleMute() {
