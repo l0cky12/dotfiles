@@ -102,6 +102,12 @@ Scope {
     function toggle(): void {
       ThemeState.togglePanel(bar.focusedScreen())
     }
+    // Called by the generator after it installs themes/.active/theme.json.
+    // Needed because that install is an atomic rename, which kills the file
+    // watcher in Theme.qml -- see the comment there.
+    function reload(): void {
+      Theme.reloadPalette()
+    }
   }
 
   IpcHandler {

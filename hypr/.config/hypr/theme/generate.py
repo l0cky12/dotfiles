@@ -224,19 +224,46 @@ def _pids_of(name: str) -> list[str]:
     return out.stdout.split() if out.returncode == 0 else []
 
 
-def reload_apps(theme: tl.Theme, kitty_conf: Path) -> tuple[list[str], list[str]]:
+def reload_apps(
+    theme: tl.Theme, kitty_conf: Path, decorations: Path
+) -> tuple[list[str], list[str]]:
     done: list[str] = []
     deferred: list[str] = []
 
-    # Hyprland re-reads decorations.lua, which it already requires.
-    if shutil.which("hyprctl") and _run(["hyprctl", "reload"]):
-        done.append("hyprland")
+    # Hyprland: run the generated decorations table directly instead of asking
+    # for a reload. `hyprctl reload` re-parses the entire Lua config on the
+    # compositor's main thread -- about a second of frozen screen and dropped
+    # input on every theme switch -- and re-applies monitors, which can cost a
+    # modeset on top. `hyprctl eval` runs the same hl.config() call the file
+    # would run at login, in a few milliseconds, and decorations.lua stays the
+    # only place those values are written.
+    #
+    # The file is wrapped in `do ... end` because it opens with a `--` comment,
+    # which hyprctl would otherwise take for a flag.
+    if shutil.which("hyprctl"):
+        try:
+            code = decorations.read_text()
+        except OSError:
+            code = ""
+        if code and _run(["hyprctl", "eval", f"do\n{code}\nend\n"]):
+            done.append("hyprland")
+        # Fallback for a Hyprland without `eval` or a non-Lua config. Still
+        # skips the monitor re-apply, which is the most disruptive part of a
+        # reload and never depends on the theme.
+        elif _run(["hyprctl", "reload", "config-only"]):
+            done.append("hyprland (reloaded)")
 
-    # Quickshell needs nothing: Theme.qml watches the generated theme.json and
-    # repaints itself. Report it so the absence of a command is not mistaken
-    # for the shell having been missed.
+    # Quickshell's Theme.qml watches themes/.active/theme.json, but install()
+    # puts it there with os.replace(), so the watched inode is unlinked and the
+    # watch dies with it -- the bar would keep the old palette until restart.
+    # Tell it to re-read explicitly; the call also re-arms the watch.
     if _pids_of("quickshell"):
-        done.append("quickshell (live)")
+        if shutil.which("quickshell") and _run(
+            ["quickshell", "ipc", "call", "theme", "reload"]
+        ):
+            done.append("quickshell")
+        else:
+            deferred.append("quickshell (restart the shell to repaint)")
 
     # Kitty: one socket per instance. The previous generator called `kitty @`
     # bare, which only worked when the calling shell happened to export
@@ -653,7 +680,8 @@ def cmd_set(args: argparse.Namespace) -> int:
         print(DIM("  wallpaper: " + apply_wallpaper(theme)))
 
     kitty_conf = prefix / "kitty/theme/current-theme.conf"
-    done, deferred = reload_apps(theme, kitty_conf)
+    decorations = prefix / "hypr/conf/decorations.lua"
+    done, deferred = reload_apps(theme, kitty_conf, decorations)
     if done:
         print(DIM("  reloaded: " + ", ".join(done)))
     if deferred:

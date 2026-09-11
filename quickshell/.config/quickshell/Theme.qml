@@ -159,6 +159,15 @@ Singleton {
     return typeof v === "number" ? v : fallback
   }
 
+  // The generator installs theme.json with os.replace(), so the file the
+  // watcher holds open is unlinked rather than rewritten and the inotify watch
+  // dies with it. watchChanges still covers an in-place edit; `theme set` tells
+  // us over IPC instead (see reloadPalette, called from the "theme" handler in
+  // Bar.qml), and reload() re-arms the watch on the new inode either way.
+  function reloadPalette() {
+    themeFileView.reload()
+  }
+
   FileView {
     id: themeFileView
     path: root.themeFile
