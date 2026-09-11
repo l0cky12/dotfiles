@@ -19,12 +19,14 @@ PopupWindow {
   // is short when Advanced IPv4 is collapsed and only grows to maxHeight,
   // beyond which the network list scrolls rather than running off screen.
   readonly property int maxHeight: Theme.fs(680)
-  implicitHeight: Math.min(maxHeight, panel.qrView
-    ? qrContent.implicitHeight + Theme.gapL * 2
-    : header.implicitHeight + Theme.gapM + content.implicitHeight + Theme.gapL * 2)
+  implicitHeight: Math.min(maxHeight,
+    header.implicitHeight + Theme.gapM + content.implicitHeight + Theme.gapL * 2)
 
   property bool advancedOpen: false
-  property bool qrView: false
+  // "Share Wi-Fi" no longer swaps this drawer into a QR view: a QR in a
+  // bar-anchored popup lands top-right, so it lives in WifiQrOverlay, a
+  // dedicated screen-centred window. qrResult being set opens that
+  // overlay directly; this panel keeps its normal behaviour underneath.
   property bool confirmVisible: false
   property string confirmTitle: ""
   property string confirmDetail: ""
@@ -43,12 +45,11 @@ PopupWindow {
       id: keys; anchors.fill: parent; focus: true
       Keys.onEscapePressed: {
         if (panel.confirmVisible) panel.confirmVisible = false
-        else if (panel.qrView) panel.qrView = false
         else NetworkState.panelVisible = false
       }
 
       Item {
-        visible: !panel.qrView
+        visible: true
         anchors.fill: parent
         anchors.margins: Theme.gapL
         Column {
@@ -201,20 +202,7 @@ PopupWindow {
         }
       }
 
-      Item { visible: panel.qrView; anchors.fill: parent; anchors.margins: Theme.gapL
-        Column { id: qrContent; anchors.centerIn: parent; spacing: Theme.gapM
-          Text { text: "Share Wi-Fi"; color: Theme.text; font.bold: true; font.pixelSize: Theme.fs(17); anchors.horizontalCenter: parent.horizontalCenter }
-          Image { source: NetworkState.qrResult ? "file://" + NetworkState.qrResult.path : ""; width: Theme.fs(280); height: Theme.fs(280); fillMode: Image.PreserveAspectFit; sourceSize.width: width; sourceSize.height: height }
-          Text { text: NetworkState.qrResult ? NetworkState.qrResult.ssid : ""; color: Theme.text; font.pixelSize: Theme.fs(14); anchors.horizontalCenter: parent.horizontalCenter }
-          Text { text: NetworkState.qrResult ? NetworkState.qrResult.security : ""; color: Theme.textDim; font.pixelSize: Theme.fs(11); anchors.horizontalCenter: parent.horizontalCenter }
-          Rectangle { width: Theme.fs(82); height: Theme.fs(28); radius: Theme.radiusCell; color: Theme.surface; anchors.horizontalCenter: parent.horizontalCenter
-            Text { anchors.centerIn: parent; text: "Back"; color: Theme.text; font.pixelSize: Theme.fs(10) }
-            MouseArea { anchors.fill: parent; onClicked: panel.qrView = false }
-          }
-        }
-      }
-
-      Connections { target: NetworkState; function onQrResultChanged() { if (NetworkState.qrResult) panel.qrView = true } }
+      Connections { target: NetworkState; function onQrResultChanged() { if (NetworkState.qrResult) NetworkState.panelVisible = false } }
       Rectangle { visible: panel.confirmVisible; anchors.fill: parent; color: Qt.rgba(0, 0, 0, Theme.scrimOpacity)
         Rectangle { anchors.centerIn: parent; width: Theme.fs(360); height: Theme.fs(154); radius: Theme.radiusM; color: Theme.bg; border.color: Theme.borderAccent
           Column { anchors.fill: parent; anchors.margins: Theme.gapL; spacing: Theme.gapS
