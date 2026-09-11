@@ -26,6 +26,9 @@ nothing in the live session reaches it.
 | `ai` | `~/.config/ai-agent`, `~/.local/bin` | optional | `ai-agent`, one launcher for Claude Code, Codex, OpenCode, and T3 Code |
 | `zsh` | `~/.zshrc`, `~/.p10k.zsh` | optional | Shell config; Oh My Zsh itself is not tracked |
 | `fastfetch` | `~/.config/fastfetch` | optional | Normal and Pokémon startup displays |
+| `neovim` | `~/.config/nvim/colors` | optional | Generated palette colorscheme and stable `current.lua` alias |
+| `btop` | `~/.config/btop/themes` | optional | Generated btop theme and stable `current.theme` alias |
+| `obsidian` | `~/.config/obsidian/snippets` | optional | Generated CSS source that must be linked into each Obsidian vault |
 | `wallpaper` | `~/Pictures/Wallpapers` (custom target) | optional | Tracked wallpaper assets, including per-theme images |
 | `swaync` | `~/.config/swaync` | retained | Rollback notification backend; its autostart line is commented out |
 | `wofi` | `~/.config/wofi` | retained | Alternative launcher; not bound, not started |
@@ -66,7 +69,7 @@ hypr/.config/hypr/
 ├── theme/
 │   ├── generate.py           the renderer
 │   ├── themelib.py           palette validation, contrast checks
-│   └── templates/            12 per-application templates
+│   └── templates/            15 per-application templates
 ├── scripts/                  44 helpers; capture/ and lib/ are subdirectories
 ├── shaders/night-light.frag  screen shader toggled by hyprland.lua
 └── udev/                     optional, manually installed hotplug rule
@@ -88,12 +91,20 @@ and rebuilt on demand, so a fresh clone will not have it:
 | `wofi/.config/wofi/style.css` | `theme/templates/wofi-style.css` |
 | `noctalia/.config/noctalia/colors.json`, `colorschemes/` | `theme/templates/noctalia-colors.json` |
 | `greeter/.config/greeter/greeter.css`, `regreet.toml` | `theme/templates/greeter-theme.css`, `regreet-greeter.toml` |
+| `neovim/.config/nvim/colors/<slug>.lua`, `current.lua` | `theme/templates/neovim-theme.lua` |
+| `btop/.config/btop/themes/<slug>.theme`, `current.theme` | `theme/templates/btop-theme.tpl` |
+| `obsidian/.config/obsidian/snippets/generated-theme.css` | `theme/templates/obsidian-theme.css`; manually linked into each vault |
 | `~/.config/zsh/current-theme.zsh` | `theme/templates/zsh-theme.zsh` — written straight into the config dir, not a tracked Stow path |
 | `hypr/.config/hypr/monitors.lua`, `workspaces.lua`, `monitors.conf`, `workspaces.conf` | `monitor_profiles/<profile>.*.lua` |
 | `zsh/.oh-my-zsh/` | not vendorable; see [Getting started](Getting-Started.md#oh-my-zsh-is-not-in-this-repository) |
 
 Rebuild the first group with `theme set <slug>` and the monitor group with
 `auto-monitor-profile.sh --force`.
+
+A tracked `.stow-keep` retains an otherwise empty generated-output leaf.
+Packages that could capture application state also keep a tracked `.gitignore`
+at the app-config level; this prevents GNU Stow tree folding while ignoring
+runtime files written beside the generated output.
 
 ## Runtime state, outside Git
 

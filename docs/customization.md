@@ -94,10 +94,20 @@ an explicit package/configuration if they should become repository-controlled.
 
 The optional `neovim/`, `btop/`, and `obsidian/` packages provide deployment
 directories for generated application themes. After Stowing the packages, run
-`theme set <slug>`. Neovim can load the result with `:colorscheme <slug>`; set
-btop's `color_theme` to the slug when using an untracked `btop.conf`; and enable
-`generated-theme.css` manually in Obsidian's Appearance settings. The Obsidian
-adapter does not inspect or modify vault directories.
+`theme set <slug>`. Neovim can load the stable alias with `:colorscheme current`,
+and btop can use `color_theme = "current"` in an untracked `btop.conf`.
+
+Obsidian does not read snippets from its Electron config directory. Link the
+generated source into each vault, then enable `generated-theme.css` in that
+vault's Settings > Appearance > CSS snippets:
+
+```bash
+mkdir -p "<vault>/.obsidian/snippets"
+ln -sfn "$HOME/.config/obsidian/snippets/generated-theme.css" \
+  "<vault>/.obsidian/snippets/generated-theme.css"
+```
+
+The Obsidian adapter does not inspect or modify vault directories.
 
 ## Applying changes
 

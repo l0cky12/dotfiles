@@ -1,0 +1,3 @@
+# Tracked package-level placeholder: prevents GNU Stow from folding this tree.
+*
+!.gitignore

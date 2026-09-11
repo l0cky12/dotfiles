@@ -39,8 +39,9 @@ contents into `~`.
 **Deploy everything at once:**
 
 ```bash
-stow ai browser cliphist fastfetch greeter hypr hyprlock kitty modes noctalia quickshell \
-     rofi screensaver security swaync systemd windows wallpaper wofi xdg zsh
+stow ai browser btop cliphist fastfetch greeter hypr hyprlock kitty modes neovim \
+     noctalia obsidian quickshell rofi screensaver security swaync systemd windows \
+     wallpaper wofi xdg zsh
 ```
 
 **Or deploy packages individually:**
@@ -60,6 +61,9 @@ stow wofi        # ~/.config/wofi
 stow swaync      # ~/.config/swaync
 stow fastfetch   # ~/.config/fastfetch
 stow noctalia    # ~/.config/noctalia
+stow neovim      # generated Neovim colorschemes
+stow btop        # generated btop themes
+stow obsidian    # generated CSS source to link into each Obsidian vault
 stow quickshell  # ~/.config/quickshell
 stow windows     # Windows VM helper, Compose template, and application entry
 stow cliphist    # ~/.config/cliphist
@@ -352,6 +356,9 @@ Each theme consistently updates:
 - **Wofi** — launcher CSS
 - **Noctalia** — shell colour scheme
 - **Fastfetch** — section key colours
+- **Neovim** — generated colorscheme, with a stable `current` alias
+- **btop** — generated theme, with a stable `current` alias
+- **Obsidian** — generated CSS snippet source for manually linked vault snippets
 - **Wallpaper** — set via `hyprpaper` over `hyprctl` for the 10 themes that have
   an asset; the other 13 leave your current wallpaper alone rather than clearing it.
   `theme index` prints which is which
@@ -392,7 +399,9 @@ theme set <slug>
 1. Create `hypr/.config/hypr/themes/<slug>/colors.toml` (copy `tokyo-night/colors.toml` for the format and required keys).
 2. Run `theme set <slug>`.
 
-No per-application config changes are needed — every app is generated from the palette.
+Most applications consume generated output directly. Set btop's `color_theme`
+to `"current"` once, and symlink then enable the generated Obsidian CSS snippet
+in each vault as described in [Themes and appearance](docs/themes.md).
 
 ### Validation
 

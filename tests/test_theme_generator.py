@@ -7,6 +7,7 @@ import hashlib
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -203,7 +204,9 @@ class ThemeGeneratorTest(unittest.TestCase):
         config.parent.mkdir(parents=True)
         config.write_text(tracked.read_text())
 
-        with unittest.mock.patch.object(generate, "BTOP_STOW_CONFIG", tracked):
+        with unittest.mock.patch.object(
+            generate, "btop_config_is_tracked", return_value=True
+        ):
             message = generate.sync_btop_config(prefix, theme)
 
         self.assertEqual(
@@ -211,6 +214,90 @@ class ThemeGeneratorTest(unittest.TestCase):
             f'color_theme = "{theme.slug}"\nupdate_ms = 2000\n',
         )
         self.assertIn("selected tokyo-night", message)
+
+    def test_btop_sync_failure_keeps_installed_theme_and_state_aligned(self) -> None:
+        theme = self.themes["tokyo-night"]
+        prefix = generate.CONFIG_HOME
+        (prefix / "btop/themes").mkdir(parents=True)
+        config = prefix / "btop/btop.conf"
+        config.write_text('color_theme = "Default"\n')
+        state = self.root / "state/current-theme"
+        state.parent.mkdir(parents=True)
+        state.write_text("catppuccin")
+        stdout = io.StringIO()
+        original_write_text = Path.write_text
+
+        def fail_btop_write(path: Path, *args: object, **kwargs: object) -> int:
+            if path == config.parent / ".btop.conf.new":
+                raise OSError("fixture write failure")
+            return original_write_text(path, *args, **kwargs)
+
+        with (
+            unittest.mock.patch.object(generate, "STATE_FILE", state),
+            unittest.mock.patch.object(
+                generate, "btop_config_is_tracked", return_value=True
+            ),
+            unittest.mock.patch.object(
+                Path, "write_text", autospec=True, side_effect=fail_btop_write
+            ),
+            redirect_stdout(stdout),
+        ):
+            result = generate.main(["set", theme.slug, "--no-reload"])
+
+        self.assertEqual(result, 0, stdout.getvalue())
+        self.assertEqual(state.read_text().strip(), theme.slug)
+        self.assertTrue((prefix / f"btop/themes/{theme.slug}.theme").is_file())
+        self.assertEqual(config.read_text(), 'color_theme = "Default"\n')
+        self.assertIn("could not update tracked btop.conf", stdout.getvalue())
+
+    def test_optional_theme_aliases_replace_and_prune_generated_slugs(self) -> None:
+        prefix = self.root / "prefix"
+        for directory in (prefix / "nvim/colors", prefix / "btop/themes"):
+            directory.mkdir(parents=True)
+        custom = prefix / "nvim/colors/custom.lua"
+        custom.write_text("-- User colorscheme; theme generator must preserve it.\n")
+        first = self.themes["tokyo-night"]
+        second = self.themes["catppuccin"]
+
+        for theme in (first, second):
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                result = generate.main([
+                    "set", theme.slug, "--prefix", str(prefix), "--no-reload",
+                ])
+            self.assertEqual(result, 0, stdout.getvalue())
+
+        self.assertFalse((prefix / f"nvim/colors/{first.slug}.lua").exists())
+        self.assertFalse((prefix / f"btop/themes/{first.slug}.theme").exists())
+        self.assertEqual(
+            (prefix / "nvim/colors/current.lua").readlink(),
+            Path(f"{second.slug}.lua"),
+        )
+        self.assertEqual(
+            (prefix / "btop/themes/current.theme").readlink(),
+            Path(f"{second.slug}.theme"),
+        )
+        self.assertTrue((prefix / f"nvim/colors/{second.slug}.lua").is_file())
+        self.assertTrue((prefix / f"btop/themes/{second.slug}.theme").is_file())
+        self.assertTrue(custom.is_file())
+
+    def test_untracked_btop_config_is_not_repository_owned(self) -> None:
+        root = self.root / "repo"
+        config = root / "btop/.config/btop/btop.conf"
+        config.parent.mkdir(parents=True)
+        config.write_text('color_theme = "Default"\n')
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+
+        with (
+            unittest.mock.patch.object(tl, "repo_root", return_value=root),
+            unittest.mock.patch.object(generate, "BTOP_STOW_CONFIG", config),
+        ):
+            self.assertFalse(generate.btop_config_is_tracked())
+            subprocess.run(
+                ["git", "-C", str(root), "add", "btop/.config/btop/btop.conf"],
+                check=True,
+            )
+            self.assertTrue(generate.btop_config_is_tracked())
 
     def test_contrast_warnings_match_palette_metadata(self) -> None:
         for slug, theme in self.themes.items():

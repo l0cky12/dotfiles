@@ -272,6 +272,34 @@ def link_rofi(prefix: Path, slug: str) -> None:
     os.replace(tmp, link)
 
 
+def link_optional_themes(prefix: Path, theme: tl.Theme) -> None:
+    """Keep stable app aliases and remove superseded generated slug files."""
+    outputs = (
+        (prefix / "nvim/colors", ".lua", "generated Neovim colorscheme"),
+        (prefix / "btop/themes", ".theme", "generated btop theme"),
+    )
+    for directory, suffix, marker in outputs:
+        current = directory / f"{theme.slug}{suffix}"
+        if not current.is_file():
+            continue
+        for candidate in directory.glob(f"*{suffix}"):
+            if candidate == current or candidate.name == f"current{suffix}":
+                continue
+            try:
+                with candidate.open(encoding="utf-8") as handle:
+                    first_line = handle.readline()
+            except OSError:
+                continue
+            if marker in first_line:
+                candidate.unlink()
+        link = directory / f"current{suffix}"
+        tmp = directory / f".current{suffix}.new"
+        if tmp.is_symlink() or tmp.exists():
+            tmp.unlink()
+        tmp.symlink_to(current.name)
+        os.replace(tmp, link)
+
+
 def sync_noctalia(prefix: Path, theme: tl.Theme) -> None:
     """Register the generated colours as a Noctalia user scheme named after the
     theme. The previous generator hardcoded "Windows-7" here for every theme,
@@ -327,26 +355,52 @@ def sync_fastfetch(prefix: Path, theme: tl.Theme) -> None:
         os.replace(tmp, cfg)
 
 
+def btop_config_is_tracked() -> bool:
+    """Only a Git index entry establishes repository ownership of btop.conf."""
+    root = tl.repo_root()
+    try:
+        pathspec = BTOP_STOW_CONFIG.relative_to(root)
+    except ValueError:
+        return False
+    try:
+        result = subprocess.run(
+            [
+                "git", "-C", str(root), "ls-files", "--error-unmatch", "--",
+                str(pathspec),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=5,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
+
+
 def sync_btop_config(prefix: Path, theme: tl.Theme) -> str:
     """Select the generated theme only when btop.conf belongs to this repo."""
-    if not BTOP_STOW_CONFIG.is_file():
+    if not btop_config_is_tracked():
         return (f"  btop: set color_theme = \"{theme.slug}\" in btop.conf "
                 "to select the generated theme")
 
     cfg = prefix / "btop/btop.conf"
     if not cfg.is_file():
         return "  btop: btop.conf is tracked but not deployed; selection unchanged"
-    text = cfg.read_text()
-    setting = f'color_theme = "{theme.slug}"'
-    new, count = re.subn(
-        r"^\s*color_theme\s*=.*$", setting, text, flags=re.MULTILINE
-    )
-    if count == 0:
-        new = text.rstrip("\n") + "\n" + setting + "\n"
-    if new != text:
-        tmp = cfg.parent / ".btop.conf.new"
-        tmp.write_text(new)
-        os.replace(tmp, cfg)
+    try:
+        text = cfg.read_text()
+        setting = f'color_theme = "{theme.slug}"'
+        new, count = re.subn(
+            r"^\s*color_theme\s*=.*$", lambda _match: setting, text,
+            flags=re.MULTILINE,
+        )
+        if count == 0:
+            new = text.rstrip("\n") + "\n" + setting + "\n"
+        if new != text:
+            tmp = cfg.parent / ".btop.conf.new"
+            tmp.write_text(new)
+            os.replace(tmp, cfg)
+    except OSError as exc:
+        return f"  btop: warning (could not update tracked btop.conf: {exc})"
     return f"  btop: selected {theme.slug} in tracked btop.conf"
 
 
@@ -550,6 +604,7 @@ def cmd_set(args: argparse.Namespace) -> int:
 
         tl.install(staged)
         link_rofi(prefix, theme.slug)
+        link_optional_themes(prefix, theme)
         sync_noctalia(prefix, theme)
         sync_fastfetch(prefix, theme)
         rendered_optional = {
