@@ -749,11 +749,40 @@ vendored in this repo** — Oh My Zsh's own `.gitignore` excludes `custom/`, so
 nothing tracked here could ever carry them. Install them once:
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
+(
+# The subshell guards the exit below so a failed pin check can never close an
+# interactive terminal.
+# REQUIRED: fill this with a reviewed 40-character commit from
+# https://github.com/ohmyzsh/ohmyzsh/commit/<sha>. When reviewing the commit,
+# inspect tools/install.sh and record its SHA-256 digest through a trusted channel.
+OMZ_PIN='<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'
+[[ $OMZ_PIN =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+omz_installer="$(mktemp)"
+curl -fsSL "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/$OMZ_PIN/tools/install.sh" \
+  --output "$omz_installer"
+sha256sum "$omz_installer"
+printf '%s\n' 'Compare this SHA-256 with the digest recorded when OMZ_PIN was reviewed.'
+less "$omz_installer"  # Inspect the complete script before continuing.
+sh "$omz_installer" "" --unattended
+rm -f "$omz_installer"
+
+(
+# REQUIRED: fill these with reviewed 40-character commits from the linked
+# upstream repositories. The placeholder values fail closed. Review each at
+# https://github.com/romkatv/powerlevel10k/commit/<sha> and
+# https://github.com/Aloxaf/fzf-tab/commit/<sha> before using it.
+POWERLEVEL10K_PIN='<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'
+FZF_TAB_PIN='<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'
+[[ $POWERLEVEL10K_PIN =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+[[ $FZF_TAB_PIN =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+git clone --no-checkout https://github.com/romkatv/powerlevel10k.git \
   ~/.oh-my-zsh/custom/themes/powerlevel10k
-git clone --depth=1 https://github.com/Aloxaf/fzf-tab.git \
+git -C ~/.oh-my-zsh/custom/themes/powerlevel10k checkout --detach \
+  "$POWERLEVEL10K_PIN"
+git clone --no-checkout https://github.com/Aloxaf/fzf-tab.git \
   ~/.oh-my-zsh/custom/plugins/fzf-tab
+git -C ~/.oh-my-zsh/custom/plugins/fzf-tab checkout --detach "$FZF_TAB_PIN"
+)
 ```
 
 **Theme system:**
