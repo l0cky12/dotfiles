@@ -142,16 +142,20 @@ Variants {
                 var destDir = getScreenshotDir()
                 var baseName = buildMeasureFilename()
                 var fullPath = destDir + "/" + baseName + ".png"
+                var tempDir = measureVariants.mainInstance.tempDir
+                var cropPath = tempDir + "/measure-crop.png"
+                var outPath = tempDir + "/measure-out.png"
+                var labelPath = tempDir + "/measure-vlabel.png"
                 var cmd = [
                     "bash", "-c",
                     "mkdir -p '" + destDir + "' || exit 1; " +
-                    "grim -g '" + (sx + rx) + "," + (sy + ry) + " " + rw + "x" + rh + "' /tmp/measure-crop.png || exit 1; " +
+                    "grim -g '" + (sx + rx) + "," + (sy + ry) + " " + rw + "x" + rh + "' '" + cropPath + "' || exit 1; " +
                     (function() {
                         var bx1 = Math.min(lx1,lx2), bx2 = Math.max(lx1,lx2)
                         var by1 = Math.min(ly1,ly2), by2 = Math.max(ly1,ly2)
                         var midX = Math.round((bx1+bx2)/2)
                         var midY = Math.round((by1+by2)/2)
-                        var d = "magick /tmp/measure-crop.png"
+                        var d = "magick '" + cropPath + "'"
                         d += " -strokewidth " + Math.max(1, Math.round(1*scale)) + " -stroke 'rgba(255,255,255,0.25)' -fill none"
                         d += " -draw 'rectangle " + bx1 + "," + by1 + " " + bx2 + "," + by2 + "'"
                         d += " -fill 'rgba(255,255,255,0.6)' -stroke none"
@@ -177,7 +181,7 @@ Variants {
                         }
                         return d
                     })() +
-                    " /tmp/measure-out.png || exit 1; " +
+                    " '" + outPath + "' || exit 1; " +
                     (function() {
                         if (lh <= 20 * scale) return ""
                         var bx1v = Math.min(lx1,lx2), bx2v = Math.max(lx1,lx2)
@@ -195,15 +199,15 @@ Variants {
                             " -fill white -stroke none -pointsize " + Math.round(13*scale) + " -font DejaVu-Sans" +
                             " -draw 'text " + (Math.round(vpw/2) - Math.round(vtxt.length*4*scale)) + "," + (vph-Math.round(6*scale)) + " \"" + vtxt + "\"'" +
                             " -rotate -90" +
-                            " /tmp/measure-vlabel.png" +
-                            " && magick /tmp/measure-out.png /tmp/measure-vlabel.png" +
+                            " '" + labelPath + "'" +
+                            " && magick '" + outPath + "' '" + labelPath + "'" +
                             " -geometry +" + compX + "+" + compY + " -composite" +
-                            " /tmp/measure-out.png" +
-                            " && rm -f /tmp/measure-vlabel.png; "
+                            " '" + outPath + "'" +
+                            " && rm -f '" + labelPath + "'; "
                     })() +
-                    "cp /tmp/measure-out.png '" + fullPath + "' || exit 1; " +
-                    "wl-copy -t image/png < /tmp/measure-out.png || exit 1; " +
-                    "rm -f /tmp/measure-crop.png /tmp/measure-out.png; " +
+                    "cp '" + outPath + "' '" + fullPath + "' || exit 1; " +
+                    "wl-copy -t image/png < '" + outPath + "' || exit 1; " +
+                    "rm -f '" + cropPath + "' '" + outPath + "'; " +
                     "echo '" + destDir + "'"
                 ]
                 shotProc.exec({ command: cmd })

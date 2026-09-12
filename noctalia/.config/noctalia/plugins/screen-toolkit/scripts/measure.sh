@@ -2,17 +2,19 @@
 # measure.sh — capture a measurement overlay
 # Args: sx sy rx ry rw rh lx1 ly1 lx2 ly2 lw lh color scale dest_dir full_path
 set -euo pipefail
-[ $# -lt 16 ] && { echo "Usage: measure.sh sx sy rx ry rw rh lx1 ly1 lx2 ly2 lw lh color scale dest_dir full_path" >&2; exit 1; }
+umask 077
+[ $# -lt 17 ] && { echo "Usage: measure.sh sx sy rx ry rw rh lx1 ly1 lx2 ly2 lw lh color scale dest_dir full_path temp_dir" >&2; exit 1; }
 SX=$1;  SY=$2
 RX=$3;  RY=$4;  RW=$5;  RH=$6
 LX1=$7; LY1=$8; LX2=$9; LY2=${10}
 LW=${11}; LH=${12}
 COL=${13}; SCALE=${14}
 DEST_DIR=${15}; FULL_PATH=${16}
-TMP_CROP="/tmp/measure-crop-$$.png"
-TMP_OUT="/tmp/measure-out-$$.png"
-TMP_VLABEL="/tmp/measure-vlabel-$$.png"
-cleanup() { rm -f "$TMP_CROP" "$TMP_OUT" "$TMP_VLABEL"; }
+TEMP_DIR=${17}
+TMP_CROP=$(mktemp -- "$TEMP_DIR/measure-crop.XXXXXX.png")
+TMP_OUT=$(mktemp -- "$TEMP_DIR/measure-out.XXXXXX.png")
+TMP_VLABEL=$(mktemp -- "$TEMP_DIR/measure-vlabel.XXXXXX.png")
+cleanup() { rm -f -- "$TMP_CROP" "$TMP_OUT" "$TMP_VLABEL"; }
 trap cleanup EXIT
 # Float-safe scale helpers
 iscale() { printf '%.0f' "$(awk "BEGIN { print $1 * $SCALE }")"; }

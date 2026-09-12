@@ -25,6 +25,8 @@ Item {
     property bool   audioOutput:   false
     property bool   audioInput:    false
     property bool   includeCursor: false
+    readonly property string tempDir: pluginApi?.mainInstance?.tempDir ?? ""
+    readonly property string thumbPath: tempDir === "" ? "" : tempDir + "/record-thumb.png"
     property string _recorderBin:  "wl-screenrec"
     readonly property int gifMaxSeconds: pluginApi?.pluginSettings?.gifMaxSeconds ?? 30
     readonly property string _scriptPath: {
@@ -57,34 +59,17 @@ Item {
         root._recorderBin = (pluginApi?.mainInstance?.detectedRecorder === "wf-recorder")
                             ? "wf-recorder" : "wl-screenrec"
         root.region      = regionStr
-        root.mp4Path     = "/tmp/screen-toolkit-record-" + Date.now() + ".mp4"
+        root.mp4Path     = ""
         root.gifPath     = ""
         root.recordState = "recording"
         root._elapsed    = 0
         root._frameToken = 0
         elapsedTimer.start()
-        var cmd
-        if (root._recorderBin === "wf-recorder") {
-            cmd = "wf-recorder -g " + U.shellEscape(regionStr) +
-                  (root.audioOutput
-                      ? " -a=$(pactl get-default-sink 2>/dev/null).monitor"
-                      : root.audioInput
-                          ? " -a=$(pactl get-default-source 2>/dev/null)"
-                          : "") +
-                  " -f " + U.shellEscape(root.mp4Path) + " 2>/dev/null" +
-                  "; [ -s " + U.shellEscape(root.mp4Path) + " ] && exit 0 || exit 1"
-        } else {
-            cmd = "wl-screenrec -g " + U.shellEscape(regionStr) +
-                  (root.includeCursor ? "" : " --no-cursor") +
-                  (root.audioOutput
-                      ? " --audio --audio-device $(pactl get-default-sink 2>/dev/null).monitor"
-                      : root.audioInput
-                          ? " --audio --audio-device $(pactl get-default-source 2>/dev/null)"
-                          : "") +
-                  " -f " + U.shellEscape(root.mp4Path) + " 2>/dev/null" +
-                  "; [ -s " + U.shellEscape(root.mp4Path) + " ] && exit 0 || exit 1"
-        }
-        wfRecorderProc.exec({ command: ["bash", "-c", cmd] })
+        wfRecorderProc.exec({ command: [
+            "bash", root._scriptPath, "start", root._recorderBin, regionStr, root.tempDir,
+            root.audioOutput ? "1" : "0", root.audioInput ? "1" : "0",
+            root.includeCursor ? "1" : "0"
+        ] })
     }
     function stopRecording() {
         if (!root.isRecording) return
@@ -94,7 +79,7 @@ Item {
         if (root.isRecording) root.stopRecording()
         var toClipboard = root.pluginApi?.pluginSettings?.recordCopyToClipboard ?? false
         if (root.gifPath !== "" && !toClipboard)
-            stopProc.exec({ command: ["bash", "-c", "rm -f " + U.shellEscape(root.gifPath)] })
+            stopProc.exec({ command: ["rm", "-f", "--", root.gifPath] })
         root.recordState    = ""
         root.gifPath        = ""
         root._primaryScreen = null
@@ -114,9 +99,7 @@ Item {
         }
     }
     function _copyPathToClipboard(path) {
-        var cmd = "printf 'file://%s\\r\\n' " + U.shellEscape(path) +
-                  " | wl-copy --type text/uri-list"
-        clipProc.exec({ command: ["bash", "-c", cmd] })
+        clipProc.exec({ command: ["bash", root._scriptPath, "copy-uri", path] })
     }
     function _saveToFile() {
         var ext  = root.format === "mp4" ? ".mp4" : ".gif"
@@ -124,10 +107,7 @@ Item {
         var dir  = U.videoDir(home, pluginApi?.pluginSettings?.videoPath)
         var dest = dir + "/" + U.buildFilename("record", ext, pluginApi?.pluginSettings?.filenameFormat)
         saveProc.savedPath = dest
-        saveProc.exec({ command: ["bash", "-c",
-            "mkdir -p " + U.shellEscape(dir) + " && " +
-            "cp " + U.shellEscape(root.gifPath) + " " + U.shellEscape(dest)
-        ]})
+        saveProc.exec({ command: ["bash", root._scriptPath, "save", root.gifPath, dir, dest] })
     }
     function formatTime(secs) {
         var m = Math.floor(secs / 60)
@@ -136,25 +116,26 @@ Item {
     }
     Process {
         id: wfRecorderProc
+        stdout: StdioCollector {}
         onExited: (code) => {
             elapsedTimer.stop()
+            root.mp4Path = wfRecorderProc.stdout.text.trim()
             var isCleanExit = (code === 0 || code === 130 || code === 2) ||
                               (root._recorderBin === "wf-recorder" && code === 1)
-            if (isCleanExit) {
+            if (isCleanExit && root.mp4Path !== "") {
                 root.recordState = "converting"
-                var tmpTs    = Qt.formatDateTime(new Date(), "yyyy-MM-dd_HH-mm-ss")
-                var optimOut = "/tmp/screen-toolkit-record-" + tmpTs
+                var optimOut = root.mp4Path + ".final"
                 if (root.format === "mp4") {
                     root.gifPath = optimOut + ".mp4"
                     var needsRecode = root.audioOutput || root.audioInput
                     gifConvertProc.exec({ command: needsRecode
-                        ? ["bash", root._scriptPath, "convert-mp4", root.mp4Path, root.gifPath, "--recode"]
-                        : ["bash", root._scriptPath, "convert-mp4", root.mp4Path, root.gifPath]
+                        ? ["bash", root._scriptPath, "convert-mp4", root.mp4Path, root.gifPath, "--recode", root.thumbPath]
+                        : ["bash", root._scriptPath, "convert-mp4", root.mp4Path, root.gifPath, "", root.thumbPath]
                     })
                 } else {
                     root.gifPath = optimOut + ".gif"
                     gifConvertProc.exec({ command:
-                        ["bash", root._scriptPath, "convert-gif", root.mp4Path, root.gifPath]
+                        ["bash", root._scriptPath, "convert-gif", root.mp4Path, root.gifPath, root.thumbPath, root.tempDir]
                     })
                 }
             } else {

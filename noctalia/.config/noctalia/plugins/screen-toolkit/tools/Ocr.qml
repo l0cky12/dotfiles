@@ -8,6 +8,8 @@ Item {
 
     property var    pluginApi:       null
     property string scriptsDir:      ""
+    property string tempDir:         ""
+    readonly property string capturePath: tempDir === "" ? "" : tempDir + "/ocr.png"
     property string ocrResult:       ""
     property string ocrCapturePath:  ""
     property string translateResult: ""
@@ -28,7 +30,9 @@ Item {
             String(grimX), String(grimY), String(grimW), String(grimH),
             langStr || "eng",
             upscale,
-            psm
+            psm,
+            root.capturePath,
+            root.tempDir
         ]
         ocrProc.running = true
     }
@@ -70,11 +74,11 @@ Item {
                         return
                     }
                     root.ocrResult       = text
-                    root.ocrCapturePath  = "/tmp/screen-toolkit-ocr.png"
+                    root.ocrCapturePath  = root.capturePath
                     root.translateResult = ""
                     if (root.pluginApi) {
                         root.pluginApi.pluginSettings.ocrResult       = text
-                        root.pluginApi.pluginSettings.ocrCapturePath  = "/tmp/screen-toolkit-ocr.png"
+                        root.pluginApi.pluginSettings.ocrCapturePath  = root.capturePath
                         root.pluginApi.pluginSettings.translateResult = ""
                         root.pluginApi.saveSettings()
                     }

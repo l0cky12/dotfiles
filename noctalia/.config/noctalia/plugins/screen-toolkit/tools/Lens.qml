@@ -7,6 +7,7 @@ Item {
     id: root
     property var    pluginApi:  null
     property string scriptsDir: ""
+    property string tempDir: ""
 
     signal done()
     signal failed()
@@ -15,7 +16,7 @@ Item {
         ToastService.showNotice(pluginApi?.tr("messages.lens-uploading"))
         lensProc.exec({ command: [
             root.scriptsDir + "lens-upload.sh",
-            String(grimX), String(grimY), String(grimW), String(grimH)
+            String(grimX), String(grimY), String(grimW), String(grimH), root.tempDir
         ]})
     }
 
@@ -27,5 +28,4 @@ Item {
         }
     }
 }
-
 

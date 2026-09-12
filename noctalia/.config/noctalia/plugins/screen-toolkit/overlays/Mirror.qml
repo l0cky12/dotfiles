@@ -42,6 +42,7 @@ Item {
     property int    xPos: -1
     property int    yPos: -1
     property string scriptsDir:    ""
+    property string tempDir:       ""
     property var    _primaryScreen:   null
     property bool   _cameraActive:    false
     property bool   _audioEnabled:    false
@@ -91,7 +92,7 @@ Item {
     }
     function _doScreenshot() {
         if (!root._imgCapture) return
-        root._imgCapture.captureToFile("/tmp/mirror-shot-" + Date.now() + ".png")
+        root._imgCapture.captureToFile(root.tempDir + "/mirror-shot.png")
     }
     function _onImageCaptured(tmpPath) {
         var home    = Quickshell.env("HOME")
@@ -126,7 +127,7 @@ Item {
     }
     function _doStartRecord() {
         if (!root._recorder) return
-        var tmpPath = "/tmp/mirror-record-" + Date.now() + ".mp4"
+        var tmpPath = root.tempDir + "/mirror-record.mp4"
         root._recTmpPath  = tmpPath
         root._recorder.outputLocation = "file://" + tmpPath
         root._isRecording = true

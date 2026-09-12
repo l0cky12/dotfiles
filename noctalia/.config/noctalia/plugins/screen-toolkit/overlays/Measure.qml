@@ -122,7 +122,7 @@ Variants {
                         String(lx1),   String(ly1),   String(lx2), String(ly2),
                         String(lw),    String(lh),
                         overlayWin._shotColor, String(scale),
-                        destDir, fullPath
+                        destDir, fullPath, measureVariants.mainInstance.tempDir
                     ]
                 })
             }

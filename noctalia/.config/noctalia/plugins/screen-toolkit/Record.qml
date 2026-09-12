@@ -28,6 +28,8 @@ Item {
     property bool audioInput: false
     property bool includeCursor: false
     property string _recorderBin: "wl-screenrec"
+    readonly property string tempDir: pluginApi?.mainInstance?.tempDir ?? ""
+    readonly property string previewPath: tempDir === "" ? "" : tempDir + "/record-preview.png"
     property bool _previewBusy: false
     property real _maskW: 0
     property real _maskH: 0
@@ -83,7 +85,7 @@ Item {
         root._recorderBin = (pluginApi?.pluginSettings?.detectedRecorder === "wf-recorder")
                             ? "wf-recorder" : "wl-screenrec"
         root.region       = regionStr
-        root.mp4Path      = "/tmp/screen-toolkit-record-" + Date.now() + ".mp4"
+        root.mp4Path      = root.tempDir + "/recording.mp4"
         root.gifPath      = ""
         root.isRecording  = true
         root.isConverting = false
@@ -148,7 +150,7 @@ Item {
         previewCaptureProc.exec({ command: [
             "bash", "-c",
             "grim -g " + shellEscape(root.region) +
-            " /tmp/screen-toolkit-record-preview.png 2>/dev/null"
+            " " + shellEscape(root.previewPath) + " 2>/dev/null"
         ]})
     }
     Process {
@@ -168,7 +170,7 @@ Item {
             if (code === 0 || code === 130 || code === 2) {
                 root.isConverting = true
                 var tmpTs    = Qt.formatDateTime(new Date(), "yyyy-MM-dd_HH-mm-ss")
-                var optimOut = "/tmp/screen-toolkit-record-" + tmpTs
+                var optimOut = root.tempDir + "/recording-" + tmpTs
                 if (root.format === "mp4") {
                     root.gifPath = optimOut + ".mp4"
                     gifConvertProc.exec({ command: [
@@ -181,11 +183,11 @@ Item {
                         " " + shellEscape(root.gifPath) + " 2>/dev/null && " +
                         "rm -f " + shellEscape(root.mp4Path) + " && " +
                         "ffmpeg -y -ss 0 -i " + shellEscape(root.gifPath) +
-                        " -frames:v 1 /tmp/screen-toolkit-record-preview.png 2>/dev/null; exit 0"
+                        " -frames:v 1 " + shellEscape(root.previewPath) + " 2>/dev/null; exit 0"
                     ]})
                 } else {
                     root.gifPath = optimOut + ".gif"
-                    var framesDir = "/tmp/screen-toolkit-frames-" + Date.now()
+                    var framesDir = root.tempDir + "/frames-" + Date.now()
                     gifConvertProc.exec({ command: [
                         "bash", "-c",
                         "mkdir -p " + shellEscape(framesDir) + " && " +
@@ -308,7 +310,7 @@ Item {
                                 anchors.fill: parent
                                 visible: root.isRecording || root.isConverting
                                 source: root._frameToken > 0
-                                    ? "file:///tmp/screen-toolkit-record-preview.png?" + root._frameToken : ""
+                                    ? "file://" + root.previewPath + "?" + root._frameToken : ""
                                 fillMode: Image.PreserveAspectFit; smooth: true; cache: false
                             }
                             AnimatedImage {
@@ -323,7 +325,7 @@ Item {
                                 anchors.fill: parent
                                 visible: root.isDone && root.format === "mp4"
                                 source: root.isDone && root.format === "mp4"
-                                    ? "file:///tmp/screen-toolkit-record-preview.png?" + root._frameToken : ""
+                                    ? "file://" + root.previewPath + "?" + root._frameToken : ""
                                 fillMode: Image.PreserveAspectFit; smooth: true; cache: false
                             }
                             Rectangle {

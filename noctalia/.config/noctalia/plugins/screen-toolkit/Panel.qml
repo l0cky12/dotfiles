@@ -321,7 +321,7 @@ Item {
                     Image {
                         anchors.fill: parent; visible: root.recordFormat === "mp4"
                         source: root.recordFormat === "mp4" && root._thumbBust !== ""
-                            ? "file:///tmp/screen-toolkit-record-thumb.png?" + root._thumbBust : ""
+                            ? "file://" + root.mainInstance.tempDir + "/record-thumb.png?" + root._thumbBust : ""
                         fillMode: Image.PreserveAspectFit; smooth: true; cache: false
                     }
                 }

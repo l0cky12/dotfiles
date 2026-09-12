@@ -7,8 +7,12 @@ import qs.Widgets
 import qs.Services.UI
 Variants {
     id: root
-    property string imagePath: "/tmp/screen-toolkit-annotate.png"
+    property string imagePath: mainInstance?.annotatePath ?? ""
     property var    mainInstance: null
+    readonly property string tempDir: mainInstance?.tempDir ?? ""
+    readonly property string pixelPath: tempDir === "" ? "" : tempDir + "/annotate-pixel.png"
+    readonly property string zoomPath: tempDir === "" ? "" : tempDir + "/annotate-zoom.png"
+    readonly property string overlayPath: tempDir === "" ? "" : tempDir + "/annotate-overlay.png"
     property bool   isVisible: false
     property int  regionX: 0
     property int  regionY: 0
@@ -135,7 +139,7 @@ Variants {
             if (overlayWin._cacheRebuilding) return
             overlayWin._cacheRebuilding = true
             var ctx    = cacheCanvas.getContext("2d")
-            var pixUrl = "file:///tmp/screen-toolkit-annotate-pixel.png?" + overlayWin._pixelCacheBust
+            var pixUrl = "file://" + root.pixelPath + "?" + overlayWin._pixelCacheBust
             ctx.clearRect(0, 0, cacheCanvas.width, cacheCanvas.height)
             if (overlayWin.pixelImgReady && !cacheCanvas.isImageLoaded(pixUrl))
                 cacheCanvas.loadImage(pixUrl)
@@ -158,7 +162,7 @@ Variants {
                 var bw = Math.abs(stroke.x2 - stroke.x1)
                 var bh = Math.abs(stroke.y2 - stroke.y1)
                 if (bw > 0 && bh > 0) {
-                    var pixUrl = "file:///tmp/screen-toolkit-annotate-pixel.png?" + overlayWin._pixelCacheBust
+                    var pixUrl = "file://" + root.pixelPath + "?" + overlayWin._pixelCacheBust
                     if (cacheCanvas.isImageLoaded(pixUrl)) {
                         ctx.beginPath()
                         ctx.rect(bx, by, bw, bh)
@@ -254,7 +258,7 @@ Variants {
                 overlayWin._savedStrokes = []
                 overlayWin.panX          = 0.0
                 overlayWin.panY          = 0.0
-                root.parseAndShow(region, "/tmp/screen-toolkit-annotate.png", root._primaryScreen)
+                root.parseAndShow(region, root.imagePath, root._primaryScreen)
                 _invalidateCache()
                 drawCanvas.requestPaint()
                 return
@@ -271,8 +275,8 @@ Variants {
             var newH = Math.round(root.regionH * scale)
             zoomProc.exec({ command: [
                 "bash", "-c",
-                "magick /tmp/screen-toolkit-annotate.png -resize "
-                    + newW + "x" + newH + "! /tmp/screen-toolkit-annotate-zoom.png 2>/dev/null"
+                "magick " + shellEscape(root.imagePath) + " -resize "
+                    + newW + "x" + newH + "! " + shellEscape(root.zoomPath) + " 2>/dev/null"
             ]})
         }
         Process {
@@ -287,7 +291,7 @@ Variants {
         }
         property string _lastPreparedPath: ""
         function preparePixelImage() {
-            var basePath = "/tmp/screen-toolkit-annotate.png"
+            var basePath = root.imagePath
             if (basePath === overlayWin._lastPreparedPath && overlayWin.pixelImgReady) {
                 drawCanvas.requestPaint()
                 return
@@ -296,13 +300,13 @@ Variants {
             pixelImgReady = false
             pixelateProc.exec({ command: [
                 "bash", "-c",
-                "magick /tmp/screen-toolkit-annotate.png -scale 5% -scale 2000% "
-                    + "/tmp/screen-toolkit-annotate-pixel.png 2>/dev/null"
+                "magick " + shellEscape(root.imagePath) + " -scale 5% -scale 2000% "
+                    + shellEscape(root.pixelPath) + " 2>/dev/null"
             ]})
         }
         onPixelImgReadyChanged: {
             if (pixelImgReady) {
-                var stale = "file:///tmp/screen-toolkit-annotate-pixel.png?"
+                var stale = "file://" + root.pixelPath + "?"
                     + (overlayWin._pixelCacheBust - 1)
                 cacheCanvas.unloadImage(stale)
                 drawCanvas.unloadImage(stale)
@@ -316,7 +320,7 @@ Variants {
                 if (code === 0) {
                     root.parseAndShowZoomed(
                         root.lastRegion,
-                        "/tmp/screen-toolkit-annotate-zoom.png",
+                        root.zoomPath,
                         overlayWin._pendingZoomScale)
                 }
             }
@@ -392,7 +396,7 @@ Variants {
                     overlayWin._tbUserX          = -1
                     overlayWin._tbUserY          = -1
                     drawCanvas.requestPaint()
-                    cleanupProc.exec({ command: ["bash", "-c", "rm -f /tmp/screen-toolkit-annotate-zoom.png"] })
+                    cleanupProc.exec({ command: ["rm", "-f", "--", root.zoomPath] })
                 } else {
                     overlayWin.preparePixelImage()
                 }
@@ -462,7 +466,7 @@ Variants {
                         width:  root.regionW
                         height: root.regionH
                         source: overlayWin.pixelImgReady
-                            ? "file:///tmp/screen-toolkit-annotate-pixel.png?" + overlayWin._pixelCacheBust
+                            ? "file://" + root.pixelPath + "?" + overlayWin._pixelCacheBust
                             : ""
                         fillMode: Image.Stretch
                         cache:    false
@@ -1280,7 +1284,7 @@ Variants {
                 }
             } else {
                 drawCanvas.grabToImage(function(result) {
-                    result.saveToFile("/tmp/screen-toolkit-overlay.png")
+                    result.saveToFile(root.overlayPath)
                     if (custom === "__auto__") {
                         var home2   = Quickshell.env("HOME") || ""
                         var ssDir2  = home2 + "/Pictures/Screenshots"
@@ -1290,18 +1294,18 @@ Variants {
                             "if [ -d " + JSON.stringify(ssDir2) + " ]; then DEST=" + JSON.stringify(ssDir2) +
                             "; elif [ -d " + JSON.stringify(picDir2) + " ]; then DEST=" + JSON.stringify(picDir2) +
                             "; else exit 1; fi; " +
-                            "magick /tmp/screen-toolkit-annotate.png /tmp/screen-toolkit-overlay.png " +
+                            "magick " + shellEscape(root.imagePath) + " " + shellEscape(root.overlayPath) + " " +
                             "-composite \"$DEST/" + filename + "\" && " +
-                            "rm -f /tmp/screen-toolkit-overlay.png && " +
+                            "rm -f " + shellEscape(root.overlayPath) + " && " +
                             "echo \"$DEST/" + filename + "\""
                         ]})
                     } else {
                         var dest2 = custom + "/" + filename
                         saveFileProc.exec({ command: [
                             "bash", "-c",
-                            "magick /tmp/screen-toolkit-annotate.png /tmp/screen-toolkit-overlay.png " +
+                            "magick " + shellEscape(root.imagePath) + " " + shellEscape(root.overlayPath) + " " +
                             "-composite " + JSON.stringify(dest2) + " && " +
-                            "rm -f /tmp/screen-toolkit-overlay.png && " +
+                            "rm -f " + shellEscape(root.overlayPath) + " && " +
                             "echo " + JSON.stringify(dest2)
                         ]})
                     }
@@ -1315,13 +1319,13 @@ Variants {
                 copyProc.exec({ command: ["bash", "-c", "wl-copy < " + JSON.stringify(root.imagePath)] })
             } else {
                 drawCanvas.grabToImage(function(result) {
-                    result.saveToFile("/tmp/screen-toolkit-overlay.png")
+                    result.saveToFile(root.overlayPath)
                     saveProc.exec({ command: [
                         "bash", "-c",
-                        "magick /tmp/screen-toolkit-annotate.png /tmp/screen-toolkit-overlay.png " +
-                        "-composite /tmp/screen-toolkit-annotated.png && " +
-                        "wl-copy < /tmp/screen-toolkit-annotated.png && " +
-                        "rm -f /tmp/screen-toolkit-overlay.png"
+                        "magick " + shellEscape(root.imagePath) + " " + shellEscape(root.overlayPath) + " " +
+                        "-composite " + shellEscape(root.tempDir + "/annotated.png") + " && " +
+                        "wl-copy < " + shellEscape(root.tempDir + "/annotated.png") + " && " +
+                        "rm -f " + shellEscape(root.overlayPath) + " " + shellEscape(root.tempDir + "/annotated.png")
                     ]})
                 })
             }
