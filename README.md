@@ -179,6 +179,24 @@ stow -D hypr
 stow --simulate hypr
 ```
 
+### Deploy changed packages with `dots`
+
+Stow the `dots` package once to install the deployment helper, then use it from
+any directory. The first run restows every package; later runs restow only
+packages changed since the last successful deployment.
+
+```bash
+stow dots
+dots deploy --dry-run  # show packages and actions without changing anything
+dots deploy            # restow changed packages and reload live Hyprland if needed
+dots deploy --all      # restow every package
+dots deploy --system   # also install the greetd and PAM templates via sudo
+```
+
+System templates are opt-in and are never stowed. Stow conflicts stop the
+deployment without adopting or overwriting files. The successful commit is
+recorded in `~/.local/state/dots/last-deployed`.
+
 ---
 
 ## AI Agent Launcher

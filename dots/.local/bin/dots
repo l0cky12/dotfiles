@@ -1,0 +1,226 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+program=${0##*/}
+dry_run=false
+deploy_system=false
+deploy_all=false
+
+usage() {
+  cat <<EOF
+Usage: $program deploy [--dry-run] [--system] [--all]
+
+Deploy changed GNU Stow packages from ~/dotfiles.
+
+  --dry-run  Print the deployment plan without changing anything
+  --system   Also install the repository's greetd and PAM templates
+  --all      Restow every package, regardless of the last deployment
+EOF
+}
+
+fail() {
+  printf '%s: error: %s\n' "$program" "$*" >&2
+  exit 1
+}
+
+if (($# == 0)); then
+  usage >&2
+  exit 2
+fi
+
+command_name=$1
+shift
+[[ $command_name == deploy ]] || {
+  printf '%s: unknown command: %s\n' "$program" "$command_name" >&2
+  usage >&2
+  exit 2
+}
+
+while (($# > 0)); do
+  case $1 in
+    --dry-run) dry_run=true ;;
+    --system) deploy_system=true ;;
+    --all) deploy_all=true ;;
+    -h|--help) usage; exit 0 ;;
+    *)
+      printf '%s: unknown option: %s\n' "$program" "$1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+command -v git >/dev/null 2>&1 || fail "git is required"
+
+repo=${DOTS_REPO:-"$HOME/dotfiles"}
+state_file=${DOTS_STATE_FILE:-"${XDG_STATE_HOME:-$HOME/.local/state}/dots/last-deployed"}
+[[ -d $repo ]] || fail "repository not found: $repo"
+git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+  fail "not a Git repository: $repo"
+
+head_sha=$(git -C "$repo" rev-parse --verify HEAD^{commit}) ||
+  fail "cannot resolve HEAD in $repo"
+
+is_excluded() {
+  case $1 in
+    docs|wiki|tests|system|dotfiles) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+declare -a all_packages=()
+declare -A is_package=()
+git -C "$repo" ls-tree -d --name-only HEAD >/dev/null ||
+  fail "cannot list packages in $repo"
+while IFS= read -r -d '' directory; do
+  if ! is_excluded "$directory"; then
+    all_packages+=("$directory")
+    is_package["$directory"]=1
+  fi
+done < <(git -C "$repo" ls-tree -z -d --name-only HEAD)
+
+first_deploy=false
+last_sha=
+if [[ -f $state_file ]]; then
+  IFS= read -r last_sha < "$state_file" || true
+  [[ -n $last_sha ]] || fail "deployment state is empty: $state_file"
+  git -C "$repo" rev-parse --verify --quiet "${last_sha}^{commit}" >/dev/null ||
+    fail "deployment state does not name a commit: $last_sha"
+else
+  first_deploy=true
+fi
+
+declare -a packages=()
+if [[ $deploy_all == true || $first_deploy == true ]]; then
+  packages=("${all_packages[@]}")
+else
+  declare -A changed_packages=()
+  git -C "$repo" diff --name-only "$last_sha" HEAD -- >/dev/null ||
+    fail "cannot compare $last_sha with HEAD"
+  while IFS= read -r -d '' path; do
+    top=${path%%/*}
+    if [[ $path == */* && -n ${is_package["$top"]+present} ]]; then
+      changed_packages["$top"]=1
+    fi
+  done < <(git -C "$repo" diff --name-only -z "$last_sha" HEAD --)
+
+  for package in "${all_packages[@]}"; do
+    if [[ -n ${changed_packages["$package"]+present} ]]; then
+      packages+=("$package")
+    fi
+  done
+fi
+
+printf 'Repository: %s\n' "$repo"
+printf 'Target commit: %s\n' "$head_sha"
+if [[ $first_deploy == true ]]; then
+  printf 'Notice: no previous deployment record; deploying all packages.\n'
+elif [[ $deploy_all == true ]]; then
+  printf 'Notice: --all selected; deploying all packages.\n'
+else
+  printf 'Previous commit: %s\n' "$last_sha"
+fi
+
+printf 'Packages:\n'
+if ((${#packages[@]} == 0)); then
+  printf '  (none)\n'
+else
+  for package in "${packages[@]}"; do
+    printf '  - %s\n' "$package"
+  done
+fi
+
+printf 'Actions:\n'
+for package in "${packages[@]}"; do
+  printf '  - stow --restow %q\n' "$package"
+done
+if [[ -n ${is_package[hypr]+present} ]]; then
+  for package in "${packages[@]}"; do
+    if [[ $package == hypr ]]; then
+      printf '  - reload Hyprland if a session is live\n'
+      break
+    fi
+  done
+fi
+if [[ $deploy_system == true ]]; then
+  printf '  - sudo install -m 0644 system/greetd/config.toml /etc/greetd/config.toml\n'
+  for pam_file in "$repo"/system/pam.d/*; do
+    [[ -f $pam_file ]] || fail "no PAM templates found in $repo/system/pam.d"
+    printf '  - sudo install -m 0644 %s /etc/pam.d/%s\n' \
+      "${pam_file#"$repo"/}" "${pam_file##*/}"
+  done
+fi
+if ((${#packages[@]} == 0)) && [[ $deploy_system == false ]]; then
+  printf '  (state record only; no package changes)\n'
+fi
+
+if [[ $dry_run == true ]]; then
+  printf 'Dry run: no changes made.\n'
+  exit 0
+fi
+
+if ((${#packages[@]} > 0)); then
+  command -v stow >/dev/null 2>&1 || fail "stow is required to deploy packages"
+fi
+if [[ $deploy_system == true ]]; then
+  command -v sudo >/dev/null 2>&1 || fail "sudo is required with --system"
+  [[ -f $repo/system/greetd/config.toml ]] ||
+    fail "missing system template: $repo/system/greetd/config.toml"
+fi
+
+reload_hypr=false
+for package in "${packages[@]}"; do
+  if [[ $package == hypr ]]; then
+    command -v pgrep >/dev/null 2>&1 ||
+      fail "pgrep is required to check for a live Hyprland session"
+    if pgrep -x Hyprland >/dev/null 2>&1; then
+      command -v hyprctl >/dev/null 2>&1 ||
+        fail "Hyprland is live but hyprctl is unavailable"
+      reload_hypr=true
+    fi
+    break
+  fi
+done
+
+for package in "${packages[@]}"; do
+  printf 'Restowing %s...\n' "$package"
+  if ! (cd "$repo" && stow --restow "$package"); then
+    fail "stow failed for '$package'; resolve the reported conflict and retry (files were not adopted or overwritten)"
+  fi
+done
+
+if [[ $deploy_system == true ]]; then
+  sudo install -m 0644 "$repo/system/greetd/config.toml" /etc/greetd/config.toml
+  for pam_file in "$repo"/system/pam.d/*; do
+    [[ -f $pam_file ]] || fail "no PAM templates found in $repo/system/pam.d"
+    sudo install -m 0644 "$pam_file" "/etc/pam.d/${pam_file##*/}"
+  done
+fi
+
+if [[ $reload_hypr == true ]]; then
+  printf 'Reloading Hyprland...\n'
+  hyprctl reload || fail "hyprctl reload failed"
+fi
+
+state_dir=${state_file%/*}
+if [[ $state_dir == "$state_file" ]]; then
+  state_dir=.
+fi
+if [[ ! -d $state_dir ]]; then
+  old_umask=$(umask)
+  umask 077
+  mkdir -p "$state_dir"
+  umask "$old_umask"
+  chmod 0700 "$state_dir"
+fi
+state_tmp=$(mktemp "$state_dir/.last-deployed.XXXXXX") ||
+  fail "cannot create deployment state in $state_dir"
+trap 'rm -f "$state_tmp"' EXIT
+printf '%s\n' "$head_sha" > "$state_tmp"
+chmod 0600 "$state_tmp"
+mv -f "$state_tmp" "$state_file"
+trap - EXIT
+
+printf 'Deployed %s and updated %s.\n' "$head_sha" "$state_file"
