@@ -32,6 +32,11 @@ if path and not path:find(home .. "/.local/bin", 1, true) then
 end
 
 hl.config({
+    -- `preselect` is a dwindle-only layout message. Keep this explicit so the
+    -- next-window direction bindings cannot depend on a compositor default.
+    general = {
+        layout = "dwindle",
+    },
     decoration = {
         screen_shader = night_light_enabled
             and (home .. "/.config/hypr/shaders/night-light.frag")
