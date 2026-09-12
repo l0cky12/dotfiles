@@ -283,7 +283,8 @@ write_configuration() {
   credentials_tmp=$(mktemp "$CONFIG_DIR/credentials.XXXXXX")
   chmod 600 "$settings_tmp" "$credentials_tmp"
   {
-    printf 'WINDOWS_IMAGE=dockurr/windows:latest\n'
+    # TODO: replace DIGEST with the verified digest captured as documented in README.md.
+    printf 'WINDOWS_IMAGE=dockurr/windows@sha256:DIGEST\n'
     printf 'WINDOWS_VERSION=11\n'
     printf 'WINDOWS_RAM_SIZE=%s\n' "$ram"
     printf 'WINDOWS_CPU_CORES=%s\n' "$cores"
