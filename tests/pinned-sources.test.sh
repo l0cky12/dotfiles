@@ -25,9 +25,14 @@ fail() {
 scan_input="$test_root/docs.logical-lines"
 sed ':join; /\\$/ { N; s/\\\n/ /; b join; }' "${docs[@]}" >"$scan_input"
 
-# Reject curl and wget stdout piped to common shells (optionally via sudo), as
-# well as shells executing a downloader through process substitution.
-direct_exec_pattern='((curl[^|]*|wget[^|]*-(qO|O)-[^|]*)\|[[:space:]]*(sudo[[:space:]]+)?(ba|z|da)?sh|(ba|z|da)?sh[[:space:]]*<[[:space:]]*\([[:space:]]*(curl|wget[[:space:]]+[^)]*-(qO|O)-))'
+# Reject downloader output piped to a shell, including path-qualified shells
+# and sudo with flags. The wget alternatives cover its common stdout forms.
+pipe_exec_pattern='(curl[^|]*|wget[^|]*(-qO-|-O[[:space:]]+-|--output-document(=|[[:space:]]+)-)[^|]*)\|[[:space:]]*(sudo[[:space:]]+[^|]*)?([^|[:space:]]*/)?(ba|z|da)?sh([[:space:]]|$)'
+# Reject shells (or eval) executing downloader output via command substitution.
+command_substitution_exec_pattern='(([^[:space:]]*/)?(ba|z|da)?sh[[:space:]]+-c|eval)[[:space:]]+"?\$\([[:space:]]*(curl|wget)[^)]*\)'
+# Reject source/dot and shell-stdin execution via process substitution.
+process_substitution_exec_pattern='((source|\.)[[:space:]]+|([^[:space:]]*/)?(ba|z|da)?sh[[:space:]]*<[[:space:]]*)<\([[:space:]]*(curl|wget)[^)]*\)'
+direct_exec_pattern="$pipe_exec_pattern|$command_substitution_exec_pattern|$process_substitution_exec_pattern"
 if grep -Eq -- "$direct_exec_pattern" "$scan_input"; then
   fail 'documentation still executes curl output directly in a shell'
 else
