@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Keep an SSH connection alive and return to the same remote tmux session.
+
+set -euo pipefail
+
+PROGRAM=${0##*/}
+
+usage() {
+  printf 'Usage: %s <host> [session]\n' "$PROGRAM"
+}
+
+fail() {
+  printf '%s: %s\n' "$PROGRAM" "$1" >&2
+  exit 2
+}
+
+(( $# >= 1 && $# <= 2 )) || {
+  usage >&2
+  exit 2
+}
+
+host=$1
+[[ -n $host && $host != -* && $host != *[[:space:]]* ]] \
+  || fail 'host must be a non-option SSH destination without whitespace'
+
+if (( $# == 2 )); then
+  session=$2
+else
+  # tmux reserves punctuation used by common SSH destinations. Retain the
+  # recognizable host spelling while producing an unambiguous session name.
+  session=${host//[^A-Za-z0-9_-]/_}
+fi
+
+[[ $session =~ ^[A-Za-z0-9_][A-Za-z0-9_-]*$ ]] \
+  || fail 'session must use only letters, digits, underscores, and hyphens'
+
+command -v autossh >/dev/null 2>&1 || fail 'autossh is required (pacman -S autossh)'
+
+export AUTOSSH_GATETIME=${AUTOSSH_GATETIME:-0}
+
+exec autossh -M 0 -t \
+  -o ServerAliveInterval=15 \
+  -o ServerAliveCountMax=3 \
+  -o ConnectTimeout=10 \
+  -o TCPKeepAlive=yes \
+  "$host" tmux new -A -s "$session"
