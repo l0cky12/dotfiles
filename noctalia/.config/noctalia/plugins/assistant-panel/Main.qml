@@ -39,8 +39,8 @@ Item {
       [Constants.Providers.GOOGLE]: {
         "name": "Google Gemini",
         "defaultModel": "gemini-2.5-flash",
-        "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?key={apiKey}",
-        "streamEndpoint": "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse&key={apiKey}"
+        "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent",
+        "streamEndpoint": "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse"
       },
       [Constants.Providers.OPENAI_COMPATIBLE]: {
         "name": "OpenAI Compatible",
@@ -232,7 +232,7 @@ Item {
 
   // Send a message to the AI
   function sendMessage(userMessage) {
-    Logger.i("AssistantPanel", "sendMessage called with: " + userMessage);
+    Logger.i("AssistantPanel", "sendMessage called");
     if (!userMessage || userMessage.trim() === "") {
       Logger.i("AssistantPanel", "sendMessage: empty message, abort");
       return;
@@ -373,6 +373,7 @@ Item {
     id: geminiProcess
 
     property string buffer: ""
+    stdinEnabled: true
 
     stdout: SplitParser {
       onRead: function (data) {
@@ -425,6 +426,7 @@ Item {
     }
 
     onExited: function (exitCode, exitStatus) {
+      stdinEnabled = true;
       if (root.isManuallyStopped) {
         root.isManuallyStopped = false;
         return;
@@ -456,12 +458,14 @@ Item {
       model, apiKey, systemPrompt, history, temperature
     );
 
-    Logger.i("AssistantPanel", "sendGeminiRequest: endpoint=" + commandData.url.split("?")[0]);
     geminiProcess.buffer = "";
     geminiProcess.command = commandData.args;
     Logger.i("AssistantPanel", "sendGeminiRequest: starting process");
     _responseBuffer = "";
+    geminiProcess.stdinEnabled = true;
     geminiProcess.running = true;
+    geminiProcess.write(commandData.stdin);
+    geminiProcess.stdinEnabled = false;
   }
 
   // =====================
@@ -471,6 +475,7 @@ Item {
     id: openaiProcess
 
     property string buffer: ""
+    stdinEnabled: true
 
     stdout: SplitParser {
       onRead: function (data) {
@@ -512,6 +517,7 @@ Item {
     }
 
     onExited: function (exitCode, exitStatus) {
+      stdinEnabled = true;
       if (root.isManuallyStopped) {
         root.isManuallyStopped = false;
         return;
@@ -545,12 +551,14 @@ Item {
     var history = buildConversationHistory();
     var commandData = ProviderLogic.buildOpenAICommand(openaiBaseUrl, apiKey, model, systemPrompt, history, temperature);
 
-    Logger.i("AssistantPanel", "sendOpenAIRequest: endpoint=" + commandData.url.split("?")[0]);
     openaiProcess.buffer = "";
     openaiProcess.command = commandData.args;
 
     Logger.i("AssistantPanel", "sendOpenAIRequest: starting process");
+    openaiProcess.stdinEnabled = true;
     openaiProcess.running = true;
+    openaiProcess.write(commandData.stdin);
+    openaiProcess.stdinEnabled = false;
   }
 
   // =====================
@@ -589,6 +597,7 @@ Item {
 
   Process {
     id: translateProcess
+    stdinEnabled: true
 
     stdout: StdioCollector {
       onStreamFinished: {
@@ -600,6 +609,7 @@ Item {
     stderr: StdioCollector {}
 
     onExited: function (exitCode, exitStatus) {
+      stdinEnabled = true;
       if (exitCode !== 0) {
         root.isTranslating = false;
         root.translationError = pluginApi?.tr("errors.translationFailed");
@@ -610,7 +620,10 @@ Item {
   function translateGoogle(text, targetLang, sourceLang) {
     var commandData = ProviderLogic.buildGoogleTranslateCommand(text, targetLang, sourceLang);
     translateProcess.command = commandData.args;
+    translateProcess.stdinEnabled = true;
     translateProcess.running = true;
+    translateProcess.write(commandData.stdin);
+    translateProcess.stdinEnabled = false;
   }
 
   function translateDeepL(text, targetLang) {
@@ -623,7 +636,10 @@ Item {
     }
 
     translateProcess.command = commandData.args;
+    translateProcess.stdinEnabled = true;
     translateProcess.running = true;
+    translateProcess.write(commandData.stdin);
+    translateProcess.stdinEnabled = false;
   }
 
   function handleTranslationResponse(responseText) {

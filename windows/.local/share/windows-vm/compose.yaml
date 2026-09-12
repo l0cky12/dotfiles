@@ -1,6 +1,8 @@
 services:
   windows:
-    image: "${WINDOWS_IMAGE:-dockurr/windows:latest}"
+    # TODO: On the user's machine, replace DIGEST with output from:
+    # docker image inspect dockurr/windows:latest --format '{{index .RepoDigests 0}}'
+    image: "${WINDOWS_IMAGE:-dockurr/windows@sha256:DIGEST}"
     env_file:
       - "${WINDOWS_VM_CONTAINER_ENV:?windows-vm must provide its runtime credential file}"
     environment:

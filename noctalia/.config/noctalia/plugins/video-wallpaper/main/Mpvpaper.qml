@@ -59,10 +59,8 @@ Item {
         if (root.isMuted) {
             options.push("no-audio"); }
 
-        const optionsString = options.join(" ");
-        const command = `mpvpaper -o "${optionsString}" ${root.screenName} "${root.currentWallpaper}"`;
-
-        return ["sh", "-c", command];
+        return ["mpvpaper", "-o", options.join(" "), root.screenName,
+            root.currentWallpaper];
     }
 
     function activateMpvpaper() {

@@ -65,6 +65,9 @@ typeset -g POWERLEVEL9K_INSTANT_PROMPT=off
 
 alias gam="/home/liam/bin/gam7/gam"
 
+# Persistent SSH launcher from the `ssh` Stow package.
+alias sshp='sshpersist'
+
 # Also set for the graphical session by hyprland.lua; guard so a login shell
 # under Hyprland does not prepend a duplicate entry.
 [[ ":$PATH:" == *":$HOME/.local/bin:"* ]] || export PATH="$HOME/.local/bin:$PATH"

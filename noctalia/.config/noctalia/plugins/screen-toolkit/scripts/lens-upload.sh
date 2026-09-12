@@ -3,7 +3,10 @@ set -euo pipefail
 umask 077
 
 GX="$1"; GY="$2"; GW="$3"; GH="$4"
-FILE="/tmp/screen-toolkit-lens.png"
+TEMP_DIR="$5"
+FILE=$(mktemp -- "$TEMP_DIR/lens.XXXXXX.png")
+cleanup() { rm -f -- "$FILE"; }
+trap cleanup EXIT
 
 # Exit 1 — missing dependency (dep name written to stdout for QML)
 for dep in grim curl jq xdg-open; do
@@ -18,8 +21,6 @@ RESP=$(curl -sS -f -A 'Mozilla/5.0' --connect-timeout 20 --max-time 60 \
   -F "files[]=@$FILE" 'https://uguu.se/upload' 2>/dev/null) || \
 RESP=$(curl -sS -A 'Mozilla/5.0' --connect-timeout 20 --max-time 60 \
   -F "files[]=@$FILE" 'https://uguu.se/upload.php' 2>/dev/null)
-
-rm -f "$FILE"
 
 URL=$(printf '%s' "$RESP" | jq -r '.files[0].url // empty' 2>/dev/null)
 if [ -n "$URL" ] && [[ "$URL" == http* ]]; then

@@ -69,8 +69,8 @@ set, so adding or removing a widget means updating that list.
   automatic-screensaver-disabled, and error states. Clicking opens the modes
   panel. They show *observed* state, so an error appears instead of a false
   success.
-- **Updates**: hover shows repo and AUR counts; clicking opens a Kitty update
-  window.
+- **Updates**: hover shows every pending pacman and AUR package; it checks every
+  90 minutes, and clicking opens a Kitty update window.
 - **Battery**: shows charge percentage and state; hidden when no laptop battery
   is present.
 - **Windows VM icon**: appears while the container runs. Pulses amber while

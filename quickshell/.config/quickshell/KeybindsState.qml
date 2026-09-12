@@ -120,14 +120,15 @@ Singleton {
     { rank: 77, re: /^(start )?Gaming VM$/i },
     { rank: 78, re: /^toggle window transparency/i },
     { rank: 79, re: /^toggle window gaps/i },
-    { rank: 80, re: /^play temporary dotfiles history$/i },
-    { rank: 81, re: /^volume (up|down)( \(pactl\))?$/i },
-    { rank: 82, re: /^mute( \(pactl\))?$/i },
-    { rank: 83, re: /^play \/ pause$|^pause$|^(next|previous) track$|^stop playback$/i },
-    { rank: 84, re: /^brightness (up|down)$/i },
-    { rank: 85, re: /^lid (closed|opened):/i },
-    { rank: 86, re: /^(Zoom in|Zoom out|Reset zoom)$/i },
-    { rank: 87, re: /mouse/i }
+    { rank: 80, re: /^cycle window layout$/i },
+    { rank: 81, re: /^play temporary dotfiles history$/i },
+    { rank: 82, re: /^volume (up|down)( \(pactl\))?$/i },
+    { rank: 83, re: /^mute( \(pactl\))?$/i },
+    { rank: 84, re: /^play \/ pause$|^pause$|^(next|previous) track$|^stop playback$/i },
+    { rank: 85, re: /^brightness (up|down)$/i },
+    { rank: 86, re: /^lid (closed|opened):/i },
+    { rank: 87, re: /^(Zoom in|Zoom out|Reset zoom)$/i },
+    { rank: 88, re: /mouse/i }
   ]
 
   function rankFor(description) {

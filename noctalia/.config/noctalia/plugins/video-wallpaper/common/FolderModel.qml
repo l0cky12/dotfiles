@@ -1,33 +1,33 @@
 pragma ComponentBehavior: Bound
+import Qt.labs.folderlistmodel
 import QtQuick
-
-import Quickshell
-import Quickshell.Io
-
-import qs.Commons
 
 Item {
     id: root
     
     required property string folder
     property list<string> filters: []
+    readonly property url _folderUrl: folder === "" ? "" : "file://" + folder
 
     readonly property bool ready: internal.ready
     readonly property list<string> files: internal.files
     readonly property int count: files.length
 
     function reload() {
-        if (!proc.running) {
-            forceReload();
-        }
+        forceReload();
     }
 
     function forceReload() {
-        internal.ready = false
-        internal.files = [];
-        proc.running = false;
-        proc.command = ["sh", "-c", proc._command]
-        proc.running = true;
+        internal.ready = false;
+
+        if (root.folder === "") {
+            internal.files = [];
+            internal.ready = true;
+            return;
+        }
+
+        folderList.folder = "";
+        folderList.folder = root._folderUrl;
     }
 
     function get(index: int): string {
@@ -40,31 +40,37 @@ Item {
 
     onFolderChanged: forceReload();
 
+    Component.onCompleted: {
+        if (root.folder === "")
+            forceReload();
+    }
+
     QtObject {
         id: internal
         property bool ready: false
         property list<string> files: []
+
+        function updateFiles() {
+            const paths = [];
+            for (let index = 0; index < folderList.count; index++)
+                paths.push(folderList.get(index, "filePath"));
+
+            files = paths;
+        }
     }
 
-    Process {
-        id: proc
+    FolderListModel {
+        id: folderList
+        folder: root._folderUrl
+        nameFilters: root.filters
+        showDirs: false
+        showDotAndDotDot: false
+        showHidden: true
 
-        readonly property string _command: {
-            let command = `find "${root.folder}" -mindepth 1 -maxdepth 1`
-            let filters = []
-            for (const filter of root.filters) {
-                filters.push(`-name "${filter}"`);
-            }
-            return `${command} ${filters.join(" -o ")}`;
-        }
-        running: true
-        command: ["sh", "-c", `${_command}`]
-
-        stdout: SplitParser {
-            onRead: line => internal.files.push(line);
-        }
-        onExited: {
-            internal.ready = true;
+        onStatusChanged: {
+            internal.ready = status === FolderListModel.Ready;
+            if (internal.ready)
+                internal.updateFiles();
         }
     }
 }

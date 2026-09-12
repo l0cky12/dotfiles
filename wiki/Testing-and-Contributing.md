@@ -57,6 +57,7 @@ python3 -m unittest tests.test_theme_generator
 | `desktop-mode.test.py` | mode transitions, timers, conditions, doctor output |
 | `screensaver.test.sh` | monitor spawn planning and the lock handoff |
 | `arch-updates.test.sh` | update counting, including a failed mirror sync |
+| `pinned-sources.test.sh` | remote installer pinning and direct-execution guards |
 | `omakub-bar-layout.test.sh` | the bar still mounts the expected component set |
 | `audio-panel.test.sh` | shared audio helper behavior and headless panel rendering |
 | `omakub-toggles.test.sh` | the toggles menu |
@@ -66,6 +67,7 @@ python3 -m unittest tests.test_theme_generator
 | `lmenu.test.sh`, `lmenu-reminder.test.sh` | menu rendering and systemd-timer reminders |
 | `windows-vm.test.sh` | the VM controller |
 | `yubikey-auth.test.sh` | the guarded PAM helper |
+| `dots-deploy.test.sh` | changed-package deployment, manual-package safeguards, system-file safety, and deployment-state handling |
 | `eject-drive.test.sh` | drive ejection, with `--fixture` implying `--dry-run` |
 | `docker-dev-env.test.sh` | the development stack |
 | `hypr-wallpaper-picker.test.sh` | index, search, apply |

@@ -23,7 +23,7 @@ Item {
     font.family: Theme.glyphFamily
     font.pixelSize: root.s(14)
     color: UpdatesState.totalCount > 0 ? Theme.onAccent : Theme.textMuted
-    opacity: UpdatesState.updating ? 0.55 : 1
+    opacity: (UpdatesState.updating || UpdatesState.checking) ? 0.55 : 1
   }
 
   MouseArea {
@@ -31,6 +31,7 @@ Item {
     anchors.fill: parent
     hoverEnabled: true
     acceptedButtons: Qt.LeftButton
+    enabled: !UpdatesState.checking && !UpdatesState.updating
     onClicked: UpdatesState.update()
   }
 
@@ -40,7 +41,7 @@ Item {
     anchor.edges: Edges.Bottom
     anchor.gravity: Edges.Bottom
     anchor.margins.top: 6
-    implicitWidth: tip.implicitWidth + 20
+    implicitWidth: 360
     implicitHeight: tip.implicitHeight + 16
 
     Rectangle {
@@ -51,8 +52,17 @@ Item {
     Text {
       id: tip
       anchors.centerIn: parent
-      text: "Repository: " + UpdatesState.repoCount
-            + "\nAUR: " + UpdatesState.aurCount
+      width: parent.width - 20
+      horizontalAlignment: Text.AlignLeft
+      wrapMode: Text.Wrap
+      text: "Pacman (" + UpdatesState.repoCount + "): "
+            + (UpdatesState.repoPackages.length > 0
+              ? UpdatesState.repoPackages.join(", ")
+              : "None")
+            + "\nAUR (" + UpdatesState.aurCount + "): "
+            + (UpdatesState.aurPackages.length > 0
+              ? UpdatesState.aurPackages.join(", ")
+              : "None")
             + (UpdatesState.stale ? "\nLast check failed" : "")
             + "\nClick to update"
       color: Theme.text

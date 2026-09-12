@@ -40,7 +40,7 @@ contents into `~`.
 
 ```bash
 stow ai browser cliphist fastfetch greeter hypr hyprlock kitty modes noctalia \
-     quickshell rofi screensaver security swaync systemd windows \
+     quickshell rofi screensaver security ssh swaync systemd tmux windows \
      wallpaper wofi xdg zsh
 ```
 
@@ -52,6 +52,8 @@ stow screensaver # screensaver commands, terminal configs, and editable logo
 stow modes       # ~/.local/bin/desktop-mode, temporary mode policy/config
 stow security    # ~/.local/bin/yubikey-auth, safe YubiKey PAM setup/addition;
                  # ~/.config/gnupg-conf gpg/gpg-agent examples
+stow ssh         # ~/.local/bin/sshpersist, SSH keepalive config fragment
+stow tmux        # ~/.config/tmux/tmux.conf for local tmux behavior
 stow browser     # Chromium extensions, flags, and native messaging hosts
 stow hypr        # ~/.config/hypr
 stow hyprlock    # ~/.config/hyprlock
@@ -67,6 +69,41 @@ stow cliphist    # ~/.config/cliphist
 stow xdg         # ~/.config/mimeapps.list, ~/.local/share/applications
 stow zsh         # ~/.zshrc, ~/.p10k.zsh (see Shell setup below)
 ```
+
+## Persistent SSH sessions
+
+The `sshpersist` launcher provides reconnecting SSH sessions through autossh and
+tmux on the remote host. The local `tmux` package only configures local tmux
+behavior.
+Install the required Arch packages without changing any configuration:
+
+```bash
+sudo pacman -S --needed autossh tmux
+```
+
+After stowing `ssh` and optionally `zsh` for the `sshp` shortcut, add this line
+at the end of `~/.ssh/config`:
+
+```sshconfig
+Include ~/.config/ssh/conf.d/*.conf
+```
+
+SSH uses the first obtained value for each parameter, so keeping the included
+`Host *` defaults last lets per-host blocks above it retain precedence. That
+manual include keeps the existing `~/.ssh/config` under user control. Start or
+return to a host-named remote session with `sshpersist <host>` or `sshp <host>`.
+An optional second argument selects another safe session name:
+
+```bash
+sshpersist server.example.com
+sshp server.example.com maintenance
+```
+
+`autossh -M 0` relies on SSH keepalives instead of a legacy monitor port. If a
+plain SSH connection is already open, reattach its session with
+`tmux attach -t <host>`; punctuation in the automatic host-derived session name
+is replaced with underscores (for example, `server.example.com` becomes
+`server_example_com`). The remote host also needs `tmux` installed.
 
 The generated app-theme packages are optional. Deploy them without directory
 folding so application-created files stay outside the Git checkout:
@@ -179,6 +216,24 @@ stow -D hypr
 stow --simulate hypr
 ```
 
+### Deploy changed packages with `dots`
+
+Stow the `dots` package once to install the deployment helper, then use it from
+any directory. The first run restows every package; later runs restow only
+packages changed since the last successful deployment.
+
+```bash
+stow dots
+dots deploy --dry-run  # show packages and actions without changing anything
+dots deploy            # restow changed packages and reload live Hyprland if needed
+dots deploy --all      # restow every package
+dots deploy --system   # also install the greetd and PAM templates via sudo
+```
+
+System templates are opt-in and are never stowed. Stow conflicts stop the
+deployment without adopting or overwriting files. The successful commit is
+recorded in `~/.local/state/dots/last-deployed`.
+
 ---
 
 ## AI Agent Launcher
@@ -248,6 +303,39 @@ leave a hidden modal dimming and blocking another window.
 New Windows installations also use Dockur's OEM hook to ensure WinGet, then
 install Sysinternals, Everything, Helium, and PuTTY. Its transcript is saved at
 `C:\OEM\post-install.log` inside the VM.
+
+### Pin and verify the image digest
+
+The tracked Compose template and newly generated settings intentionally use
+`dockurr/windows@sha256:DIGEST` as a fail-closed placeholder. Before launching
+the VM, pull the current `latest` image on the target machine and capture its
+immutable repository digest:
+
+```bash
+docker pull dockurr/windows:latest
+docker image inspect dockurr/windows:latest --format '{{index .RepoDigests 0}}'
+```
+
+Alternatively, after pulling, `docker image ls --digests dockurr/windows` shows
+the digest. Replace the complete `WINDOWS_IMAGE` value in
+`~/.config/windows/settings.env` with the returned
+`dockurr/windows@sha256:<64-hex-digest>` reference. To update the repository
+default for future installs, make the same one-line replacement in
+`windows/.local/share/windows-vm/compose.yaml` and the installer default in
+`windows/.local/bin/windows-vm`.
+
+This pull-then-pin workflow is trust on first use: the digest preserves the
+exact image first retrieved from the registry, but it does not establish that
+the image was reviewed, authentic, or safe. Pinning that captured digest only
+prevents later tag changes from silently selecting different image content.
+
+Before trusting a new digest, compare it with publisher release metadata,
+signatures, or attestations when those are available. After pulling the pinned
+reference, verify Docker resolved that exact digest:
+
+```bash
+docker image inspect 'dockurr/windows@sha256:<64-hex-digest>' --format '{{json .RepoDigests}}'
+```
 
 ---
 
@@ -651,6 +739,8 @@ OSD commands; it never downloads media or changes the live clipboard.
 | `fastfetch` | [Fastfetch](https://github.com/fastfetch-cli/fastfetch) | System info with themed key colors |
 | `noctalia` | Noctalia | Custom plugin system with themed color scheme |
 | `zsh` | Zsh | Shell config — `.zshrc` and `.p10k.zsh`; Oh My Zsh itself is installed separately |
+| `ssh` | autossh | Reconnecting SSH launcher and opt-in client keepalive fragment |
+| `tmux` | tmux | Persistent remote-session defaults |
 
 ---
 
@@ -670,17 +760,47 @@ OSD commands; it never downloads media or changes the live clipboard.
 - `fzf`, `fzf-tab`
 - `eza` (ls replacement)
 - `powerlevel10k`
+- `autossh`, `tmux` (persistent SSH sessions)
 
 Oh My Zsh and the two pieces `.zshrc` loads out of `$ZSH_CUSTOM` are **not
 vendored in this repo** — Oh My Zsh's own `.gitignore` excludes `custom/`, so
 nothing tracked here could ever carry them. Install them once:
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
+(
+# The subshell guards the exit below so a failed pin check can never close an
+# interactive terminal.
+# REQUIRED: fill this with a reviewed 40-character commit from
+# https://github.com/ohmyzsh/ohmyzsh/commit/<sha>. When reviewing the commit,
+# inspect tools/install.sh and record its SHA-256 digest through a trusted channel.
+OMZ_PIN='<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'
+[[ $OMZ_PIN =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+omz_installer="$(mktemp)"
+curl -fsSL "https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/$OMZ_PIN/tools/install.sh" \
+  --output "$omz_installer"
+sha256sum "$omz_installer"
+printf '%s\n' 'Compare this SHA-256 with the digest recorded when OMZ_PIN was reviewed.'
+less "$omz_installer"  # Inspect the complete script before continuing.
+sh "$omz_installer" "" --unattended
+rm -f "$omz_installer"
+
+(
+# REQUIRED: fill these with reviewed 40-character commits from the linked
+# upstream repositories. The placeholder values fail closed. Review each at
+# https://github.com/romkatv/powerlevel10k/commit/<sha> and
+# https://github.com/Aloxaf/fzf-tab/commit/<sha> before using it.
+POWERLEVEL10K_PIN='<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'
+FZF_TAB_PIN='<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'
+[[ $POWERLEVEL10K_PIN =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+[[ $FZF_TAB_PIN =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+git clone --no-checkout https://github.com/romkatv/powerlevel10k.git \
   ~/.oh-my-zsh/custom/themes/powerlevel10k
-git clone --depth=1 https://github.com/Aloxaf/fzf-tab.git \
+git -C ~/.oh-my-zsh/custom/themes/powerlevel10k checkout --detach \
+  "$POWERLEVEL10K_PIN"
+git clone --no-checkout https://github.com/Aloxaf/fzf-tab.git \
   ~/.oh-my-zsh/custom/plugins/fzf-tab
+git -C ~/.oh-my-zsh/custom/plugins/fzf-tab checkout --detach "$FZF_TAB_PIN"
+)
 ```
 
 **Theme system:**

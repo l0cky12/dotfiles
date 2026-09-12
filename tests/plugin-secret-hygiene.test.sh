@@ -38,15 +38,14 @@ grep -Fq -- 'defaultValue: false' <<<"$persist_block" \
 assert_contains "$assistant/Main.qml" 'if (!persistChatHistory)'
 assert_contains "$assistant/Main.qml" 'if (persistChatHistory)'
 
-# Endpoint diagnostics must omit query parameters, which can contain API keys.
-redacted_endpoint_logs="$(grep -Fc -- 'commandData.url.split("?")[0]' "$assistant/Main.qml")"
-[ "$redacted_endpoint_logs" -eq 2 ] \
-    || fail "$assistant/Main.qml does not redact both endpoint logs"
+# Endpoint diagnostics must not log request URLs, which can contain API keys.
+assert_not_contains "$assistant/Main.qml" 'commandData.url'
 
-# The upload key belongs in the child environment, never its argv.
-assert_contains "$toolkit/overlays/Annotate.qml" 'environment: ({ "X02_API_KEY": apiKey })'
+# The upload key is written to stdin, never placed in the child environment or argv.
+assert_contains "$toolkit/overlays/Annotate.qml" 'uploadProc.write(apiKey + "\n")'
 assert_not_contains "$toolkit/overlays/Annotate.qml" 'file, apiKey, expiry'
-assert_contains "$toolkit/scripts/share-upload.sh" 'API_KEY="${X02_API_KEY:-}"'
+assert_contains "$toolkit/scripts/share-upload.sh" 'IFS= read -r API_KEY'
+assert_contains "$toolkit/scripts/share-upload.sh" 'chmod 0600 -- "$CURL_CONFIG"'
 
 # The root settings component must define its completion handler only once.
 completion_handlers="$(grep -Fc -- 'Component.onCompleted:' "$assistant/Settings.qml")"

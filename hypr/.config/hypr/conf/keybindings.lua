@@ -11,6 +11,8 @@ local function exec(keys, description, command, flags)
     bind(keys, description, hl.dsp.exec_cmd(command), flags)
 end
 
+local window_layout = cfg.scripts_dir .. "/window-layout.sh"
+
 -- Entry points owned by a separate Stow package. Routed through
 -- run-if-deployed.sh so an undeployed package reports itself instead of making
 -- the keybinding silently do nothing.
@@ -144,6 +146,7 @@ exec(mod .. " + S", "spotify", "spotify")
 exec(mod .. " + O", "obsidian", "obsidian")
 exec(mod .. " + R", "voice dictation", "hyprvoice toggle")
 bind(mod .. " + T", "toggle window floating / tiling", hl.dsp.window.float({ action = "toggle" }))
+exec(mod .. " + SHIFT + L", "cycle window layout", window_layout .. " cycle")
 exec(mod .. " + SHIFT + H", "hermes", "hermes")
 exec(mod .. " + SHIFT + W", "wallpaper picker", "~/.local/bin/hypr-wallpaper-picker")
 
@@ -192,8 +195,8 @@ exec("switch:off:Lid Switch", "lid opened: enable internal display", cfg.scripts
 -- Tiling direction for the next window to open. dwindle's `preselect` is a
 -- one-time override, so each press affects only the next window.
 -- Horizontal = the new window opens beside this one; vertical = below it.
-bind(mod .. " + J", "split horizontally (next window opens to the right)", hl.dsp.layout("preselect r"))
-bind(mod .. " + SHIFT + V", "split vertically (next window opens below)", hl.dsp.layout("preselect d"))
+exec(mod .. " + J", "split horizontally (next window opens to the right)", window_layout .. " split-horizontal")
+exec(mod .. " + SHIFT + V", "split vertically (next window opens below)", window_layout .. " split-vertical")
 local resize_binds = {
     { mod .. " + minus", "expand window left", -100, 0 },
     { mod .. " + equal", "shrink window left", 100, 0 },

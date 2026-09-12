@@ -56,7 +56,8 @@ Item {
             // Try to create the thumbnail again
             // just a fail safe if the current wallpaper isn't included in the wallpapers folder
             Logger.d("video-wallpaper", "Thumbnail not found:", thumbPath);
-            proc.command = ["sh", "-c", `ffmpeg -y -i "${currentWallpaper}" -vframes:v 1 "${thumbPath}"`]
+            proc.command = ["ffmpeg", "-y", "-i", currentWallpaper,
+                "-vframes:v", "1", thumbPath]
             proc.running = true;
             return;
         }

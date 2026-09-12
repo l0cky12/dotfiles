@@ -15,6 +15,8 @@ Item {
     property var pluginApi: null
     readonly property string _scriptsDir: Qt.resolvedUrl("scripts/").toString().replace("file://", "")
     readonly property string _home: Quickshell.env("HOME")
+    property string tempDir: ""
+    readonly property string annotatePath: tempDir === "" ? "" : tempDir + "/annotate.png"
     property bool   isRunning:              false
     property string activeTool:             ""
     property string pendingLangStr:         "eng"
@@ -56,6 +58,7 @@ Item {
     property var    _regionScreen: null
     property bool   _capsDetected:   false
     property bool   _sessionChecked: false
+    property string _bootId:         ""
     property var    _detectedLangs:  []
     property string _grimGeometry: ""
     property int    _grimX:        0
@@ -67,34 +70,41 @@ Item {
     Component.onCompleted: {
         root.isRunning  = false
         root.activeTool = ""
+        tempSessionProc.exec({ command: [root._scriptsDir + "temp-session.sh", "create"] })
         Logger.i("ScreenToolkit", "Scripts dir: " + root._scriptsDir)
         if (!_capsDetected) {
             detectCapabilities()
             _capsDetected = true
         }
     }
+    Component.onDestruction: {
+        if (root.tempDir !== "")
+            Quickshell.execDetached([root._scriptsDir + "temp-session.sh", "cleanup", root.tempDir])
+    }
     onPluginApiChanged: {
-        if (pluginApi) {
-            if (!root._sessionChecked) {
-                root._sessionChecked = true
-                _checkSession()
-            }
-        }
+        if (pluginApi) _checkSession()
     }
     Process {
-        id: sessionCheckProc
+        id: tempSessionProc
         stdout: StdioCollector {}
-        onExited: {
-            var isNewBoot = sessionCheckProc.stdout.text.trim() === "new"
-            if (isNewBoot) _clearStaleResults()
-            else           _restoreSavedState()
+        onExited: (code) => {
+            if (code !== 0) {
+                Logger.e("ScreenToolkit", "Unable to create private session directory")
+                return
+            }
+            var output = tempSessionProc.stdout.text.trim().split("\n")
+            root.tempDir = output[0] ?? ""
+            root._bootId = output[1] ?? ""
+            _checkSession()
         }
     }
     function _checkSession() {
-        sessionCheckProc.exec({ command: ["bash", "-c",
-            "[ -f /tmp/screen-toolkit-session ] && echo 'exists' || echo 'new'; " +
-            "touch /tmp/screen-toolkit-session"
-        ]})
+        if (root._sessionChecked || !pluginApi || root.tempDir === "" || root._bootId === "") return
+        root._sessionChecked = true
+        var isNewBoot = (pluginApi.pluginSettings.stateBootId ?? "") !== root._bootId
+        pluginApi.pluginSettings.stateBootId = root._bootId
+        if (isNewBoot) _clearStaleResults()
+        else           _restoreSavedState()
     }
     function _clearStaleResults() {
         if (!pluginApi) return
@@ -151,6 +161,13 @@ function clearPaletteResult() {
     function _restoreSavedState() {
         if (!pluginApi) return
         var s = pluginApi.pluginSettings
+        // Session captures no longer exist after a shell restart. Keep only results
+        // that can be rendered without referring back to those temporary files.
+        s.colorCapturePath = ""
+        s.colorCacheBust   = 0
+        s.ocrCapturePath   = ""
+        s.qrCapturePath    = ""
+        pluginApi.saveSettings()
         colorPickerOverlay.loadState(s)
         ocrOverlay.loadState(s)
         qrOverlay.loadState(s)
@@ -269,12 +286,12 @@ function clearPaletteResult() {
     Measure       { id: measureOverlay;       mainInstance: root }
     Pin           { id: pinOverlay;           pluginApi: root.pluginApi }
     Record        { id: recordOverlay;        pluginApi: root.pluginApi }
-    Mirror { id: mirrorOverlay; pluginApi: root.pluginApi; scriptsDir: root._scriptsDir }
-    ColorPicker   { id: colorPickerOverlay;   pluginApi: root.pluginApi; scriptsDir: root._scriptsDir }
-    Ocr           { id: ocrOverlay;           pluginApi: root.pluginApi; scriptsDir: root._scriptsDir }
-    Qr            { id: qrOverlay;            pluginApi: root.pluginApi; scriptsDir: root._scriptsDir }
-    Lens          { id: lensOverlay;          pluginApi: root.pluginApi; scriptsDir: root._scriptsDir }
-    Palette       { id: paletteOverlay;       pluginApi: root.pluginApi; scriptsDir: root._scriptsDir }
+    Mirror { id: mirrorOverlay; pluginApi: root.pluginApi; scriptsDir: root._scriptsDir; tempDir: root.tempDir }
+    ColorPicker   { id: colorPickerOverlay;   pluginApi: root.pluginApi; scriptsDir: root._scriptsDir; tempDir: root.tempDir }
+    Ocr           { id: ocrOverlay;           pluginApi: root.pluginApi; scriptsDir: root._scriptsDir; tempDir: root.tempDir }
+    Qr            { id: qrOverlay;            pluginApi: root.pluginApi; scriptsDir: root._scriptsDir; tempDir: root.tempDir }
+    Lens          { id: lensOverlay;          pluginApi: root.pluginApi; scriptsDir: root._scriptsDir; tempDir: root.tempDir }
+    Palette       { id: paletteOverlay;       pluginApi: root.pluginApi; scriptsDir: root._scriptsDir; tempDir: root.tempDir }
     Process {
         id: detectLangsProc
         stdout: StdioCollector {}
@@ -336,10 +353,10 @@ function clearPaletteResult() {
                 if (pluginApi) {
                     pluginApi.withCurrentScreen(s => {
                         pluginApi.closePanel(s)
-                        annotateOverlay.parseAndShow(region, "/tmp/screen-toolkit-annotate.png", screen)
+                        annotateOverlay.parseAndShow(region, root.annotatePath, screen)
                     })
                 } else {
-                    annotateOverlay.parseAndShow(region, "/tmp/screen-toolkit-annotate.png", screen)
+                    annotateOverlay.parseAndShow(region, root.annotatePath, screen)
                 }
             } else {
                 root.activeTool = ""
@@ -377,10 +394,10 @@ function clearPaletteResult() {
             if (pluginApi) {
                 pluginApi.withCurrentScreen(s => {
                     pluginApi.closePanel(s)
-                    annotateOverlay.parseAndShow(regionStr, "/tmp/screen-toolkit-annotate.png", screen)
+                    annotateOverlay.parseAndShow(regionStr, root.annotatePath, screen)
                 })
             } else {
-                annotateOverlay.parseAndShow(regionStr, "/tmp/screen-toolkit-annotate.png", screen)
+                annotateOverlay.parseAndShow(regionStr, root.annotatePath, screen)
             }
         }
     }
@@ -446,16 +463,14 @@ function clearPaletteResult() {
             var regionStr = root._grimLocalX + "," + root._grimLocalY + " " + root._grimW + "x" + root._grimH
             annotateRegionState._pendingRegion = regionStr
             annotateRegionState._pendingScreen = root._regionScreen
-            annotateProc.exec({ command: ["bash", "-c",
-                "grim -g \"" + root._grimGeometry + "\" /tmp/screen-toolkit-annotate.png 2>/dev/null"
-            ]})
+            annotateProc.exec({ command: ["grim", "-g", root._grimGeometry, root.annotatePath] })
         }
     }
     Timer {
         id: launchAnnotateActiveWindow
         interval: 360; repeat: false
         onTriggered: {
-            annotateWinProc.exec({ command: [root._scriptsDir + "capture.sh", "annotate-window"] })
+            annotateWinProc.exec({ command: [root._scriptsDir + "capture.sh", "annotate-window", root.annotatePath] })
         }
     }
     Timer {
@@ -465,8 +480,8 @@ function clearPaletteResult() {
         onTriggered: {
             var name = targetScreen?.name ?? ""
             annotateProc.exec({ command: name !== ""
-                ? ["grim", "-o", name, "/tmp/screen-toolkit-annotate.png"]
-                : ["grim", "/tmp/screen-toolkit-annotate.png"]
+                ? ["grim", "-o", name, root.annotatePath]
+                : ["grim", root.annotatePath]
             })
         }
     }
@@ -474,7 +489,7 @@ function clearPaletteResult() {
         id: launchPin
         interval: 50; repeat: false
         onTriggered: {
-            pinGrimProc.exec({ command: [root._scriptsDir + "capture.sh", "pin", root._grimGeometry] })
+            pinGrimProc.exec({ command: [root._scriptsDir + "capture.sh", "pin", root._grimGeometry, root.tempDir] })
         }
     }
     Timer {
@@ -556,11 +571,16 @@ function clearPaletteResult() {
             timer.start()
         })
     }
+    function _tempReady() {
+        if (root.tempDir !== "") return true
+        Logger.w("ScreenToolkit", "Private session directory is not ready")
+        return false
+    }
     function runTranslate(text, targetLang) {
         ocrOverlay.runTranslate(text, targetLang)
     }
     function runColorPicker() {
-        if (root.isRunning) return
+        if (root.isRunning || !_tempReady()) return
         root.isRunning  = true
         root.activeTool = ""
         colorPickerOverlay.clearResults()
@@ -584,7 +604,7 @@ function clearPaletteResult() {
         return root._regionScreen ?? (screens.length > 0 ? screens[0] : null)
     }
     function runAnnotateFullscreen() {
-        if (root.isRunning) return
+        if (root.isRunning || !_tempReady()) return
         root.isRunning = true
         if (!pluginApi) { launchAnnotateFullscreen.start(); return }
         pluginApi.withCurrentScreen(screen => {
@@ -600,7 +620,7 @@ function clearPaletteResult() {
         })
     }
     function runAnnotateActiveWindow() {
-        if (root.isRunning) return
+        if (root.isRunning || !_tempReady()) return
         root.isRunning = true
         if (!pluginApi) { launchAnnotateActiveWindow.start(); return }
         pluginApi.withCurrentScreen(screen => {
@@ -626,7 +646,7 @@ function clearPaletteResult() {
         pinOverlay.addPin(path, 600, 400, screen)
     }
     function runMeasure() {
-        if (root.isRunning) return
+        if (root.isRunning || !_tempReady()) return
         root.activeTool = "measure"
         if (pluginApi) pluginApi.withCurrentScreen(screen => pluginApi.closePanel(screen))
         measureOverlay.show()
@@ -643,7 +663,7 @@ function clearPaletteResult() {
         _runSlurpTool("record")
     }
     function runRecordFullscreen(format, audioOut, audioIn, cursor) {
-        if (root.isRunning || recordOverlay.isRecording || recordOverlay.isConverting) return
+        if (root.isRunning || recordOverlay.isRecording || recordOverlay.isConverting || !_tempReady()) return
         root.pendingRecordFormat   = format   || "gif"
         root.pendingRecordAudioOut = audioOut === true
         root.pendingRecordAudioIn  = audioIn  === true
@@ -658,6 +678,7 @@ function clearPaletteResult() {
         })
     }
     function runMirror() {
+        if (!_tempReady()) return
         if (pluginApi) {
             pluginApi.withCurrentScreen(screen => {
                 pluginApi.closePanel(screen)
@@ -669,7 +690,7 @@ function clearPaletteResult() {
     }
     function runMirrorClose() { mirrorOverlay.hide() }
     function _runSlurpTool(tool) {
-        if (root.isRunning) return
+        if (root.isRunning || !_tempReady()) return
         root.pendingTool = tool
         root.isRunning   = true
         closeThenLaunch(launchRegionSelector)
@@ -679,16 +700,6 @@ function clearPaletteResult() {
         detectLangsProc.exec({ command:    ["bash", "-c", "tesseract --list-langs 2>/dev/null | tail -n +2"] })
         detectTransProc.exec({ command:    ["bash", "-c", "which trans 2>/dev/null"] })
         detectRecorderProc.exec({ command: ["bash", "-c", "which wl-screenrec 2>/dev/null || which wf-recorder 2>/dev/null"] })
-    }
-    function annotateScreenshotCmd(overlayTmpFile) {
-        var dir   = U.screenshotDir(root._home, pluginApi?.pluginSettings?.screenshotPath)
-        var fname = U.buildFilename("annotate", ".png", pluginApi?.pluginSettings?.filenameFormat)
-        var dest  = dir + "/" + fname
-        return "mkdir -p " + U.shellEscape(dir) + " && " +
-               "magick /tmp/screen-toolkit-annotate.png " + U.shellEscape(overlayTmpFile) +
-               " -composite " + U.shellEscape(dest) + " && " +
-               "rm -f " + U.shellEscape(overlayTmpFile) + " && " +
-               "echo " + U.shellEscape(dest)
     }
     function annotateScreenshotZoomCmd(imgPath) {
         var dir   = U.screenshotDir(root._home, pluginApi?.pluginSettings?.screenshotPath)
@@ -720,5 +731,3 @@ function clearPaletteResult() {
         function recordStop()          { if (recordOverlay.isRecording) recordOverlay.stopRecording() }
     }
 }
-
-

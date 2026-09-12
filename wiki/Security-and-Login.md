@@ -13,8 +13,9 @@ belong in `/etc`.
 - **Docker dev-environment credentials**, generated on first start into
   `$XDG_STATE_HOME/docker-dev-env/environment.env` at mode 0600.
 - **Clipboard history**, which is unencrypted at `~/.cache/cliphist/db`.
-  `clipboard-store.sh` filters secrets and excluded applications before storing,
-  and `clipboard-wipe.sh` clears it.
+  `clipboard-store.sh` filters password-manager MIME markers and sensitive
+  applications before storing, history is capped at 200 text/image entries,
+  and the Hyprlock wrapper clears it on lock.
 - **Wi-Fi passwords.** The network panel hands secured connections to an
   interactive `nmtui` prompt so the password never crosses the panel boundary,
   and the Wi-Fi QR is rendered at runtime rather than written to disk.
@@ -224,9 +225,19 @@ enrolled with `fido2-token`, so `yubikey-manager` is not needed.
 ## GnuPG
 
 `security/.config/gnupg-conf/` holds example `gpg.conf` and `gpg-agent.conf`
-templates with one-hour SSH-key caching. Copy them into `~/.gnupg/` manually as
+templates. The agent template uses five-minute GnuPG and SSH defaults, capped
+at 30 and 15 minutes respectively, so short workflows remain usable without
+leaving approvals available for an hour. Copy them into `~/.gnupg/` manually as
 described in that directory's `README.md`. Interactive Zsh sessions export
 `SSH_AUTH_SOCK` to the matching `gpg-agent` socket.
+
+For software-backed SSH keys, add `KEYGRIP 0 confirm` to
+`~/.gnupg/sshcontrol` to require Pinentry confirmation on every use while
+retaining the global cache TTL. Smart-card keys continue to rely on their
+hardware touch/PIN policy. Run `gpgconf --kill gpg-agent` before lock or logout
+to flush approvals. As with the repository's manual `clipboard-wipe.sh`, this
+is documented local policy rather than an automatic hook: lock routing lives in
+`screensaver-lock` and Hypridle, outside the security package.
 
 ## Other boundaries worth knowing
 

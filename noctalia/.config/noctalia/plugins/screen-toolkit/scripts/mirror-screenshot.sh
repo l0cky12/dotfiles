@@ -10,6 +10,8 @@ set -euo pipefail
 umask 077
 
 SRC="${1:-}"
+cleanup() { [[ -z $SRC ]] || rm -f -- "$SRC"; }
+trap cleanup EXIT
 DEST_DIR="${2:-}"
 DEST_FILE="${3:-}"
 FILTERS="${4:-}"
@@ -28,10 +30,8 @@ if [ -n "$FILTERS" ]; then
         -vf "$FILTERS" \
         -compression_level 0 -update 1 \
         "$DEST" 2>/dev/null || exit 3
-    rm -f "$SRC"
 else
     mv "$SRC" "$DEST" || exit 4
 fi
 
 printf '%s\n' "$DEST"
-

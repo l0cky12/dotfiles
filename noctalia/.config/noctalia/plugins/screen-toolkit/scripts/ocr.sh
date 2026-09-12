@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 # Args: $1=gx $2=gy $3=gw $4=gh $5=lang $6=upscale_flag $7=psm
 
+set -euo pipefail
 umask 077
 
 GX="$1"; GY="$2"; GW="$3"; GH="$4"
 RAW_LANG="${5:-eng}"
 UPSCALE="$6"
 USER_PSM="${7:-3}"
-FILE="/tmp/screen-toolkit-ocr.png"
-TMP_BASE="/tmp/screen-toolkit-ocr-work-$$"
-TMP="${TMP_BASE}.pnm"
-TMP_NOISE="${TMP_BASE}-nr.pnm"
+FILE="$8"
+TEMP_DIR="$9"
+TMP=$(mktemp -- "$TEMP_DIR/ocr.XXXXXX.pnm")
+TMP_NOISE=$(mktemp -- "$TEMP_DIR/ocr-noise.XXXXXX.pnm")
 
-cleanup() { rm -f "$TMP" "$TMP_NOISE"; }
+KEEP_CAPTURE=0
+cleanup() {
+    rm -f -- "$TMP" "$TMP_NOISE"
+    (( KEEP_CAPTURE )) || rm -f -- "$FILE"
+}
 trap cleanup EXIT
 
 # Exit 1 — missing dependency (dep name written to stdout)
@@ -89,4 +94,5 @@ if [ "$BEST_LEN" -lt 4 ]; then
 fi
 
 # Exit 0 with empty stdout = no text found (QML handles this case)
+[[ -z $BEST_TEXT ]] || KEEP_CAPTURE=1
 printf '%s' "$BEST_TEXT"

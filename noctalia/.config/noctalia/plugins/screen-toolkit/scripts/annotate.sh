@@ -9,9 +9,13 @@
 #   annotate.sh copy-zoom         <file>
 #   annotate.sh share-flatten     <base> <overlay>
 
+set -euo pipefail
 umask 077
 
-MODE="$1"
+MODE="${1:-}"
+TEMP_FILE=""
+cleanup() { [[ -z $TEMP_FILE ]] || rm -f -- "$TEMP_FILE"; }
+trap cleanup EXIT
 
 case "$MODE" in
 save-overlay-auto)
@@ -41,17 +45,18 @@ save)
     ;;
 copy)
     BASE="$2"; OVERLAY="$3"
-    OUT="/tmp/screen-toolkit-annotated.png"
-    magick "$BASE" "$OVERLAY" -composite "$OUT" 2>/dev/null && \
-    wl-copy < "$OUT" && rm -f "$OVERLAY" "$OUT"
+    TEMP_DIR="$4"
+    TEMP_FILE=$(mktemp -- "$TEMP_DIR/annotated.XXXXXX.png")
+    magick "$BASE" "$OVERLAY" -composite "$TEMP_FILE" 2>/dev/null && \
+    wl-copy < "$TEMP_FILE" && rm -f -- "$OVERLAY"
     ;;
 copy-zoom)
     wl-copy < "$2"
     ;;
 share-flatten)
-    BASE="$2"; OVERLAY="$3"
-    magick "$BASE" "$OVERLAY" -composite /tmp/screen-toolkit-share.png 2>/dev/null && \
-    rm -f "$OVERLAY"
+    BASE="$2"; OVERLAY="$3"; OUT="$4"
+    magick "$BASE" "$OVERLAY" -composite "$OUT" 2>/dev/null && \
+    rm -f -- "$OVERLAY"
     ;;
 *)
     echo "Usage: annotate.sh <mode> ..." >&2

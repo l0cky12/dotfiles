@@ -42,6 +42,7 @@ Item {
     property int    xPos: -1
     property int    yPos: -1
     property string scriptsDir:    ""
+    property string tempDir:       ""
     property var    _primaryScreen:   null
     property bool   _cameraActive:    false
     property bool   _audioEnabled:    false
@@ -53,6 +54,7 @@ Item {
     property bool   _isSaving:        false
     property int    _recElapsed:      0
     property string _recTmpPath:      ""
+    property int    _captureCounter:  0
     readonly property int _ctrlBtnSize: Style.baseWidgetSize - Style.borderS
     readonly property int _ctrlPillH:   _ctrlBtnSize + Style.marginS * 2
     property var _imgCapture: null
@@ -60,6 +62,10 @@ Item {
     function _formatTime(secs) {
         var m = Math.floor(secs / 60), s = secs % 60
         return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s
+    }
+    function _nextTempPath(stem, suffix) {
+        root._captureCounter++
+        return root.tempDir + "/" + stem + "-" + Date.now() + "-" + root._captureCounter + suffix
     }
     function _startCountdown(action) {
         if (_countdownActive || _isRecording) return
@@ -91,7 +97,7 @@ Item {
     }
     function _doScreenshot() {
         if (!root._imgCapture) return
-        root._imgCapture.captureToFile("/tmp/mirror-shot-" + Date.now() + ".png")
+        root._imgCapture.captureToFile(root._nextTempPath("mirror-shot", ".png"))
     }
     function _onImageCaptured(tmpPath) {
         var home    = Quickshell.env("HOME")
@@ -126,7 +132,7 @@ Item {
     }
     function _doStartRecord() {
         if (!root._recorder) return
-        var tmpPath = "/tmp/mirror-record-" + Date.now() + ".mp4"
+        var tmpPath = root._nextTempPath("mirror-record", ".mp4")
         root._recTmpPath  = tmpPath
         root._recorder.outputLocation = "file://" + tmpPath
         root._isRecording = true

@@ -17,7 +17,7 @@ These scripts are below `hypr/.config/hypr/scripts/`.
 | `files-here.sh` | `SUPER+SHIFT+ALT+F` | discovers a focused terminal's current directory and opens Nautilus there | terminal APIs, `hyprctl`, Nautilus |
 | `night-light.sh` | `SUPER+CTRL+N` | toggles Hyprsunset between 1000 K and 6500 K; delegates to `desktop-mode` when installed and otherwise controls Hyprsunset directly | `hyprctl`, `hyprsunset`; optional `desktop-mode` |
 | `spotify-notify.sh` | autostart | watches Spotify metadata and sends track-change notifications | `playerctl`, `curl`, notification command |
-| `clipboard-store.sh` | `wl-paste --watch` | stores text/images in cliphist | `cliphist` |
+| `clipboard-store.sh` | `wl-paste --watch` | filters sensitive MIME/app metadata, then stores text/images in cliphist | `wl-paste`, `hyprctl`, `jq`, `cliphist` |
 | `clipboard-wipe.sh` | manual | clears clipboard/history data | `wl-copy`, `cliphist` |
 
 `hypr/.config/hypr/scripts/lib/terminals.sh` is sourced by clipboard and
@@ -325,9 +325,12 @@ exact storage path and never removes `~/Windows`.
 Scripts below `hyprlock/.config/hyprlock/scripts/` provide battery status, Cava
 visualization, MPRIS metadata/artwork/progress, player controls, stopwatch,
 weather/location lookup, and alternate-layout switching. Most are referenced only
-by inactive layouts. They may depend on `BAT0`, `playerctl`, `curl`, `ipinfo.io`,
-`wttr.in`, ImageMagick, Cava, or extra assets. Read the chosen layout and helper
-before enabling it.
+by inactive layouts. The location and weather helpers are disabled by default
+because their services geolocate the client's public IP address. Opt in with
+`HYPRLOCK_ENABLE_LOCATION=1` for `ipinfo.io` location lookup and
+`HYPRLOCK_ENABLE_WEATHER=1` for `wttr.in` weather lookup. Other helpers may depend
+on `BAT0`, `playerctl`, `curl`, ImageMagick, Cava, or extra assets. Read the chosen
+layout and helper before enabling it.
 
 `hyprlock_notify_widget.sh` can modify the active lock config and restart the lock
 screen. It is not part of normal startup and should not be used as a read-only

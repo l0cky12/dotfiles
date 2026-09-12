@@ -2,10 +2,13 @@
 # color-picker.sh <output-png>
 # Picks a color from screen, outputs "R G B" to stdout.
 # Uses hyprpicker (preferred) or falls back to slurp+grim.
+set -euo pipefail
 umask 077
-
 FILE="$1"
 [ -z "$FILE" ] && exit 1
+KEEP_OUTPUT=0
+cleanup() { (( KEEP_OUTPUT )) || rm -f -- "$FILE"; }
+trap cleanup EXIT
 # ── hyprpicker ────────────────────────────────────────────────────────────────
 if command -v hyprpicker >/dev/null 2>&1; then
     HYPRCTL=$(command -v hyprctl 2>/dev/null || true)
@@ -45,6 +48,7 @@ if command -v hyprpicker >/dev/null 2>&1; then
     if [ "$CAPTURED" -eq 0 ] && command -v magick >/dev/null 2>&1; then
         magick -size 21x21 "xc:rgb($R,$G,$B)" "$FILE" 2>/dev/null
     fi
+    KEEP_OUTPUT=1
     printf '%d %d %d\n' "$R" "$G" "$B"
     exit 0
 fi
@@ -59,3 +63,4 @@ grim -g "${GX},${GY} 21x21" "$FILE" 2>/dev/null || exit 1
 magick "$FILE" -alpha off \
     -format '%[fx:int(255*u.p{10,10}.r)] %[fx:int(255*u.p{10,10}.g)] %[fx:int(255*u.p{10,10}.b)]' \
     info:- 2>/dev/null
+KEEP_OUTPUT=1

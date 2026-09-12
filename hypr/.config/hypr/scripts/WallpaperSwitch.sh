@@ -301,6 +301,8 @@ menu() {
 }
 
 main() {
+  local -a rofi_args
+
   require_cmd rofi "rofi not found"
   require_cmd hyprctl "hyprctl not found"
   require_cmd bc "Install package bc first"
@@ -317,9 +319,9 @@ main() {
   icon_size="$(echo "scale=1; ($monitor_height * 3) / ($scale_factor * 150)" | bc)"
   adjusted_icon_size="$(echo "$icon_size" | awk '{if ($1 < 15) $1 = 20; if ($1 > 25) $1 = 25; print $1}')"
   rofi_override="element-icon{size:${adjusted_icon_size}%;}"
-  rofi_command="rofi -i -show -dmenu -config $rofi_theme -theme-str $rofi_override"
+  rofi_args=(-i -show -dmenu -config "$rofi_theme" -theme-str "$rofi_override")
 
-  choice="$(menu | eval "$rofi_command")"
+  choice="$(menu | rofi "${rofi_args[@]}")"
   choice="$(trim_line "$choice")"
   RANDOM_PIC_NAME="$(trim_line "$RANDOM_PIC_NAME")"
 
