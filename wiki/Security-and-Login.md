@@ -225,9 +225,19 @@ enrolled with `fido2-token`, so `yubikey-manager` is not needed.
 ## GnuPG
 
 `security/.config/gnupg-conf/` holds example `gpg.conf` and `gpg-agent.conf`
-templates with one-hour SSH-key caching. Copy them into `~/.gnupg/` manually as
+templates. The agent template uses five-minute GnuPG and SSH defaults, capped
+at 30 and 15 minutes respectively, so short workflows remain usable without
+leaving approvals available for an hour. Copy them into `~/.gnupg/` manually as
 described in that directory's `README.md`. Interactive Zsh sessions export
 `SSH_AUTH_SOCK` to the matching `gpg-agent` socket.
+
+For software-backed SSH keys, add `KEYGRIP 0 confirm` to
+`~/.gnupg/sshcontrol` to require Pinentry confirmation on every use while
+retaining the global cache TTL. Smart-card keys continue to rely on their
+hardware touch/PIN policy. Run `gpgconf --kill gpg-agent` before lock or logout
+to flush approvals. As with the repository's manual `clipboard-wipe.sh`, this
+is documented local policy rather than an automatic hook: lock routing lives in
+`screensaver-lock` and Hypridle, outside the security package.
 
 ## Other boundaries worth knowing
 
