@@ -57,6 +57,13 @@ assert_no_match() {
 
 # The sole remaining shell command is the unchanged, literal availability check.
 # Commands containing paths or other runtime values must never cross a shell.
+shell_command_count=$(rg -Uo --glob '*.qml' '"sh"\s*,\s*"-c"' \
+    "$plugin_root/video-wallpaper" "$plugin_root/mpvpaper" | wc -l)
+[[ $shell_command_count -eq 1 ]] || \
+    fail "expected exactly one sh -c command, found $shell_command_count"
+assert_match 'command\s*:\s*\[\s*"sh"\s*,\s*"-c"\s*,\s*"mpvpaper --help"\s*\]' \
+    "$plugin_root/video-wallpaper" 'sole sh -c command is not the literal mpvpaper --help check'
+
 for path in "$plugin_root/video-wallpaper" "$plugin_root/mpvpaper"; do
     assert_no_match '\[\s*"(?:sh|bash)"\s*,\s*"-c"\s*,\s*`' \
         "$path" 'wallpaper plugins interpolate a command through a shell'
@@ -68,8 +75,14 @@ done
 
 assert_match 'FolderListModel\s*\{[^}]*folder\s*:\s*root\._folderUrl' \
     "$folder_model" 'video enumeration is not declaratively bound to FolderListModel'
-assert_no_match 'folderList\.folder\s*=' "$folder_model" \
-    'FolderModel forceReload still imperatively resets the folder'
+assert_match 'function\s+forceReload\(\)\s*\{\s*internal\.ready\s*=\s*false' \
+    "$folder_model" 'FolderModel forceReload does not clear readiness'
+assert_match 'folderList\.folder\s*=\s*""\s*;\s*folderList\.folder\s*=\s*root\._folderUrl' \
+    "$folder_model" 'FolderModel forceReload does not synchronously reset the folder'
+assert_match 'if\s*\(root\.folder\s*===\s*""\)\s*\{\s*internal\.files\s*=\s*\[\]\s*;\s*internal\.ready\s*=\s*true\s*;\s*return\s*;' \
+    "$folder_model" 'FolderModel does not make the empty folder unconditionally ready'
+assert_no_match 'Qt\.callLater\([^)]*forceReload' "$folder_model" \
+    'FolderModel forceReload is deferred'
 
 # These source-level checks verify that every untrusted path is a distinct argv
 # element. They do not execute QML or prove Quickshell runtime behavior.

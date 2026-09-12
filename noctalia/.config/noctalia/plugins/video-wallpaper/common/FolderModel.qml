@@ -18,8 +18,16 @@ Item {
     }
 
     function forceReload() {
-        if (folderList.status === FolderListModel.Ready)
-            internal.updateFiles();
+        internal.ready = false;
+
+        if (root.folder === "") {
+            internal.files = [];
+            internal.ready = true;
+            return;
+        }
+
+        folderList.folder = "";
+        folderList.folder = root._folderUrl;
     }
 
     function get(index: int): string {
@@ -28,6 +36,16 @@ Item {
 
     function indexOf(file: string): int {
         return files.indexOf(file);
+    }
+
+    onFolderChanged: {
+        if (root.folder === "")
+            forceReload();
+    }
+
+    Component.onCompleted: {
+        if (root.folder === "")
+            forceReload();
     }
 
     QtObject {

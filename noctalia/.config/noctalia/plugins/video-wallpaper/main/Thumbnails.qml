@@ -88,6 +88,7 @@ Item {
     function thumbRegenerate() {
         if(pluginApi == null) return;
 
+        root._thumbGenIndex = 0;
         clearThumbCacheReady();
 
         const command = ["rm", "-f", "--"];

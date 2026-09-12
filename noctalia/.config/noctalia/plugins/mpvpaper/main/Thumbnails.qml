@@ -86,6 +86,7 @@ Item {
     function thumbRegenerate() {
         if(pluginApi == null) return;
 
+        root._thumbGenIndex = 0;
         pluginApi.pluginSettings.thumbCacheReady = false;
         pluginApi.saveSettings();
 
