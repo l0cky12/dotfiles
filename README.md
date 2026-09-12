@@ -40,7 +40,7 @@ contents into `~`.
 
 ```bash
 stow ai browser cliphist fastfetch greeter hypr hyprlock kitty modes noctalia \
-     quickshell rofi screensaver security swaync systemd windows \
+     quickshell rofi screensaver security ssh swaync systemd tmux windows \
      wallpaper wofi xdg zsh
 ```
 
@@ -52,6 +52,8 @@ stow screensaver # screensaver commands, terminal configs, and editable logo
 stow modes       # ~/.local/bin/desktop-mode, temporary mode policy/config
 stow security    # ~/.local/bin/yubikey-auth, safe YubiKey PAM setup/addition;
                  # ~/.config/gnupg-conf gpg/gpg-agent examples
+stow ssh         # ~/.local/bin/sshpersist, SSH keepalive config fragment
+stow tmux        # ~/.config/tmux/tmux.conf for persistent sessions
 stow browser     # Chromium extensions, flags, and native messaging hosts
 stow hypr        # ~/.config/hypr
 stow hyprlock    # ~/.config/hyprlock
@@ -67,6 +69,37 @@ stow cliphist    # ~/.config/cliphist
 stow xdg         # ~/.config/mimeapps.list, ~/.local/share/applications
 stow zsh         # ~/.zshrc, ~/.p10k.zsh (see Shell setup below)
 ```
+
+## Persistent SSH sessions
+
+The `ssh` and `tmux` packages provide reconnecting SSH sessions backed by tmux.
+Install the required Arch packages without changing any configuration:
+
+```bash
+sudo pacman -S --needed autossh tmux
+```
+
+After stowing `ssh`, `tmux`, and optionally `zsh` for the `sshp` shortcut, add
+this line near the beginning of `~/.ssh/config` (before broader `Host` blocks):
+
+```sshconfig
+Include ~/.config/ssh/conf.d/*.conf
+```
+
+That manual include keeps the existing `~/.ssh/config` under user control. Start
+or return to a host-named remote session with `sshpersist <host>` or
+`sshp <host>`. An optional second argument selects another safe session name:
+
+```bash
+sshpersist server.example.com
+sshp server.example.com maintenance
+```
+
+`autossh -M 0` relies on SSH keepalives instead of a legacy monitor port. If a
+plain SSH connection is already open, reattach its session with
+`tmux attach -t <host>`; punctuation in the automatic host-derived session name
+is replaced with underscores (for example, `server.example.com` becomes
+`server_example_com`). The remote host also needs `tmux` installed.
 
 The generated app-theme packages are optional. Deploy them without directory
 folding so application-created files stay outside the Git checkout:
@@ -651,6 +684,8 @@ OSD commands; it never downloads media or changes the live clipboard.
 | `fastfetch` | [Fastfetch](https://github.com/fastfetch-cli/fastfetch) | System info with themed key colors |
 | `noctalia` | Noctalia | Custom plugin system with themed color scheme |
 | `zsh` | Zsh | Shell config — `.zshrc` and `.p10k.zsh`; Oh My Zsh itself is installed separately |
+| `ssh` | autossh | Reconnecting SSH launcher and opt-in client keepalive fragment |
+| `tmux` | tmux | Persistent remote-session defaults |
 
 ---
 
@@ -670,6 +705,7 @@ OSD commands; it never downloads media or changes the live clipboard.
 - `fzf`, `fzf-tab`
 - `eza` (ls replacement)
 - `powerlevel10k`
+- `autossh`, `tmux` (persistent SSH sessions)
 
 Oh My Zsh and the two pieces `.zshrc` loads out of `$ZSH_CUSTOM` are **not
 vendored in this repo** — Oh My Zsh's own `.gitignore` excludes `custom/`, so
