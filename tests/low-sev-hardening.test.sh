@@ -26,12 +26,15 @@ for script in "$location_script" "$weather_script"; do
   assert_contains "$script" "--fail"
   assert_contains "$script" "--show-error"
   assert_contains "$script" "--location"
+  assert_contains "$script" "--proto '=https'"
+  assert_contains "$script" "--proto-redir '=https'"
   assert_contains "$script" "--connect-timeout 5"
   assert_contains "$script" "--max-time 15"
   assert_contains "$script" "max_output_length="
 done
 
 assert_contains "$location_script" 'HYPRLOCK_ENABLE_LOCATION'
+assert_contains "$weather_script" 'HYPRLOCK_ENABLE_WEATHER'
 if grep -Eq '(^|[[:space:]|;])eval([[:space:]]|$)' "$wallpaper_script"; then
   fail "WallpaperSwitch.sh still invokes eval"
 fi
@@ -73,20 +76,26 @@ mkdir -p "$location_home"
 output=$(HOME="$location_home" PATH="$stub_bin:$PATH" CURL_LOG="$location_log" \
   HYPRLOCK_ENABLE_LOCATION=1 "$location_script")
 [[ "$output" == "US, Fixture City" ]] || fail "enabled location fixture failed"
-assert_contains "$location_log" "--connect-timeout 5 --max-time 15 https://ipinfo.io"
+assert_contains "$location_log" "--proto =https --proto-redir =https --connect-timeout 5 --max-time 15 https://ipinfo.io"
 
 weather_home="$test_root/weather-home"
 weather_log="$test_root/weather-curl.log"
 mkdir -p "$weather_home"
+output=$(env -u HYPRLOCK_ENABLE_WEATHER HOME="$weather_home" \
+  PATH="$stub_bin:$PATH" CURL_LOG="$weather_log" "$weather_script")
+[[ "$output" == "Weather unavailable" ]] || fail "disabled weather was not neutral"
+[[ ! -e "$weather_log" ]] || fail "disabled weather invoked curl"
+
 output=$(HOME="$weather_home" PATH="$stub_bin:$PATH" CURL_LOG="$weather_log" \
-  "$weather_script")
+  HYPRLOCK_ENABLE_WEATHER=1 "$weather_script")
 [[ "$output" == "Clear +21C" ]] || fail "weather fixture failed"
-assert_contains "$weather_log" "--connect-timeout 5 --max-time 15 https://wttr.in?format=%c+%C+%t"
+assert_contains "$weather_log" "--proto =https --proto-redir =https --connect-timeout 5 --max-time 15 https://wttr.in?format=%c+%C+%t"
 
 invalid_home="$test_root/invalid-home"
 mkdir -p "$invalid_home"
 output=$(HOME="$invalid_home" PATH="$stub_bin:$PATH" \
-  CURL_LOG="$test_root/invalid-curl.log" CURL_MODE=long "$weather_script")
+  CURL_LOG="$test_root/invalid-curl.log" CURL_MODE=long \
+  HYPRLOCK_ENABLE_WEATHER=1 "$weather_script")
 [[ "$output" == "Weather unavailable" ]] || fail "oversized weather output was accepted"
 [[ ! -e "$invalid_home/.cache/wttr_cache.txt" ]] || fail "invalid weather response was cached"
 
@@ -101,7 +110,11 @@ printf '%s\n' \
   'while IFS= read -r _; do :; done' >"$wallpaper_bin/rofi"
 printf '%s\n' \
   '#!/usr/bin/env bash' \
-  'printf "%s\n" "Monitor HDMI-A-1" "height: 1080" "scale: 1" "focused: yes"' \
+  'if [[ $* == "monitors -j" ]]; then' \
+  '  printf '\''[%s]\n'\'' '\''{"name":"HDMI-A-1","width":1920,"height":1080,"scale":1,"focused":true}'\''' \
+  'else' \
+  '  printf "%s\n" "Monitor HDMI-A-1" "height: 1080" "scale: 1" "focused: yes"' \
+  'fi' \
   >"$wallpaper_bin/hyprctl"
 printf '%s\n' '#!/usr/bin/env bash' 'printf "20\n"' >"$wallpaper_bin/bc"
 chmod +x "$wallpaper_bin/rofi" "$wallpaper_bin/hyprctl" "$wallpaper_bin/bc"

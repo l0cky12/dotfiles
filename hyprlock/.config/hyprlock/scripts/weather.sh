@@ -4,6 +4,13 @@ cache_file="$HOME/.cache/wttr_cache.txt"
 default_weather="Weather unavailable"
 max_output_length=160
 
+# Weather lookup is disabled by default because wttr.in geolocates the public
+# IP address. Launch Hyprlock with HYPRLOCK_ENABLE_WEATHER=1 to opt in.
+if [[ ${HYPRLOCK_ENABLE_WEATHER:-0} != 1 ]]; then
+	printf '%s\n' "$default_weather"
+	exit 0
+fi
+
 expiry_time=86400
 
 valid_output() {
@@ -27,6 +34,7 @@ fi
 
 response=""
 if response=$(curl --fail --silent --show-error --location \
+	--proto '=https' --proto-redir '=https' \
 	--connect-timeout 5 --max-time 15 'https://wttr.in?format=%c+%C+%t'); then
 	:
 else

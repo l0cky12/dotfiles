@@ -34,6 +34,7 @@ fi
 
 response=""
 if raw_response=$(curl --fail --silent --show-error --location \
+	--proto '=https' --proto-redir '=https' \
 	--connect-timeout 5 --max-time 15 'https://ipinfo.io'); then
 	response=$(jq -er '
 		select(.country | type == "string" and length > 0) |
