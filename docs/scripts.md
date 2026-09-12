@@ -325,9 +325,12 @@ exact storage path and never removes `~/Windows`.
 Scripts below `hyprlock/.config/hyprlock/scripts/` provide battery status, Cava
 visualization, MPRIS metadata/artwork/progress, player controls, stopwatch,
 weather/location lookup, and alternate-layout switching. Most are referenced only
-by inactive layouts. They may depend on `BAT0`, `playerctl`, `curl`, `ipinfo.io`,
-`wttr.in`, ImageMagick, Cava, or extra assets. Read the chosen layout and helper
-before enabling it.
+by inactive layouts. The location and weather helpers are disabled by default
+because their services geolocate the client's public IP address. Opt in with
+`HYPRLOCK_ENABLE_LOCATION=1` for `ipinfo.io` location lookup and
+`HYPRLOCK_ENABLE_WEATHER=1` for `wttr.in` weather lookup. Other helpers may depend
+on `BAT0`, `playerctl`, `curl`, ImageMagick, Cava, or extra assets. Read the chosen
+layout and helper before enabling it.
 
 `hyprlock_notify_widget.sh` can modify the active lock config and restart the lock
 screen. It is not part of normal startup and should not be used as a read-only
