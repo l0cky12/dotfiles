@@ -271,10 +271,10 @@ Singleton {
   // --- keybindings menu tokens ------------------------------------------------
   // Every dimension and colour weight of the Super+K palette lives here; nothing
   // in KeybindsPanel.qml is hardcoded, so the whole look is tuned from this block.
-  readonly property int menuWidth: fs(800)
-  readonly property int menuMaxHeight: fs(500)
+  readonly property int menuWidth: fs(880)
+  readonly property int menuMaxHeight: fs(620)
   readonly property int menuHeaderHeight: fs(34)
-  readonly property int menuRowHeight: fs(50)
+  readonly property int menuRowHeight: fs(21)
   readonly property int menuPadding: fs(24)      // generous side padding, as in the reference
   readonly property int menuFontBody: fs(12)
   readonly property int menuFontTitle: fs(14)
@@ -284,7 +284,7 @@ Singleton {
   // Shortcut column is measured from the longest visible shortcut, then clamped
   // here so the arrow never drifts between rows.
   readonly property int menuColumnMin: fs(160)
-  readonly property int menuColumnMax: fs(260)
+  readonly property int menuColumnMax: fs(300)
   // The scrim follows the theme: a translucent theme like Ethereal dims gently,
   // a solid one like Lumon or Vantablack dims hard.
   readonly property real menuScrimOpacity: root.scrimOpacity

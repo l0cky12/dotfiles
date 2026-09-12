@@ -252,11 +252,9 @@ PanelWindow {
               anchors.leftMargin: Theme.gapM
               anchors.verticalCenter: parent.verticalCenter
               text: "→"
-              // Dimmed on rows the palette will not run, so an informational
-              // entry is visibly different before Enter is pressed.
               color: row.modelData.actionable
                 ? (row.isCurrent ? Theme.accent : Theme.textMuted)
-                : Theme.textFaint
+                : Theme.textMuted
               font.family: Theme.glyphFamily
               font.pixelSize: Theme.menuFontBody
             }
@@ -265,13 +263,25 @@ PanelWindow {
               anchors.left: arrow.right
               anchors.leftMargin: Theme.gapM
               anchors.right: parent.right
-              anchors.rightMargin: Theme.gapM
+              anchors.rightMargin: row.modelData.actionable ? Theme.gapM : Theme.gapM + Theme.gapS + infoMarker.width
               anchors.verticalCenter: parent.verticalCenter
               text: row.modelData.description
               color: row.isCurrent ? Theme.accent : Theme.textDim
               font.family: Theme.glyphFamily
               font.pixelSize: Theme.menuFontBody
               elide: Text.ElideRight
+            }
+
+            Text {
+              id: infoMarker
+              anchors.right: parent.right
+              anchors.rightMargin: Theme.gapS
+              anchors.verticalCenter: parent.verticalCenter
+              visible: !row.modelData.actionable
+              text: "→"
+              color: Theme.textFaint
+              font.family: Theme.glyphFamily
+              font.pixelSize: Theme.menuFontBody
             }
 
             MouseArea {
