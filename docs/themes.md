@@ -39,6 +39,7 @@ A theme selection renders coordinated output for:
 | Hyprland | `hypr/.config/hypr/conf/decorations.lua` |
 | Quickshell | `hypr/.config/hypr/themes/.active/theme.json` |
 | Kitty | `kitty/.config/kitty/theme/current-theme.conf` |
+| T3 Code | live `~/.t3/userdata/themes/dotfiles-desktop.json` when T3 Code has been run |
 | Zsh | live `~/.config/zsh/current-theme.zsh` (not a tracked Stow path) |
 | Rofi | current palette/import files below `rofi/.config/rofi/` |
 | Hyprlock | `hyprlock/.config/hyprlock/colors.conf` |
@@ -52,6 +53,11 @@ A theme selection renders coordinated output for:
 | Greeter (regreet) | `greeter/.config/greeter/{greeter.css,regreet.toml}` -- a further, opt-in `theme set --install-greeter` root-owned copy is required to reach `/etc/greetd/`; see `greeter/README.md` |
 
 The generator also synchronizes relevant Noctalia settings and scheme metadata.
+It publishes the active palette through T3 Code's supported environment-theme
+format when `~/.t3` exists. The stable `dotfiles-desktop` id is selected through
+`t3 theme set` when that CLI is available; otherwise select the generated theme
+once in Settings > Appearance and its file watcher will repaint it on later
+switches.
 Neovim, btop, and Obsidian are optional. Deploy them with `stow --no-folding
 neovim btop obsidian` before running `theme set`; `--no-folding` keeps app state
 out of the checkout. If an output directory is absent, the generator reports
@@ -101,9 +107,22 @@ On selection, the theme system can:
 - reload Hyprland so generated decoration values take effect;
 - notify the Quickshell theme watcher;
 - update running Kitty windows through remote control;
+- publish the exact semantic palette to T3 Code and select its stable environment
+  theme;
+- update `org.gnome.desktop.interface color-scheme`, which the desktop settings
+  portal exposes to Electron, Chromium/Helium, GTK, and web
+  `prefers-color-scheme` consumers;
 - signal SwayNC when it is running; and
 - leave generated output ready for applications that load it later, including
   Neovim (`:colorscheme current`) and btop (`color_theme = "current"`).
+
+Helium must be configured to follow its system/GTK appearance; a fixed browser
+theme intentionally overrides the desktop preference. The mode change is live
+when `gsettings`, the GNOME interface schema, and `xdg-desktop-portal-gtk` are
+available. The tracked `xdg-desktop-portal/hyprland-portals.conf` keeps XDPH as
+the default while assigning its unimplemented Settings interface to GTK. That
+portal routing is picked up on the next login. A missing tool or backend is
+reported as deferred and never makes the rest of the palette switch fail.
 
 This means `theme set` is not a purely read-only renderer, although it does not
 change the wallpaper unless explicitly passed `--wallpaper`. Use its validation

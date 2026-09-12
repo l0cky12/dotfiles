@@ -445,6 +445,11 @@ Each theme consistently updates:
 - **Hyprland** — active/inactive border colours, rounding, gaps, opacity, shadow, blur
 - **Quickshell** — shell palette via generated `themes/.active/theme.json`
 - **Kitty** — 16-colour ANSI palette, foreground/background, selection, cursor
+- **T3 Code** — generated environment theme with matching surfaces, status and
+  terminal colours; connected clients repaint through T3's watched theme file
+- **System-aware apps** — light/dark preference for Electron, GTK, Chromium and
+  websites using `prefers-color-scheme` (including Helium when set to follow the
+  system)
 - **Rofi** — launcher colours via generated `current.rasi`
 - **Zsh / Powerlevel10k** — prompt colours via generated `current-theme.zsh`
 - **Hyprlock** — lock screen colours
@@ -471,6 +476,11 @@ Optional (for live reload or rollback):
 
 - `hyprctl` — reloads Hyprland decorations
 - `kitty` — live-applies colours to running terminals
+- `gsettings` and `xdg-desktop-portal-gtk` — the `xdg` package routes the
+  Settings portal through GTK so light/dark changes reach Helium and other
+  system-aware applications
+- `t3` — selects the generated `dotfiles-desktop` environment theme in T3 Code;
+  without the CLI, select that theme once under Settings > Appearance
 - `swaync` / `swaync-client` — only needed when using the rollback backend
 
 ### Switching Manually
@@ -490,6 +500,13 @@ Generated config files (decorations, colours, themes) are gitignored. After `sto
 ```bash
 theme set <slug>
 ```
+
+Run T3 Code once so `~/.t3` exists, then switch a theme. The generator publishes
+`~/.t3/userdata/themes/dotfiles-desktop.json` atomically and asks the `t3` CLI to
+select it. If the CLI is unavailable, choose the `dotfiles-desktop` card once in
+T3 Code's Appearance settings; later switches keep the stable theme id and
+repaint it live. In Helium, choose the system/GTK appearance rather than a fixed
+browser theme so its chrome and pages follow the desktop light/dark signal.
 
 ### Adding a New Theme
 
