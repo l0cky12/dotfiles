@@ -2,6 +2,7 @@
 set -euo pipefail
 
 dry_run=0
+clipboard_wipe="$HOME/.config/hypr/scripts/clipboard-wipe.sh"
 case ${1:-} in
   '') ;;
   --dry-run) dry_run=1 ;;
@@ -12,8 +13,14 @@ if ((dry_run)); then
   printf '%s\n' \
     'pkill -x ttfx' \
     'timeout 1s pidwait -x ttfx' \
-    "pkill -f '[i]o.github.fhlkfds.screensaver'" \
-    'pidof hyprlock || hyprlock --config ~/.config/hypr/hyprlock.conf'
+    "pkill -f '[i]o.github.fhlkfds.screensaver'"
+  if pidof hyprlock >/dev/null 2>&1; then
+    printf '%s\n' 'pidof hyprlock # already running'
+  else
+    printf '%s\n' \
+      "${clipboard_wipe}" \
+      "hyprlock --config $HOME/.config/hypr/hyprlock.conf"
+  fi
   exit 0
 fi
 
@@ -21,5 +28,8 @@ pkill -x ttfx 2>/dev/null || true
 timeout 1s pidwait -x ttfx 2>/dev/null || true
 pkill -f '[i]o.github.fhlkfds.screensaver' 2>/dev/null || true
 if ! pidof hyprlock >/dev/null 2>&1; then
+  # Locking must continue even if clipboard tools are unavailable, but make a
+  # best effort to clear both the live selection and plaintext history first.
+  [[ ! -x $clipboard_wipe ]] || "$clipboard_wipe" || true
   exec hyprlock --config "$HOME/.config/hypr/hyprlock.conf"
 fi

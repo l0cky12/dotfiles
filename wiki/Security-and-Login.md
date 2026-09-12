@@ -13,8 +13,9 @@ belong in `/etc`.
 - **Docker dev-environment credentials**, generated on first start into
   `$XDG_STATE_HOME/docker-dev-env/environment.env` at mode 0600.
 - **Clipboard history**, which is unencrypted at `~/.cache/cliphist/db`.
-  `clipboard-store.sh` filters secrets and excluded applications before storing,
-  and `clipboard-wipe.sh` clears it.
+  `clipboard-store.sh` filters password-manager MIME markers and sensitive
+  applications before storing, history is capped at 200 text/image entries,
+  and the Hyprlock wrapper clears it on lock.
 - **Wi-Fi passwords.** The network panel hands secured connections to an
   interactive `nmtui` prompt so the password never crosses the panel boundary,
   and the Wi-Fi QR is rendered at runtime rather than written to disk.

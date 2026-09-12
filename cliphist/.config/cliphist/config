@@ -1,4 +1,4 @@
 # cliphist configuration. Flags here replace the CLI defaults.
-# Raised from the default 750; the db lives at ~/.cache/cliphist/db and is a
-# plain unencrypted file, so it grows with history (images dominate the size).
-max-items 5000
+# The database at ~/.cache/cliphist/db is plaintext. Keep a short, useful
+# shared history: this 200-item bound applies to both text and retained images.
+max-items 200

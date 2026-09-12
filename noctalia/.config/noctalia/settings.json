@@ -1,8 +1,8 @@
 {
   "appLauncher": {
     "autoPasteClipboard": false,
-    "clipboardWatchImageCommand": "wl-paste --type image --watch cliphist store",
-    "clipboardWatchTextCommand": "wl-paste --type text --watch cliphist store",
+    "clipboardWatchImageCommand": "wl-paste --type image --watch /home/liam/.config/hypr/scripts/clipboard-store.sh",
+    "clipboardWatchTextCommand": "wl-paste --type text --watch /home/liam/.config/hypr/scripts/clipboard-store.sh",
     "clipboardWrapText": true,
     "customLaunchPrefix": "",
     "customLaunchPrefixEnabled": false,

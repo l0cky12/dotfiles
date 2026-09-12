@@ -17,7 +17,7 @@ These scripts are below `hypr/.config/hypr/scripts/`.
 | `files-here.sh` | `SUPER+SHIFT+ALT+F` | discovers a focused terminal's current directory and opens Nautilus there | terminal APIs, `hyprctl`, Nautilus |
 | `night-light.sh` | `SUPER+CTRL+N` | toggles Hyprsunset between 1000 K and 6500 K; delegates to `desktop-mode` when installed and otherwise controls Hyprsunset directly | `hyprctl`, `hyprsunset`; optional `desktop-mode` |
 | `spotify-notify.sh` | autostart | watches Spotify metadata and sends track-change notifications | `playerctl`, `curl`, notification command |
-| `clipboard-store.sh` | `wl-paste --watch` | stores text/images in cliphist | `cliphist` |
+| `clipboard-store.sh` | `wl-paste --watch` | filters sensitive MIME/app metadata, then stores text/images in cliphist | `wl-paste`, `hyprctl`, `jq`, `cliphist` |
 | `clipboard-wipe.sh` | manual | clears clipboard/history data | `wl-copy`, `cliphist` |
 
 `hypr/.config/hypr/scripts/lib/terminals.sh` is sourced by clipboard and
