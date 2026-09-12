@@ -16,7 +16,6 @@ set -euo pipefail
 
 FILE="${1:-}"
 EXPIRY="${2:-7d}"
-IFS= read -r API_KEY || API_KEY=""
 
 UGUU_MAX_BYTES=$((128 * 1024 * 1024))  # 128 MB
 
@@ -24,6 +23,8 @@ UGUU_MAX_BYTES=$((128 * 1024 * 1024))  # 128 MB
 [ -f "$FILE" ] || { echo "ERROR: file not found: $FILE" >&2; exit 2; }
 
 command -v curl >/dev/null 2>&1 || { echo "ERROR: missing dependency: curl" >&2; exit 3; }
+
+IFS= read -r API_KEY || true
 
 # ── X02 (authenticated) ───────────────────────────────────────────────────────
 if [ -n "$API_KEY" ]; then

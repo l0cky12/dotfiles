@@ -55,7 +55,7 @@ const cases = [
   logic.buildDeepLTranslateCommand(content, "de", secret),
 ];
 
-for (const request of cases) {
+for (const [index, request] of cases.entries()) {
   const argv = request.args.join(" ");
   if (request.args.join("\0") !== "curl\0--config\0-")
     throw new Error("curl request is not config-over-stdin only: " + argv);
@@ -64,7 +64,20 @@ for (const request of cases) {
   if (!request.stdin || !request.stdin.includes(content.replaceAll(" ", "%20")) &&
       !request.stdin.includes(content))
     throw new Error("request payload was not delivered through stdin");
+  const urlLine = request.stdin.split("\n").find(line => line.startsWith("url = "));
+  if (!urlLine || urlLine.includes("key="))
+    throw new Error("provider URL is missing or contains a key parameter: " + urlLine);
+
+  const expectedMethod = index === 2 ? "GET" : "POST";
+  if (!request.stdin.includes('request = "' + expectedMethod + '"'))
+    throw new Error("provider did not use expected " + expectedMethod + " method");
 }
+
+if (cases[2].stdin.includes("data-binary = "))
+  throw new Error("Google Translate GET request unexpectedly contains a body");
+if (!cases[2].stdin.includes("translate_a/single?client=gtx") ||
+    !cases[2].stdin.includes("q=" + encodeURIComponent(content)))
+  throw new Error("Google Translate query parameters are missing from its URL");
 
 if (!cases[0].stdin.includes("x-goog-api-key: " + secret))
   throw new Error("Gemini API key is not sent as an stdin-delivered header");
@@ -72,15 +85,23 @@ if (!cases[1].stdin.includes("Authorization: Bearer " + secret))
   throw new Error("OpenAI authorization is not delivered through stdin");
 if (!cases[3].stdin.includes("Authorization: DeepL-Auth-Key " + secret))
   throw new Error("DeepL authorization is not delivered through stdin");
+if (logic.curlConfigValue("safe\r\nheader = \"injected\"").includes("\r") ||
+    logic.curlConfigValue("safe\r\nheader = \"injected\"").includes("\n"))
+  throw new Error("curl config values retain CR/LF characters");
 NODE
 
 # The QML caller writes the X02 key to stdin, and the script reads it there.
-assert_absent "$annotate" 'command: \[[^]]*apiKey'
+assert_absent "$annotate" 'command[[:space:]]*[:=][^]]*apiKey'
 assert_present "$annotate" 'uploadProc\.write\(apiKey \+ "\\n"\)'
 assert_absent "$share_script" 'API_KEY="\$\{[0-9]'
 assert_absent "$share_script" '(-H|--header)[[:space:]]+"x-api-key:'
 assert_present "$share_script" 'read -r API_KEY'
 assert_present "$share_script" '--header @-'
+read_line=$(grep -n -m1 'IFS= read -r API_KEY' "$share_script" | cut -d: -f1)
+file_check_line=$(grep -n -m1 '\[ -n "\$FILE" \]' "$share_script" | cut -d: -f1)
+curl_check_line=$(grep -n -m1 'command -v curl' "$share_script" | cut -d: -f1)
+(( file_check_line < read_line && curl_check_line < read_line )) \
+  || fail "share-upload reads stdin before validating its arguments and dependencies"
 
 # Exercise the X02 path with a curl fixture and inspect its argv and stdin.
 mkdir -p "$test_root/bin"
@@ -97,7 +118,7 @@ PATH="$test_root/bin:$PATH" \
 CURL_ARGS="$test_root/curl.args" \
 CURL_STDIN="$test_root/curl.stdin" \
   "$share_script" "$test_root/image.png" 7d \
-  <<<'fixture-x02-key-SEC03' >"$test_root/result"
+  < <(printf '%s' 'fixture-x02-key-SEC03') >"$test_root/result"
 
 assert_absent "$test_root/curl.args" 'fixture-x02-key-SEC03'
 assert_present "$test_root/curl.args" '^@-$'

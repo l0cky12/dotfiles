@@ -5,13 +5,14 @@
 // ===================================
 
 function curlConfigValue(value) {
-  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return String(value).replace(/[\r\n]/g, "").replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
-function buildCurlConfig(url, headers, payload, extraOptions) {
+function buildCurlConfig(url, headers, payload, extraOptions, method) {
+  method = method || "POST";
   var lines = [
     'url = "' + curlConfigValue(url) + '"',
-    'request = "POST"',
+    'request = "' + method + '"',
     "silent"
   ];
 
@@ -21,7 +22,9 @@ function buildCurlConfig(url, headers, payload, extraOptions) {
   for (var j = 0; j < headers.length; j++) {
     lines.push('header = "' + curlConfigValue(headers[j]) + '"');
   }
-  lines.push('data-binary = "' + curlConfigValue(payload) + '"');
+  if (method !== "GET") {
+    lines.push('data-binary = "' + curlConfigValue(payload) + '"');
+  }
   return lines.join("\n") + "\n";
 }
 
@@ -214,12 +217,11 @@ function parseOpenAIStream(data) {
 // ===================================
 
 function buildGoogleTranslateCommand(text, targetLang, sourceLang) {
-  var url = "https://translate.google.com/translate_a/single";
-  var payload = "client=gtx&sl=" + encodeURIComponent(sourceLang || "auto") + "&tl=" + encodeURIComponent(targetLang) + "&dt=t&q=" + encodeURIComponent(text);
+  var url = "https://translate.google.com/translate_a/single?client=gtx" + "&sl=" + encodeURIComponent(sourceLang || "auto") + "&tl=" + encodeURIComponent(targetLang) + "&dt=t&q=" + encodeURIComponent(text);
 
   return {
     "args": ["curl", "--config", "-"],
-    "stdin": buildCurlConfig(url, ["Content-Type: application/x-www-form-urlencoded"], payload, [])
+    "stdin": buildCurlConfig(url, [], "", [], "GET")
   };
 }
 
