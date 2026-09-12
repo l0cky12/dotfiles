@@ -148,6 +148,12 @@ focus_monitor() {
   "$hyprctl_command" eval "$(monitor_focus_expression "$1")"
 }
 
+move_window_to_monitor() {
+  local monitor=$1 address=${2#0x}
+  "$hyprctl_command" dispatch focuswindow "address:0x$address" >/dev/null
+  "$hyprctl_command" dispatch movewindow "mon:$monitor"
+}
+
 if [[ -n ${SCREENSAVER_MONITORS_JSON:-} ]]; then
   monitors_json=$SCREENSAVER_MONITORS_JSON
 else
@@ -169,6 +175,10 @@ if ((dry_run)); then
     printf '%q ' "$hyprctl_command" eval "$(monitor_focus_expression "$monitor")"
     printf 'spawn='
     printf '%q ' "${command[@]}"
+    printf 'select='
+    printf '%q ' "$hyprctl_command" dispatch focuswindow "address:<mapped-window>"
+    printf 'place='
+    printf '%q ' "$hyprctl_command" dispatch movewindow "mon:$monitor"
     printf '\n'
   done
   if [[ -n $original_monitor ]]; then
@@ -206,24 +216,39 @@ restore_focus() {
 trap restore_focus EXIT
 
 wait_for_window() {
-  local line deadline=$((SECONDS + 5))
+  local line event status deadline=$((SECONDS + 5))
   while ((SECONDS < deadline)); do
-    if IFS= read -r -t 1 line <&"$events"; then
-      case "$line" in
-        openwindow\>\>*,"$class",*) return 0 ;;
-      esac
+    status=0
+    IFS= read -r -t 1 line <&"$events" || status=$?
+    if ((status > 0 && status <= 128)); then
+      printf 'ascii-screensaver: Hyprland event stream closed\n' >&2
+      return 1
     fi
+    ((status == 0)) || continue
+    case "$line" in
+      openwindow\>\>*,"$class",*)
+        event=${line#openwindow>>}
+        window_address=${event%%,*}
+        [[ -n $window_address ]] && return 0
+        ;;
+    esac
   done
   return 1
 }
 
+cleanup_terminals() {
+  pkill -f '[i]o.github.fhlkfds.screensaver' >/dev/null 2>&1 || true
+}
+
 for monitor in "${monitors[@]}"; do
-  focus_monitor "$monitor" >/dev/null
   command=()
   terminal_command
   setsid "${command[@]}" >/dev/null 2>&1 &
+  window_address=
   if ! wait_for_window; then
     printf 'ascii-screensaver: timed out waiting for %s on %s\n' "$terminal" "$monitor" >&2
+    cleanup_terminals
     exit 1
   fi
+  move_window_to_monitor "$monitor" "$window_address" >/dev/null
 done
