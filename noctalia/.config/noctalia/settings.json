@@ -1,15 +1,15 @@
 {
   "appLauncher": {
     "autoPasteClipboard": false,
-    "clipboardWatchImageCommand": "wl-paste --type image --watch cliphist store",
-    "clipboardWatchTextCommand": "wl-paste --type text --watch cliphist store",
+    "clipboardWatchImageCommand": "",
+    "clipboardWatchTextCommand": "",
     "clipboardWrapText": true,
     "customLaunchPrefix": "",
     "customLaunchPrefixEnabled": false,
     "density": "default",
     "enableClipPreview": true,
     "enableClipboardChips": true,
-    "enableClipboardHistory": true,
+    "enableClipboardHistory": false,
     "enableClipboardSmartIcons": true,
     "enableSessionSearch": true,
     "enableSettingsSearch": true,

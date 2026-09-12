@@ -128,8 +128,10 @@ theme generator.
 Two `wl-paste --watch` commands start from Hyprland autostart and pass text or
 images to `hypr/.config/hypr/scripts/clipboard-store.sh`. The active UI is the
 Quickshell clipboard panel, backed by `cliphist`. `cliphist/.config/cliphist/config`
-sets a 5,000-entry maximum. The database is unencrypted under
-`~/.cache/cliphist/db`.
+sets a shared 200-entry maximum for text and images. The database is unencrypted
+under `~/.cache/cliphist/db`; password-manager MIME markers and sensitive app
+windows are excluded, and starting Hyprlock clears the live clipboard and
+history.
 
 Browser Copy URL writes to the real Wayland clipboard, so it enters this history
 through the same watcher. Universal copy/cut/paste helpers adapt shortcuts for

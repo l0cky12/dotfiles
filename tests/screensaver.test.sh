@@ -101,6 +101,7 @@ grep -Fq 'hyprctl eval hl.dispatch(hl.dsp.focus({ monitor = "HDMI-A-1" }))' "$OR
 "$bin_root/screensaver-lock" --dry-run >"$test_root/lock.out"
 grep -Fq 'timeout 1s pidwait -x ttfx' "$test_root/lock.out" || fail 'lock cleanup does not wait for ttfx'
 grep -Fq "pkill -f '[i]o.github.fhlkfds.screensaver'" "$test_root/lock.out" || fail 'lock cleanup omits terminal class'
+grep -Fq '~/.config/hypr/scripts/clipboard-wipe.sh' "$test_root/lock.out" || fail 'lock does not wipe clipboard history'
 
 grep -Fq -- '--random-effect --no-eol --no-restore-cursor' "$bin_root/ascii-screensaver-render" || fail 'renderer options changed'
 grep -Fq "stty size" "$bin_root/ascii-screensaver-render" || fail 'renderer resize wait is missing'
