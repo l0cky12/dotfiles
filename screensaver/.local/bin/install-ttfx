@@ -52,7 +52,6 @@ fi
 # https://github.com/omacom-io/ttfx/commit/<sha> (or supply TTFX_PIN in the
 # environment). The placeholder fails closed; review the upstream commit first.
 TTFX_PIN=${TTFX_PIN:-'<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'}
-: "${TTFX_PIN:?Set TTFX_PIN to a reviewed upstream commit}"
 [[ $TTFX_PIN =~ ^[0-9a-fA-F]{40}$ ]] || {
   printf 'install-ttfx: TTFX_PIN must be a full 40-character commit SHA\n' >&2
   exit 1

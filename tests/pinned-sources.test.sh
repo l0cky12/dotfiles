@@ -18,7 +18,7 @@ fail() {
 
 # Follow-ups
 # - Fill TTFX_PIN with a reviewed commit during the first online setup session.
-# - Fill POWERLEVEL10K_PIN and FZF_TAB_PIN during that same online session.
+# - Fill OMZ_PIN, POWERLEVEL10K_PIN, and FZF_TAB_PIN during that same online session.
 
 # Join shell line continuations so direct execution cannot evade the scan by
 # putting the pipe or process substitution on the following physical line.
@@ -31,8 +31,11 @@ pipe_exec_pattern='(curl[^|]*|wget[^|]*(-qO-|-O[[:space:]]+-|--output-document(=
 # Reject shells (or eval) executing downloader output via command substitution.
 command_substitution_exec_pattern='(([^[:space:]]*/)?(ba|z|da)?sh[[:space:]]+-c|eval)[[:space:]]+"?\$\([[:space:]]*(curl|wget)[^)]*\)'
 # Reject source/dot and shell-stdin execution via process substitution.
-process_substitution_exec_pattern='((source|\.)[[:space:]]+|([^[:space:]]*/)?(ba|z|da)?sh[[:space:]]*<[[:space:]]*)<\([[:space:]]*(curl|wget)[^)]*\)'
+process_substitution_exec_pattern='((source|\.)[[:space:]]+|([^[:space:]]*/)?(ba|z|da)?sh[[:space:]]*(<[[:space:]]*)?)<\([[:space:]]*(curl|wget)[^)]*\)'
 direct_exec_pattern="$pipe_exec_pattern|$command_substitution_exec_pattern|$process_substitution_exec_pattern"
+printf '%s\n' 'bash <(curl -fsSL https://example.com/x)' |
+  grep -Eq -- "$direct_exec_pattern" ||
+  fail 'source scan missed bash process substitution without a stdin redirect'
 if grep -Eq -- "$direct_exec_pattern" "$scan_input"; then
   fail 'documentation still executes curl output directly in a shell'
 else
@@ -47,6 +50,14 @@ for doc in "${docs[@]}"; do
     fail "$doc is missing the downloaded installer variable"
   grep -Eq 'sha256sum' "$doc" || \
     fail "$doc is missing the installer checksum step"
+  grep -Fq 'OMZ_PIN=' "$doc" || \
+    fail "$doc is missing the Oh My Zsh pin variable"
+  grep -Fq '[[ $OMZ_PIN =~ ^[0-9a-fA-F]{40}$ ]]' "$doc" || \
+    fail "$doc does not require a full Oh My Zsh commit SHA"
+  grep -Fq 'raw.githubusercontent.com/ohmyzsh/ohmyzsh/$OMZ_PIN/tools/install.sh' \
+    "$doc" || fail "$doc does not download the pinned Oh My Zsh installer"
+  grep -Fq 'digest recorded when OMZ_PIN was reviewed' "$doc" || \
+    fail "$doc does not explain how to verify the Oh My Zsh installer digest"
   grep -Fq '[[ $POWERLEVEL10K_PIN =~ ^[0-9a-fA-F]{40}$ ]]' "$doc" || \
     fail "$doc does not require a full Powerlevel10k commit SHA"
   grep -Fq '[[ $FZF_TAB_PIN =~ ^[0-9a-fA-F]{40}$ ]]' "$doc" || \
