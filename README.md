@@ -286,6 +286,39 @@ New Windows installations also use Dockur's OEM hook to ensure WinGet, then
 install Sysinternals, Everything, Helium, and PuTTY. Its transcript is saved at
 `C:\OEM\post-install.log` inside the VM.
 
+### Pin and verify the image digest
+
+The tracked Compose template and newly generated settings intentionally use
+`dockurr/windows@sha256:DIGEST` as a fail-closed placeholder. Before launching
+the VM, pull the current `latest` image on the target machine and capture its
+immutable repository digest:
+
+```bash
+docker pull dockurr/windows:latest
+docker image inspect dockurr/windows:latest --format '{{index .RepoDigests 0}}'
+```
+
+Alternatively, after pulling, `docker image ls --digests dockurr/windows` shows
+the digest. Replace the complete `WINDOWS_IMAGE` value in
+`~/.config/windows/settings.env` with the returned
+`dockurr/windows@sha256:<64-hex-digest>` reference. To update the repository
+default for future installs, make the same one-line replacement in
+`windows/.local/share/windows-vm/compose.yaml` and the installer default in
+`windows/.local/bin/windows-vm`.
+
+This pull-then-pin workflow is trust on first use: the digest preserves the
+exact image first retrieved from the registry, but it does not establish that
+the image was reviewed, authentic, or safe. Pinning that captured digest only
+prevents later tag changes from silently selecting different image content.
+
+Before trusting a new digest, compare it with publisher release metadata,
+signatures, or attestations when those are available. After pulling the pinned
+reference, verify Docker resolved that exact digest:
+
+```bash
+docker image inspect 'dockurr/windows@sha256:<64-hex-digest>' --format '{{json .RepoDigests}}'
+```
+
 ---
 
 ## Theme System

@@ -15,6 +15,7 @@ PROJECT_NAME="${WINDOWS_VM_PROJECT_NAME:-windows-vm}"
 DRY_RUN="${WINDOWS_VM_DRY_RUN:-0}"
 NONINTERACTIVE="${WINDOWS_VM_NONINTERACTIVE:-0}"
 TEMP_ENV=""
+PINNED_IMAGE_PLACEHOLDER="dockurr/windows@sha256:DIGEST"
 
 cleanup() {
   [[ -z "$TEMP_ENV" ]] || rm -f -- "$TEMP_ENV"
@@ -111,6 +112,38 @@ valid_cores() {
 
 valid_port() {
   [[ "$1" =~ ^[0-9]+$ ]] && (( 10#$1 >= 1024 && 10#$1 <= 65535 ))
+}
+
+valid_windows_image() {
+  [[ "$1" =~ ^[a-z0-9./-]+@sha256:[0-9a-f]{64}$ ]]
+}
+
+prepare_windows_image() {
+  local image settings_tmp
+  image=$(read_setting WINDOWS_IMAGE "$PINNED_IMAGE_PLACEHOLDER")
+
+  if grep -q '^WINDOWS_IMAGE=' "$SETTINGS_FILE" && [[ "$image" != *@sha256:* ]]; then
+    printf "WARNING: Migrating mutable WINDOWS_IMAGE value '%s' in %s to %s.\n" \
+      "$image" "$SETTINGS_FILE" "$PINNED_IMAGE_PLACEHOLDER" >&2
+    printf 'Capture and set the real image digest before launching; see README.md, "Pin and verify the image digest".\n' >&2
+    if [[ "$DRY_RUN" == 1 ]]; then
+      printf 'dry-run: rewrite WINDOWS_IMAGE in %q\n' "$SETTINGS_FILE"
+    else
+      settings_tmp=$(mktemp "$CONFIG_DIR/settings.XXXXXX")
+      chmod --reference="$SETTINGS_FILE" "$settings_tmp"
+      if ! awk -v replacement="WINDOWS_IMAGE=$PINNED_IMAGE_PLACEHOLDER" \
+        '/^WINDOWS_IMAGE=/ { print replacement; next } { print }' \
+        "$SETTINGS_FILE" > "$settings_tmp"; then
+        rm -f -- "$settings_tmp"
+        die "Could not migrate WINDOWS_IMAGE in $SETTINGS_FILE"
+      fi
+      mv -f -- "$settings_tmp" "$SETTINGS_FILE"
+    fi
+    image="$PINNED_IMAGE_PLACEHOLDER"
+  fi
+
+  valid_windows_image "$image" || die \
+    "Invalid WINDOWS_IMAGE value '$image' in $SETTINGS_FILE. Use a name@sha256:<64-lowercase-hex> reference; see README.md, \"Pin and verify the image digest\", for capture instructions."
 }
 
 ensure_runtime_dir() {
@@ -283,7 +316,8 @@ write_configuration() {
   credentials_tmp=$(mktemp "$CONFIG_DIR/credentials.XXXXXX")
   chmod 600 "$settings_tmp" "$credentials_tmp"
   {
-    printf 'WINDOWS_IMAGE=dockurr/windows:latest\n'
+    # TODO: replace DIGEST with the verified digest captured as documented in README.md.
+    printf 'WINDOWS_IMAGE=%s\n' "$PINNED_IMAGE_PLACEHOLDER"
     printf 'WINDOWS_VERSION=11\n'
     printf 'WINDOWS_RAM_SIZE=%s\n' "$ram"
     printf 'WINDOWS_CPU_CORES=%s\n' "$cores"
@@ -362,6 +396,7 @@ launch_windows() {
   esac
   [[ $# -le 1 ]] || { usage >&2; exit 2; }
   [[ -r "$SETTINGS_FILE" && -r "$CREDENTIALS_FILE" ]] || { open_installer; return; }
+  prepare_windows_image
   require_docker
   local client port username password timeout_seconds deadline state scale rdp_status
   client=$(rdp_client) || die "FreeRDP 3 is not installed."
