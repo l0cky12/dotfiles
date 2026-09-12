@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# share-upload.sh <file> [api_key] [expiry]
-# api_key: X02 API key — if empty, falls back to uguu.se (anonymous, 3h, 128MB max)
+# share-upload.sh <file> [expiry]
+# api_key: read from stdin; if empty, falls back to uguu.se (anonymous, 3h, 128MB max)
 # expiry:  1h | 1d | 7d | 30d | permanent (X02 only, default: 7d)
 # Prints URL to stdout on success, exits non-zero on failure
 # Exit codes:
@@ -15,8 +15,7 @@
 set -euo pipefail
 
 FILE="${1:-}"
-API_KEY="${2:-}"
-EXPIRY="${3:-7d}"
+EXPIRY="${2:-7d}"
 
 UGUU_MAX_BYTES=$((128 * 1024 * 1024))  # 128 MB
 
@@ -25,6 +24,8 @@ UGUU_MAX_BYTES=$((128 * 1024 * 1024))  # 128 MB
 
 command -v curl >/dev/null 2>&1 || { echo "ERROR: missing dependency: curl" >&2; exit 3; }
 
+IFS= read -r API_KEY || true
+
 # ── X02 (authenticated) ───────────────────────────────────────────────────────
 if [ -n "$API_KEY" ]; then
     EXPIRY_FLAG=()
@@ -32,9 +33,9 @@ if [ -n "$API_KEY" ]; then
         EXPIRY_FLAG=(-F "expiry=${EXPIRY}")
     fi
 
-    URL=$(curl -sS -f \
+    URL=$(printf 'x-api-key: %s\n' "$API_KEY" | curl -sS -f \
         -X POST "https://up.x02.me/api/upload" \
-        -H "x-api-key: ${API_KEY}" \
+        --header @- \
         -F "file=@${FILE}" \
         "${EXPIRY_FLAG[@]}" \
         --connect-timeout 20 \
@@ -79,4 +80,3 @@ fi
 
 echo "ERROR: uguu.se: no valid URL in response" >&2
 exit 5
-

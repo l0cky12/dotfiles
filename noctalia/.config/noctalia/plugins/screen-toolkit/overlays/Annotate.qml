@@ -452,9 +452,11 @@ Variants {
         }
         Process {
 			id: uploadProc
+			stdinEnabled: true
 			stdout: StdioCollector {}
 			onExited: (code) => {
 				cleanupProc.exec({ command: ["rm", "-f", "--", root.sharePath] })
+				stdinEnabled = true
 				overlayWin.isUploading = false
 				var skipPop = root.mainInstance?.pluginApi?.pluginSettings?.shareSkipPopover ?? false
 				if (code === 0) {
@@ -1653,7 +1655,11 @@ Variants {
             var apiKey     = (root.mainInstance?.pluginApi?.pluginSettings?.x02ApiKey ?? "").trim()
             var expiry     = (root.mainInstance?.pluginApi?.pluginSettings?.x02Expiry ?? "7d").trim()
             var scriptPath = Qt.resolvedUrl("../scripts/share-upload.sh").toString().replace("file://", "")
-            uploadProc.exec({ command: ["bash", scriptPath, file, apiKey, expiry] })
+            uploadProc.command = ["bash", scriptPath, file, expiry]
+            uploadProc.stdinEnabled = true
+            uploadProc.running = true
+            uploadProc.write(apiKey + "\n")
+            uploadProc.stdinEnabled = false
         }
         function flattenAndShare() {
             if (overlayWin.isUploading || overlayWin.isSaving) return
@@ -1753,3 +1759,4 @@ Variants {
         }
     }
 }
+
