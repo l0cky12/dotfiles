@@ -53,6 +53,16 @@ if AUTOSSH_TEST_CALLS="$calls" PATH="$test_root/bin:$PATH" \
 fi
 [[ ! -s $calls ]] || fail 'autossh ran after unsafe input'
 
+: > "$calls"
+if AUTOSSH_TEST_CALLS="$calls" PATH="$test_root/bin:$PATH" \
+  "$launcher" -oProxyCommand=id somehost >/dev/null 2>&1; then
+  status=0
+else
+  status=$?
+fi
+[[ $status -eq 2 ]] || fail "unsafe host exited with status $status instead of 2"
+[[ ! -s $calls ]] || fail 'autossh ran after unsafe host input'
+
 assert_contains "$launcher" 'exec autossh -M 0'
 assert_contains "$launcher" 'tmux new -A -s'
 assert_contains "$zsh_config" "alias sshp='sshpersist'"

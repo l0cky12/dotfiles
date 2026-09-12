@@ -53,7 +53,7 @@ stow modes       # ~/.local/bin/desktop-mode, temporary mode policy/config
 stow security    # ~/.local/bin/yubikey-auth, safe YubiKey PAM setup/addition;
                  # ~/.config/gnupg-conf gpg/gpg-agent examples
 stow ssh         # ~/.local/bin/sshpersist, SSH keepalive config fragment
-stow tmux        # ~/.config/tmux/tmux.conf for persistent sessions
+stow tmux        # ~/.config/tmux/tmux.conf for local tmux behavior
 stow browser     # Chromium extensions, flags, and native messaging hosts
 stow hypr        # ~/.config/hypr
 stow hyprlock    # ~/.config/hyprlock
@@ -72,23 +72,27 @@ stow zsh         # ~/.zshrc, ~/.p10k.zsh (see Shell setup below)
 
 ## Persistent SSH sessions
 
-The `ssh` and `tmux` packages provide reconnecting SSH sessions backed by tmux.
+The `sshpersist` launcher provides reconnecting SSH sessions through autossh and
+tmux on the remote host. The local `tmux` package only configures local tmux
+behavior.
 Install the required Arch packages without changing any configuration:
 
 ```bash
 sudo pacman -S --needed autossh tmux
 ```
 
-After stowing `ssh`, `tmux`, and optionally `zsh` for the `sshp` shortcut, add
-this line near the beginning of `~/.ssh/config` (before broader `Host` blocks):
+After stowing `ssh` and optionally `zsh` for the `sshp` shortcut, add this line
+at the end of `~/.ssh/config`:
 
 ```sshconfig
 Include ~/.config/ssh/conf.d/*.conf
 ```
 
-That manual include keeps the existing `~/.ssh/config` under user control. Start
-or return to a host-named remote session with `sshpersist <host>` or
-`sshp <host>`. An optional second argument selects another safe session name:
+SSH uses the first obtained value for each parameter, so keeping the included
+`Host *` defaults last lets per-host blocks above it retain precedence. That
+manual include keeps the existing `~/.ssh/config` under user control. Start or
+return to a host-named remote session with `sshpersist <host>` or `sshp <host>`.
+An optional second argument selects another safe session name:
 
 ```bash
 sshpersist server.example.com
