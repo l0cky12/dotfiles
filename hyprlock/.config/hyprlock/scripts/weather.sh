@@ -1,23 +1,42 @@
 #!/bin/bash
 
 cache_file="$HOME/.cache/wttr_cache.txt"
+default_weather="Weather unavailable"
+max_output_length=160
 
-if [ ! -f "$cache_file" ]; then
-	mkdir -p "$(dirname "$cache_file")" # Create .cache directory if it doesn't exist
-	touch "$cache_file"
-fi
-
-last_modified=$(stat -c %Y "$cache_file")
-current_date=$(date +%s)
-time_diff=$((current_date - last_modified))
 expiry_time=86400
-cached_data=$(<"$cache_file")
 
-if [ $time_diff -lt $expiry_time ] && [ -n "$cached_data" ]; then
-	echo "$cached_data"
-	exit
+valid_output() {
+	local value="$1"
+	[[ -n "$value" && ${#value} -le $max_output_length &&
+		"$value" != *$'\n'* && "$value" != *$'\r'* &&
+		"$value" =~ [^[:space:]] ]]
+}
+
+if [[ -f "$cache_file" ]]; then
+	last_modified=$(stat -c %Y "$cache_file")
+	current_date=$(date +%s)
+	time_diff=$((current_date - last_modified))
+	cached_data=$(<"$cache_file")
+
+	if ((time_diff < expiry_time)) && valid_output "$cached_data"; then
+		printf '%s\n' "$cached_data"
+		exit 0
+	fi
 fi
 
-response=$(curl -s wttr.in?format=%c+%C+%t 2>/dev/null)
-city=$response
-echo "$city" >"$cache_file"
+response=""
+if response=$(curl --fail --silent --show-error --location \
+	--connect-timeout 5 --max-time 15 'https://wttr.in?format=%c+%C+%t'); then
+	:
+else
+	response=""
+fi
+
+if valid_output "$response"; then
+	mkdir -p "$(dirname "$cache_file")"
+	printf '%s\n' "$response" >"$cache_file"
+	printf '%s\n' "$response"
+else
+	printf '%s\n' "$default_weather"
+fi
