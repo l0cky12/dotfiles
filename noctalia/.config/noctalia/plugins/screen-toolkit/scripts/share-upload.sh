@@ -32,15 +32,21 @@ if [ -n "$API_KEY" ]; then
         EXPIRY_FLAG=(-F "expiry=${EXPIRY}")
     fi
 
+    HEADERS=$(mktemp)
+    trap 'rm -f "$HEADERS"' EXIT
+    printf 'x-api-key: %s\n' "$API_KEY" > "$HEADERS"
+    chmod 0600 "$HEADERS"
     URL=$(curl -sS -f \
         -X POST "https://up.x02.me/api/upload" \
-        -H "x-api-key: ${API_KEY}" \
+        -H @- \
         -F "file=@${FILE}" \
         "${EXPIRY_FLAG[@]}" \
         --connect-timeout 20 \
         --max-time 120 \
+        --config "$HEADERS" \
         2>/dev/null) \
         || { echo "ERROR: X02 upload request failed" >&2; exit 4; }
+    rm -f "$HEADERS"
 
     if [ -n "$URL" ] && [[ "$URL" == http* ]]; then
         printf '%s\n' "$URL"
