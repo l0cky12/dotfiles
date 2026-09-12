@@ -23,9 +23,9 @@ hl.config({
     decoration = {
         rounding = {{ rounding }},
         rounding_power = 2.0,
-        active_opacity = {{ active_opacity }},
-        inactive_opacity = {{ inactive_opacity }},
-        fullscreen_opacity = {{ active_opacity }},
+        active_opacity = 1.0,
+        inactive_opacity = 1.0,
+        fullscreen_opacity = 1.0,
         shadow = {
             enabled = {{ on(shadow_opacity > 0) }},
             range = {{ shadow_range }},
@@ -33,7 +33,7 @@ hl.config({
             color = "{{ hypr_rgba(shadow, shadow_opacity) }}",
         },
         blur = {
-            enabled = {{ on(blur) }},
+            enabled = true,
             size = {{ blur_size }},
             passes = {{ blur_passes }},
             ignore_opacity = true,

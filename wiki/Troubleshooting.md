@@ -241,10 +241,10 @@ when `desktop-mode` is absent or its state is malformed. That is intentional.
 
 ## Update count looks wrong
 
-The indicator refreshes every 15 minutes and after its own update window closes.
-A `checkupdates` run that cannot reach the mirrors exits non-zero rather than
-reporting zero, so the count holds its last known value, the hover tray says
-`Last check failed`, and it retries after two minutes.
+The indicator refreshes every 90 minutes. A failed repository or AUR check
+exits non-zero rather than reporting zero, so the count holds its last known
+value, the hover tray says `Last check failed`, and it waits for the next
+scheduled poll. The update button is disabled while a check is in progress.
 
 Reproduce directly:
 

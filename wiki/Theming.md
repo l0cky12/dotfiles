@@ -23,8 +23,12 @@ Four sections:
 
 **`[ansi]`** — the full 16-colour terminal palette, normal and bright.
 
-**`[style]`** — `rounding`, `border_width`, `surface_opacity`, `scrim_opacity`,
-`shadow_opacity`, `blur`, `blur_size`, `blur_passes`.
+**`[style]`** — `rounding`, `border_width`, `surface_opacity`, `kitty_opacity`,
+`scrim_opacity`, `shadow_opacity`, `blur`, `blur_size`, `blur_passes`.
+
+Compositor-managed windows are always opaque. Kitty uses `kitty_opacity`
+(default `0.60`) for its own background, so it is the only normal window with
+transparency and compositor blur.
 
 ## The generator
 

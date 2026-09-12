@@ -289,13 +289,13 @@ browser is closed. Fixture tests live in `tests/browser-native-tools.test.sh`.
 
 ## Arch update indicator
 
-The clock's hover tray shows repository and AUR update counts from
-`arch-updates`. It refreshes every 15 minutes and after its click-only Kitty
+The clock's hover tray shows every pending pacman and AUR package from
+`arch-updates`. It refreshes every 90 minutes and after its click-only Kitty
 update window closes. Pending updates use the active theme accent.
 
-A `checkupdates` run that cannot reach the mirrors exits non-zero rather than
-reporting zero updates, so the indicator keeps its last known counts, notes
-`Last check failed` in the hover tray, and retries after two minutes.
+A failed repository or AUR check exits non-zero rather than reporting zero
+updates, so the indicator keeps its last known counts, notes `Last check
+failed` in the hover tray, and waits for the next 90-minute poll.
 
 ## Waybar: removed
 
