@@ -44,8 +44,6 @@ ColumnLayout {
     Quickshell.execDetached(["chmod", "0600", settingsPath]);
   }
 
-  Component.onCompleted: secureSettingsFile()
-
   // Panel Settings (detached, position, height, offset, width)
   property bool editPanelDetached: pluginApi?.pluginSettings?.panelDetached ?? pluginApi?.manifest?.metadata?.panel?.detached ?? true
   property string editPanelPosition: pluginApi?.pluginSettings?.panelPosition || pluginApi?.manifest?.metadata?.panel?.defaultPosition || "right"
@@ -231,6 +229,7 @@ ColumnLayout {
   spacing: Style.marginM
 
   Component.onCompleted: {
+    secureSettingsFile();
     Logger.i("AssistantPanel", "Settings UI loaded");
   }
 

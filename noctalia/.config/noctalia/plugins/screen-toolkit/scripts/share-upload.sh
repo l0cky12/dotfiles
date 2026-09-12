@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# share-upload.sh <file> [api_key] [expiry]
-# api_key: X02 API key — if empty, falls back to uguu.se (anonymous, 3h, 128MB max)
+# X02_API_KEY=<api_key> share-upload.sh <file> [expiry]
+# X02_API_KEY: if empty, falls back to uguu.se (anonymous, 3h, 128MB max)
 # expiry:  1h | 1d | 7d | 30d | permanent (X02 only, default: 7d)
 # Prints URL to stdout on success, exits non-zero on failure
 # Exit codes:
@@ -15,8 +15,8 @@
 set -euo pipefail
 
 FILE="${1:-}"
-API_KEY="${2:-}"
-EXPIRY="${3:-7d}"
+API_KEY="${X02_API_KEY:-}"
+EXPIRY="${2:-7d}"
 
 UGUU_MAX_BYTES=$((128 * 1024 * 1024))  # 128 MB
 
@@ -79,4 +79,3 @@ fi
 
 echo "ERROR: uguu.se: no valid URL in response" >&2
 exit 5
-

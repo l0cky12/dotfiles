@@ -1650,7 +1650,10 @@ Variants {
             var apiKey     = (root.mainInstance?.pluginApi?.pluginSettings?.x02ApiKey ?? "").trim()
             var expiry     = (root.mainInstance?.pluginApi?.pluginSettings?.x02Expiry ?? "7d").trim()
             var scriptPath = Qt.resolvedUrl("../scripts/share-upload.sh").toString().replace("file://", "")
-            uploadProc.exec({ command: ["bash", scriptPath, file, apiKey, expiry] })
+            uploadProc.exec({
+                command: ["bash", scriptPath, file, expiry],
+                environment: ({ "X02_API_KEY": apiKey })
+            })
         }
         function flattenAndShare() {
             if (overlayWin.isUploading || overlayWin.isSaving) return
@@ -1748,5 +1751,4 @@ Variants {
         }
     }
 }
-
 

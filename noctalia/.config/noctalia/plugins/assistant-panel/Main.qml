@@ -456,7 +456,7 @@ Item {
       model, apiKey, systemPrompt, history, temperature
     );
 
-    Logger.i("AssistantPanel", "sendGeminiRequest: endpoint=" + commandData.url);
+    Logger.i("AssistantPanel", "sendGeminiRequest: endpoint=" + commandData.url.split("?")[0]);
     geminiProcess.buffer = "";
     geminiProcess.command = commandData.args;
     Logger.i("AssistantPanel", "sendGeminiRequest: starting process");
@@ -545,7 +545,7 @@ Item {
     var history = buildConversationHistory();
     var commandData = ProviderLogic.buildOpenAICommand(openaiBaseUrl, apiKey, model, systemPrompt, history, temperature);
 
-    Logger.i("AssistantPanel", "sendOpenAIRequest: endpoint=" + commandData.url);
+    Logger.i("AssistantPanel", "sendOpenAIRequest: endpoint=" + commandData.url.split("?")[0]);
     openaiProcess.buffer = "";
     openaiProcess.command = commandData.args;
 

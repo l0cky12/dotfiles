@@ -14,6 +14,12 @@ assert_contains() {
     grep -Fq -- "$2" "$1" || fail "$1 does not contain [$2]"
 }
 
+assert_not_contains() {
+    if grep -Fq -- "$2" "$1"; then
+        fail "$1 unexpectedly contains [$2]"
+    fi
+}
+
 command -v node >/dev/null 2>&1 || fail 'node is required for the retention fixture'
 
 # Persistence must require an explicit opt-in in both metadata and runtime code.
@@ -26,9 +32,26 @@ if (defaults.persistChatHistory !== false)
 if (defaults.maxHistoryLength !== 20)
   throw new Error("persisted history must default to 20 messages");
 JS
-assert_contains "$assistant/Settings.qml" 'defaultValue: false'
+persist_block="$(sed -n '/label: .*settings.persistChatHistory/,/^  }/p' "$assistant/Settings.qml")"
+grep -Fq -- 'defaultValue: false' <<<"$persist_block" \
+    || fail "$assistant/Settings.qml persistChatHistory block does not default to false"
 assert_contains "$assistant/Main.qml" 'if (!persistChatHistory)'
 assert_contains "$assistant/Main.qml" 'if (persistChatHistory)'
+
+# Endpoint diagnostics must omit query parameters, which can contain API keys.
+redacted_endpoint_logs="$(grep -Fc -- 'commandData.url.split("?")[0]' "$assistant/Main.qml")"
+[ "$redacted_endpoint_logs" -eq 2 ] \
+    || fail "$assistant/Main.qml does not redact both endpoint logs"
+
+# The upload key belongs in the child environment, never its argv.
+assert_contains "$toolkit/overlays/Annotate.qml" 'environment: ({ "X02_API_KEY": apiKey })'
+assert_not_contains "$toolkit/overlays/Annotate.qml" 'file, apiKey, expiry'
+assert_contains "$toolkit/scripts/share-upload.sh" 'API_KEY="${X02_API_KEY:-}"'
+
+# The root settings component must define its completion handler only once.
+completion_handlers="$(grep -Fc -- 'Component.onCompleted:' "$assistant/Settings.qml")"
+[ "$completion_handlers" -eq 1 ] \
+    || fail "$assistant/Settings.qml must have exactly one Component.onCompleted handler"
 
 # Exercise the serializer: an oversized/legacy preference must still retain
 # only the newest 20 entries.
