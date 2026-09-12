@@ -135,6 +135,8 @@ expect_exec("SUPER + Backspace", "toggle window transparency on all workspaces",
     "/home/liam/.config/hypr/scripts/toggle-transparency.sh")
 expect_exec("SUPER + CTRL + O", "toggle menu (night light, DND, stay awake, etc)",
     "/home/liam/.config/hypr/scripts/toggles-menu.sh")
+expect_exec("SUPER + SHIFT + L", "cycle window layout",
+    "/home/liam/.config/hypr/scripts/window-layout.sh cycle")
 
 -- Tiling direction. `preselect` is a one-time override for the next window,
 -- unlike `togglesplit`, which needs dwindle.preserve_split to do anything.
@@ -148,10 +150,10 @@ local function expect_layout(keys, description, action)
     error("missing layout binding: " .. keys .. " -> " .. action)
 end
 
-expect_layout("SUPER + J", "split horizontally (next window opens to the right)",
-    "preselect r")
-expect_layout("SUPER + SHIFT + V", "split vertically (next window opens below)",
-    "preselect d")
+expect_exec("SUPER + J", "split horizontally (next window opens to the right)",
+    "/home/liam/.config/hypr/scripts/window-layout.sh split-horizontal")
+expect_exec("SUPER + SHIFT + V", "split vertically (next window opens below)",
+    "/home/liam/.config/hypr/scripts/window-layout.sh split-vertical")
 
 local floating_toggle_found = false
 for _, capture in ipairs(captures) do
@@ -190,6 +192,10 @@ grep -Fqx 'bindd = $mainMod CTRL, Escape, start ASCII screensaver, exec, $script
 grep -Fqx 'bindd = $mainMod CTRL SHIFT, G, play temporary dotfiles history, exec, $scriptsDir/gource-dotfiles.sh' \
   "$hypr_root/conf/keybinding.conf" ||
   fail 'legacy Gource binding is missing or changed'
+
+grep -Fqx 'bindd = $mainMod SHIFT, L, cycle window layout, exec, $scriptsDir/window-layout.sh cycle' \
+  "$hypr_root/conf/keybinding.conf" ||
+  fail 'legacy window-layout cycle binding is missing or changed'
 
 grep -Fqx 'hl.window_rule({ match = { class = "^t3code$" }, workspace = "4 silent" })' \
   "$hypr_root/conf/window_rules.lua" ||
