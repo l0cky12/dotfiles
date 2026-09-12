@@ -253,7 +253,7 @@ install Sysinternals, Everything, Helium, and PuTTY. Its transcript is saved at
 
 The tracked Compose template and newly generated settings intentionally use
 `dockurr/windows@sha256:DIGEST` as a fail-closed placeholder. Before launching
-the VM, pull the reviewed `latest` image on the target machine and capture its
+the VM, pull the current `latest` image on the target machine and capture its
 immutable repository digest:
 
 ```bash
@@ -268,6 +268,11 @@ the digest. Replace the complete `WINDOWS_IMAGE` value in
 default for future installs, make the same one-line replacement in
 `windows/.local/share/windows-vm/compose.yaml` and the installer default in
 `windows/.local/bin/windows-vm`.
+
+This pull-then-pin workflow is trust on first use: the digest preserves the
+exact image first retrieved from the registry, but it does not establish that
+the image was reviewed, authentic, or safe. Pinning that captured digest only
+prevents later tag changes from silently selecting different image content.
 
 Before trusting a new digest, compare it with publisher release metadata,
 signatures, or attestations when those are available. After pulling the pinned

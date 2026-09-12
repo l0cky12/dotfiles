@@ -126,6 +126,8 @@ WINDOWS_VM_TEST_VALIDATE_COMPOSE=1 "$helper" install > "$test_root/install.out" 
 [[ $(stat -c %a "$WINDOWS_VM_CONFIG_DIR/credentials.env") == 600 ]] || fail 'credentials are not mode 0600'
 grep -Fq 'WINDOWS_PASSWORD_B64=' "$WINDOWS_VM_CONFIG_DIR/credentials.env" || fail 'password was not encoded'
 grep -Fq "fixture 'secret'" "$WINDOWS_VM_CONFIG_DIR/credentials.env" && fail 'plaintext password was written'
+fixture_digest="dockurr/windows@sha256:$(printf 'b%.0s' {1..64})"
+sed -i "s|^WINDOWS_IMAGE=.*|WINDOWS_IMAGE=$fixture_digest|" "$WINDOWS_VM_CONFIG_DIR/settings.env"
 printf 'WINDOWS_START_TIMEOUT=1\n' >> "$WINDOWS_VM_CONFIG_DIR/settings.env"
 export WINDOWS_VM_TEST_PORT_STATUS=0
 
