@@ -32,18 +32,30 @@ SENSITIVE_APP_PATTERNS=(
 )
 
 # cliphist has no application-exclusion rules, so all policy lives here. Refuse
-# to store if either metadata query fails: retaining nothing is safer than
-# silently bypassing the filter.
+# to store when a metadata query fails or returns malformed data. A successful
+# active-window query with no toplevel identity (for example, while a
+# layer-shell surface has focus) is not a policy failure, so use a non-sensitive
+# placeholder for policy matching and store the content.
 types=$(wl-paste --list-types 2>/dev/null) || exit 0
 if grep -qiE '(^|/)(x-kde-passwordmanagerhint|x-(bitwarden|keepassxc|1password))$' <<<"$types"; then
   exit 0
 fi
 
 win=$(hyprctl -j activewindow 2>/dev/null) || exit 0
-identity=$(jq -er '
+if ! identity=$(jq -er '
   [.class, .initialClass, .title, .initialTitle] | map(. // "") |
   if any(.[]; length > 0) then join("\n") else error("missing window identity") end
-' <<<"$win" 2>/dev/null) || exit 0
+' <<<"$win" 2>/dev/null); then
+  if jq -e '
+    type == "object" and
+    ([.class, .initialClass, .title, .initialTitle] |
+      all(. == null or . == ""))
+  ' <<<"$win" >/dev/null 2>&1; then
+    identity='[no toplevel focused]'
+  else
+    exit 0
+  fi
+fi
 identity=${identity,,}
 for pattern in "${SENSITIVE_APP_PATTERNS[@]}"; do
   [[ $identity == *"$pattern"* ]] && exit 0

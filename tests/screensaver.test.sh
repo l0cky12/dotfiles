@@ -36,11 +36,14 @@ fi
 SH
 chmod +x "$test_root/bin/pw-dump"
 
-command -v jq >/dev/null 2>&1 || {
-  printf 'skip: jq is not installed\n'
-  exit 0
-}
+if command -v jq >/dev/null 2>&1; then
+  jq_available=1
+else
+  jq_available=0
+  printf 'WARNING: jq is not installed; skipping jq-dependent screensaver fixtures\n' >&2
+fi
 
+if ((jq_available)); then
 AUDIO_FIXTURE=running "$bin_root/ascii-screensaver" condition && fail 'playing audio did not inhibit the screensaver'
 AUDIO_FIXTURE=idle "$bin_root/ascii-screensaver" condition || fail 'idle audio incorrectly inhibited the screensaver'
 
@@ -97,11 +100,55 @@ spawn_line=$(awk '/setsid/ && /command/ { print NR }' "$bin_root/ascii-screensav
 grep -Fq 'hyprctl eval hl.dispatch(hl.dsp.focus({ monitor = "DP-1" }))' "$ORDER_LOG" || fail 'first monitor was not focused'
 grep -Fq 'hyprctl eval hl.dispatch(hl.dsp.focus({ monitor = "HDMI-A-1" }))' "$ORDER_LOG" || fail 'second monitor was not focused'
 [[ $(grep '^hyprctl ' "$ORDER_LOG" | tail -n1) == 'hyprctl eval hl.dispatch(hl.dsp.focus({ monitor = "DP-1" }))' ]] || fail 'original monitor was not restored'
+fi
 
-"$bin_root/screensaver-lock" --dry-run >"$test_root/lock.out"
+mkdir -p "$test_root/home/.config/hypr/scripts"
+cat >"$test_root/bin/pidof" <<'SH'
+#!/usr/bin/env bash
+[[ ${HYPRLOCK_RUNNING:-0} == 1 ]]
+SH
+cat >"$test_root/bin/pkill" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+cat >"$test_root/bin/timeout" <<'SH'
+#!/usr/bin/env bash
+exit 0
+SH
+cat >"$test_root/bin/hyprlock" <<'SH'
+#!/usr/bin/env bash
+printf 'hyprlock %s\n' "$*" >>"$LOCK_ACTION_LOG"
+SH
+cat >"$test_root/home/.config/hypr/scripts/clipboard-wipe.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'wipe\n' >>"$LOCK_ACTION_LOG"
+SH
+chmod +x "$test_root/bin/pidof" "$test_root/bin/pkill" "$test_root/bin/timeout" \
+  "$test_root/bin/hyprlock" "$test_root/home/.config/hypr/scripts/clipboard-wipe.sh"
+export LOCK_ACTION_LOG="$test_root/lock-actions.log"
+
+HOME="$test_root/home" HYPRLOCK_RUNNING=0 \
+  "$bin_root/screensaver-lock" --dry-run >"$test_root/lock.out"
 grep -Fq 'timeout 1s pidwait -x ttfx' "$test_root/lock.out" || fail 'lock cleanup does not wait for ttfx'
 grep -Fq "pkill -f '[i]o.github.fhlkfds.screensaver'" "$test_root/lock.out" || fail 'lock cleanup omits terminal class'
-grep -Fq '~/.config/hypr/scripts/clipboard-wipe.sh' "$test_root/lock.out" || fail 'lock does not wipe clipboard history'
+grep -Fxq "$test_root/home/.config/hypr/scripts/clipboard-wipe.sh" "$test_root/lock.out" ||
+  fail 'lock dry-run does not use the resolved clipboard wipe path'
+
+HOME="$test_root/home" HYPRLOCK_RUNNING=1 \
+  "$bin_root/screensaver-lock" --dry-run >"$test_root/already-locked.out"
+if grep -Fq 'clipboard-wipe.sh' "$test_root/already-locked.out" ||
+    grep -Fq 'hyprlock --config' "$test_root/already-locked.out"; then
+  fail 'lock dry-run wipes or starts hyprlock when hyprlock is already running'
+fi
+
+: >"$LOCK_ACTION_LOG"
+HOME="$test_root/home" HYPRLOCK_RUNNING=0 "$bin_root/screensaver-lock"
+[[ $(<"$LOCK_ACTION_LOG") == $'wipe\nhyprlock --config '"$test_root"'/home/.config/hypr/hyprlock.conf' ]] ||
+  fail 'real lock path did not wipe immediately before starting hyprlock'
+
+: >"$LOCK_ACTION_LOG"
+HOME="$test_root/home" HYPRLOCK_RUNNING=1 "$bin_root/screensaver-lock"
+[[ ! -s $LOCK_ACTION_LOG ]] || fail 'real lock path acted while hyprlock was already running'
 
 grep -Fq -- '--random-effect --no-eol --no-restore-cursor' "$bin_root/ascii-screensaver-render" || fail 'renderer options changed'
 grep -Fq "stty size" "$bin_root/ascii-screensaver-render" || fail 'renderer resize wait is missing'
@@ -120,4 +167,7 @@ grep -Fq 'toggle-screensaver' "$repo_root/hypr/.config/hypr/conf/keybindings.lua
 grep -Fq 'name = "ascii-screensaver"' "$repo_root/hypr/.config/hypr/conf/window_rules.lua" || fail 'Lua config omits the screensaver window rule'
 grep -Fq 'windowrulev2 = fullscreen,class:^(io\.github\.fhlkfds\.screensaver)$' "$repo_root/hypr/.config/hypr/conf/windows-rules.conf" || fail 'legacy config omits the screensaver window rule'
 
+if ((!jq_available)); then
+  printf 'degraded: jq-independent screensaver and lock fixtures passed\n'
+fi
 printf 'screensaver fixtures: ok\n'
