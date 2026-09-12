@@ -17,6 +17,7 @@
   "stateIsRunning": false,
   "stateActiveTool": "",
   "stateMirrorVisible": false,
+  "stateBootId": "",
   "resultHex": "",
   "resultRgb": "",
   "resultHsv": "",

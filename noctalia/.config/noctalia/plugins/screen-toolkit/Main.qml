@@ -58,6 +58,7 @@ Item {
     property var    _regionScreen: null
     property bool   _capsDetected:   false
     property bool   _sessionChecked: false
+    property string _bootId:         ""
     property var    _detectedLangs:  []
     property string _grimGeometry: ""
     property int    _grimX:        0
@@ -81,12 +82,7 @@ Item {
             Quickshell.execDetached([root._scriptsDir + "temp-session.sh", "cleanup", root.tempDir])
     }
     onPluginApiChanged: {
-        if (pluginApi) {
-            if (!root._sessionChecked) {
-                root._sessionChecked = true
-                _checkSession()
-            }
-        }
+        if (pluginApi) _checkSession()
     }
     Process {
         id: tempSessionProc
@@ -96,12 +92,19 @@ Item {
                 Logger.e("ScreenToolkit", "Unable to create private session directory")
                 return
             }
-            root.tempDir = tempSessionProc.stdout.text.trim()
-            _clearStaleResults()
+            var output = tempSessionProc.stdout.text.trim().split("\n")
+            root.tempDir = output[0] ?? ""
+            root._bootId = output[1] ?? ""
+            _checkSession()
         }
     }
     function _checkSession() {
-        if (root.tempDir !== "") _clearStaleResults()
+        if (root._sessionChecked || !pluginApi || root.tempDir === "" || root._bootId === "") return
+        root._sessionChecked = true
+        var isNewBoot = (pluginApi.pluginSettings.stateBootId ?? "") !== root._bootId
+        pluginApi.pluginSettings.stateBootId = root._bootId
+        if (isNewBoot) _clearStaleResults()
+        else           _restoreSavedState()
     }
     function _clearStaleResults() {
         if (!pluginApi) return
@@ -158,6 +161,13 @@ function clearPaletteResult() {
     function _restoreSavedState() {
         if (!pluginApi) return
         var s = pluginApi.pluginSettings
+        // Session captures no longer exist after a shell restart. Keep only results
+        // that can be rendered without referring back to those temporary files.
+        s.colorCapturePath = ""
+        s.colorCacheBust   = 0
+        s.ocrCapturePath   = ""
+        s.qrCapturePath    = ""
+        pluginApi.saveSettings()
         colorPickerOverlay.loadState(s)
         ocrOverlay.loadState(s)
         qrOverlay.loadState(s)
