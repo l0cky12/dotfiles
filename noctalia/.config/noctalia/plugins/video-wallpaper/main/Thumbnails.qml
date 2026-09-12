@@ -70,9 +70,8 @@ Item {
             if (thumbFolderModel.indexOf(thumbPath) === -1) {
                 Logger.d("video-wallpaper", `Creating thumbnail for video: ${videoPath}`);
 
-                // With scale
-                //thumbProc.command = ["sh", "-c", `ffmpeg -y -i ${videoUrl} -vf "scale=1080:-1" -vframes:v 1 ${thumbUrl}`]
-                thumbGenerationProc.command = ["sh", "-c", `ffmpeg -y -i "${videoPath}" -vf "scale=iw/2:-1, format=rgb24" -vframes:v 1 "${thumbPath}"`]
+                thumbGenerationProc.command = ["ffmpeg", "-y", "-i", videoPath,
+                    "-vf", "scale=iw/2:-1, format=rgb24", "-vframes:v", "1", thumbPath]
                 thumbGenerationProc.running = true;
                 return;
             }
@@ -91,8 +90,29 @@ Item {
 
         clearThumbCacheReady();
 
-        thumbRegenerationProc.command = ["sh", "-c", `rm -rf ${thumbCacheFolderPath} && mkdir -p ${thumbCacheFolderPath}`]
-        thumbRegenerationProc.running = true;
+        const command = ["rm", "-f", "--"];
+        for (let index = 0; index < thumbFolderModel.count; index++) {
+            command.push(thumbFolderModel.get(index));
+        }
+
+        if (command.length > 3) {
+            thumbRegenerationProc.command = command;
+            thumbRegenerationProc.running = true;
+        } else {
+            createThumbCacheFolder();
+        }
+    }
+
+    function createThumbCacheFolder() {
+        thumbRegenerationMkdirProc.command = ["mkdir", "-p", "--",
+            root.thumbCacheFolderPath];
+        thumbRegenerationMkdirProc.running = true;
+    }
+
+    function finishThumbRegeneration() {
+        root.folderModel.forceReload();
+        root.thumbFolderModel.forceReload();
+        root.thumbGeneration();
     }
 
 
@@ -111,7 +131,7 @@ Item {
     Process {
         // Process to create the thumbnail folder
         id: thumbInit
-        command: ["sh", "-c", `mkdir -p ${root.thumbCacheFolderPath}`]
+        command: ["mkdir", "-p", "--", root.thumbCacheFolderPath]
         running: true
     }
 
@@ -124,11 +144,11 @@ Item {
 
     Process {
         id: thumbRegenerationProc
-        onExited: {
-            // Reload the thumbFolder first
-            root.folderModel.forceReload();
-            root.thumbFolderModel.forceReload();
-            root.thumbGeneration();
-        }
+        onExited: root.createThumbCacheFolder()
+    }
+
+    Process {
+        id: thumbRegenerationMkdirProc
+        onExited: root.finishThumbRegeneration()
     }
 }

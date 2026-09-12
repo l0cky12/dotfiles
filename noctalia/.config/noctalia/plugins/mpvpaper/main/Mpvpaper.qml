@@ -46,10 +46,8 @@ Item {
             options.push("no-audio");
         }
 
-        const optionsString = options.join(" ");
-        const command = `mpvpaper -o "${optionsString}" ALL "${root.currentWallpaper}"`;
-
-        return ["sh", "-c", command];
+        return ["mpvpaper", "-o", options.join(" "), "ALL",
+            root.currentWallpaper];
     }
 
     function activateMpvpaper() {

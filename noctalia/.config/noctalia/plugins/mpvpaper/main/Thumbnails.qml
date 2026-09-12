@@ -64,16 +64,15 @@ Item {
         clearThumbCacheReady();
 
         while(root._thumbGenIndex < folderModel.count) {
-            const videoUrl = folderModel.get(root._thumbGenIndex, "fileUrl");
-            const thumbUrl = root.getThumbUrl(videoUrl);
+            const videoPath = folderModel.get(root._thumbGenIndex, "filePath");
+            const thumbPath = root.getThumbPath(videoPath);
             root._thumbGenIndex++;
             // Check if file already exists, otherwise create it with ffmpeg
-            if (thumbFolderModel.indexOf(thumbUrl) === -1) {
-                Logger.d("mpvpaper", `Creating thumbnail for video: ${videoUrl}`);
+            if (thumbFolderModel.indexOf("file://" + thumbPath) === -1) {
+                Logger.d("mpvpaper", `Creating thumbnail for video: ${videoPath}`);
 
-                // With scale
-                //thumbProc.command = ["sh", "-c", `ffmpeg -y -i ${videoUrl} -vf "scale=1080:-1" -vframes:v 1 ${thumbUrl}`]
-                thumbProc.command = ["sh", "-c", `ffmpeg -y -i ${videoUrl} -vframes:v 1 ${thumbUrl}`]
+                thumbProc.command = ["ffmpeg", "-y", "-i", videoPath,
+                    "-vframes:v", "1", thumbPath]
                 thumbProc.running = true;
                 return;
             }
@@ -90,8 +89,23 @@ Item {
         pluginApi.pluginSettings.thumbCacheReady = false;
         pluginApi.saveSettings();
 
-        thumbProc.command = ["sh", "-c", `rm -rf ${thumbCacheFolder} && mkdir -p ${thumbCacheFolder}`]
-        thumbProc.running = true;
+        const command = ["rm", "-f", "--"];
+        for (let index = 0; index < thumbFolderModel.count; index++) {
+            command.push(thumbFolderModel.get(index, "filePath"));
+        }
+
+        if (command.length > 3) {
+            thumbRegenerationProc.command = command;
+            thumbRegenerationProc.running = true;
+        } else {
+            createThumbCacheFolder();
+        }
+    }
+
+    function createThumbCacheFolder() {
+        thumbRegenerationMkdirProc.command = ["mkdir", "-p", "--",
+            root.thumbCacheFolder];
+        thumbRegenerationMkdirProc.running = true;
     }
 
 
@@ -107,6 +121,16 @@ Item {
             // Try to create the thumbnails if they don't exist.
             root.thumbGeneration();
         }
+    }
+
+    Process {
+        id: thumbRegenerationProc
+        onExited: root.createThumbCacheFolder()
+    }
+
+    Process {
+        id: thumbRegenerationMkdirProc
+        onExited: root.thumbGeneration()
     }
 
     FolderListModel {
@@ -133,11 +157,12 @@ Item {
                     } else {
                         // Try to create the thumbnail again
                         // just a fail safe if the current wallpaper isn't included in the wallpapers folder
-                        const videoUrl = folderModel.get(root._thumbGenIndex, "fileUrl");
-                        const thumbUrl = root.getThumbUrl(videoUrl);
+                        const videoPath = folderModel.get(root._thumbGenIndex, "filePath");
+                        const thumbPath = root.getThumbPath(videoPath);
 
                         Logger.d("mpvpaper", "Thumbnail not found:", thumbPath);
-                        thumbColorGenTimerProc.command = ["sh", "-c", `ffmpeg -y -i ${videoUrl} -vframes:v 1 ${thumbUrl}`]
+                        thumbColorGenTimerProc.command = ["ffmpeg", "-y", "-i", videoPath,
+                            "-vframes:v", "1", thumbPath]
                         thumbColorGenTimerProc.running = true;
                     }
                 });
@@ -155,7 +180,7 @@ Item {
     // Process to create the thumbnail folder
     Process {
         id: thumbInit
-        command: ["sh", "-c", `mkdir -p ${root.thumbCacheFolder}`]
+        command: ["mkdir", "-p", "--", root.thumbCacheFolder]
         running: true
     }
 }
