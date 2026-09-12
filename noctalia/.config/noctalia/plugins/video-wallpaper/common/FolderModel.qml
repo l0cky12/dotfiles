@@ -38,10 +38,7 @@ Item {
         return files.indexOf(file);
     }
 
-    onFolderChanged: {
-        if (root.folder === "")
-            forceReload();
-    }
+    onFolderChanged: forceReload();
 
     Component.onCompleted: {
         if (root.folder === "")
