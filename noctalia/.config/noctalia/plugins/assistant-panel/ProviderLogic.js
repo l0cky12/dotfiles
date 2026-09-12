@@ -4,6 +4,27 @@
 // AI Provider Logic
 // ===================================
 
+function curlConfigValue(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+function buildCurlConfig(url, headers, payload, extraOptions) {
+  var lines = [
+    'url = "' + curlConfigValue(url) + '"',
+    'request = "POST"',
+    "silent"
+  ];
+
+  for (var i = 0; i < extraOptions.length; i++) {
+    lines.push(extraOptions[i]);
+  }
+  for (var j = 0; j < headers.length; j++) {
+    lines.push('header = "' + curlConfigValue(headers[j]) + '"');
+  }
+  lines.push('data-binary = "' + curlConfigValue(payload) + '"');
+  return lines.join("\n") + "\n";
+}
+
 function buildGeminiCommand(endpointUrl, model, apiKey, systemPrompt, history, temperature) {
   var contents = [];
 
@@ -46,12 +67,16 @@ function buildGeminiCommand(endpointUrl, model, apiKey, systemPrompt, history, t
     }
   };
 
-  var finalUrl = endpointUrl.replace("{model}", model).replace("{apiKey}", apiKey);
+  var finalUrl = endpointUrl.replace("{model}", model);
+  var payloadString = JSON.stringify(payload);
 
   return {
-    "url": finalUrl,
-    "payload": JSON.stringify(payload),
-    "args": ["curl", "-s", "--no-buffer", "-X", "POST", "-H", "Content-Type: application/json", "-d", JSON.stringify(payload), finalUrl]
+    "payload": payloadString,
+    "args": ["curl", "--config", "-"],
+    "stdin": buildCurlConfig(finalUrl, [
+      "Content-Type: application/json",
+      "x-goog-api-key: " + apiKey
+    ], payloadString, ["no-buffer"])
   };
 }
 
@@ -129,19 +154,18 @@ function buildOpenAICommand(endpointUrl, apiKey, model, systemPrompt, history, t
     "stream": true
   };
 
-  var args = ["curl", "-s", "-S", "--no-buffer", "-X", "POST", "-H", "Content-Type: application/json"];
+  var headers = ["Content-Type: application/json"];
 
   if (apiKey && apiKey.trim() !== "") {
-    args.push("-H", "Authorization: Bearer " + apiKey);
+    headers.push("Authorization: Bearer " + apiKey);
   }
 
-  args.push("-d", JSON.stringify(payload));
-  args.push(endpointUrl);
+  var payloadString = JSON.stringify(payload);
 
   return {
-    "url": endpointUrl,
-    "payload": JSON.stringify(payload),
-    "args": args
+    "payload": payloadString,
+    "args": ["curl", "--config", "-"],
+    "stdin": buildCurlConfig(endpointUrl, headers, payloadString, ["show-error", "no-buffer"])
   };
 }
 
@@ -190,10 +214,12 @@ function parseOpenAIStream(data) {
 // ===================================
 
 function buildGoogleTranslateCommand(text, targetLang, sourceLang) {
-  var url = "https://translate.google.com/translate_a/single?client=gtx" + "&sl=" + encodeURIComponent(sourceLang || "auto") + "&tl=" + encodeURIComponent(targetLang) + "&dt=t&q=" + encodeURIComponent(text);
+  var url = "https://translate.google.com/translate_a/single";
+  var payload = "client=gtx&sl=" + encodeURIComponent(sourceLang || "auto") + "&tl=" + encodeURIComponent(targetLang) + "&dt=t&q=" + encodeURIComponent(text);
 
   return {
-    "args": ["curl", "-s", url]
+    "args": ["curl", "--config", "-"],
+    "stdin": buildCurlConfig(url, ["Content-Type: application/x-www-form-urlencoded"], payload, [])
   };
 }
 
@@ -206,9 +232,14 @@ function buildDeepLTranslateCommand(text, targetLang, apiKey) {
 
   var host = apiKey.endsWith(":fx") ? "api-free.deepl.com" : "api.deepl.com";
   var url = "https://" + host + "/v2/translate";
+  var payload = "text=" + encodeURIComponent(text) + "&target_lang=" + targetLang.toUpperCase();
 
   return {
-    "args": ["curl", "-s", "-X", "POST", url, "-H", "Authorization: DeepL-Auth-Key " + apiKey, "-H", "Content-Type: application/x-www-form-urlencoded", "-d", "text=" + encodeURIComponent(text) + "&target_lang=" + targetLang.toUpperCase()]
+    "args": ["curl", "--config", "-"],
+    "stdin": buildCurlConfig(url, [
+      "Authorization: DeepL-Auth-Key " + apiKey,
+      "Content-Type: application/x-www-form-urlencoded"
+    ], payload, ["show-error"])
   };
 }
 
