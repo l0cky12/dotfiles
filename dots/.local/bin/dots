@@ -6,16 +6,22 @@ program=${0##*/}
 dry_run=false
 deploy_system=false
 deploy_all=false
+assume_yes=false
+declare -a requested_manual_packages=()
 
 usage() {
   cat <<EOF
-Usage: $program deploy [--dry-run] [--system] [--all]
+Usage: $program deploy [--dry-run] [--system --yes] [--all]
+                       [--no-folding-pkg PACKAGE]
 
 Deploy changed GNU Stow packages from ~/dotfiles.
 
   --dry-run  Print the deployment plan without changing anything
-  --system   Also install the repository's greetd and PAM templates
-  --all      Restow every package, regardless of the last deployment
+  --system   Also install the repository's greetd and PAM templates (requires --yes)
+  --yes      Confirm overwriting system files when used with --system
+  --all      Restow every package, including packages requiring manual Stow options
+  --no-folding-pkg PACKAGE
+             Explicitly deploy neovim, btop, obsidian, or wallpaper safely
 EOF
 }
 
@@ -42,6 +48,12 @@ while (($# > 0)); do
     --dry-run) dry_run=true ;;
     --system) deploy_system=true ;;
     --all) deploy_all=true ;;
+    --yes) assume_yes=true ;;
+    --no-folding-pkg)
+      (($# >= 2)) || fail "--no-folding-pkg requires a package name"
+      requested_manual_packages+=("$2")
+      shift
+      ;;
     -h|--help) usage; exit 0 ;;
     *)
       printf '%s: unknown option: %s\n' "$program" "$1" >&2
@@ -51,6 +63,10 @@ while (($# > 0)); do
   esac
   shift
 done
+
+if [[ $deploy_system == true && $assume_yes != true ]]; then
+  fail "--system requires explicit confirmation with --yes"
+fi
 
 command -v git >/dev/null 2>&1 || fail "git is required"
 
@@ -65,21 +81,48 @@ head_sha=$(git -C "$repo" rev-parse --verify HEAD^{commit}) ||
 
 is_excluded() {
   case $1 in
-    docs|wiki|tests|system|dotfiles) return 0 ;;
+    docs|wiki|tests|system|dotfiles|neovim|btop|obsidian|wallpaper) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_manual_package() {
+  case $1 in
+    neovim|btop|obsidian|wallpaper) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+uses_no_folding() {
+  case $1 in
+    neovim|btop|obsidian) return 0 ;;
     *) return 1 ;;
   esac
 }
 
 declare -a all_packages=()
+declare -a manual_packages=()
 declare -A is_package=()
 git -C "$repo" ls-tree -d --name-only HEAD >/dev/null ||
   fail "cannot list packages in $repo"
 while IFS= read -r -d '' directory; do
-  if ! is_excluded "$directory"; then
+  if is_manual_package "$directory"; then
+    manual_packages+=("$directory")
+    is_package["$directory"]=1
+  elif ! is_excluded "$directory"; then
     all_packages+=("$directory")
     is_package["$directory"]=1
   fi
 done < <(git -C "$repo" ls-tree -z -d --name-only HEAD)
+
+declare -A requested_manual=()
+for package in "${requested_manual_packages[@]}"; do
+  is_manual_package "$package" ||
+    fail "--no-folding-pkg only accepts neovim, btop, obsidian, or wallpaper (got '$package')"
+  [[ -n ${is_package["$package"]+present} ]] ||
+    fail "package not found in repository: $package"
+  requested_manual["$package"]=1
+done
 
 first_deploy=false
 last_sha=
@@ -93,7 +136,10 @@ else
 fi
 
 declare -a packages=()
-if [[ $deploy_all == true || $first_deploy == true ]]; then
+if [[ $deploy_all == true ]]; then
+  packages=("${all_packages[@]}")
+  packages+=("${manual_packages[@]}")
+elif [[ $first_deploy == true ]]; then
   packages=("${all_packages[@]}")
 else
   declare -A changed_packages=()
@@ -113,6 +159,14 @@ else
   done
 fi
 
+if [[ $deploy_all != true ]]; then
+  for package in "${manual_packages[@]}"; do
+    if [[ -n ${requested_manual["$package"]+present} ]]; then
+      packages+=("$package")
+    fi
+  done
+fi
+
 printf 'Repository: %s\n' "$repo"
 printf 'Target commit: %s\n' "$head_sha"
 if [[ $first_deploy == true ]]; then
@@ -121,6 +175,13 @@ elif [[ $deploy_all == true ]]; then
   printf 'Notice: --all selected; deploying all packages.\n'
 else
   printf 'Previous commit: %s\n' "$last_sha"
+fi
+if [[ $deploy_all != true ]]; then
+  for package in "${manual_packages[@]}"; do
+    if [[ -z ${requested_manual["$package"]+present} ]]; then
+      printf 'Notice: %s skipped: requires manual stow - see README.\n' "$package"
+    fi
+  done
 fi
 
 printf 'Packages:\n'
@@ -134,7 +195,13 @@ fi
 
 printf 'Actions:\n'
 for package in "${packages[@]}"; do
-  printf '  - stow --restow %q\n' "$package"
+  if uses_no_folding "$package"; then
+    printf '  - stow --restow --no-folding --target %q %q\n' "$HOME" "$package"
+  elif [[ $package == wallpaper ]]; then
+    printf '  - stow --restow --target %q %q\n' "$HOME/Pictures/Wallpapers" "$package"
+  else
+    printf '  - stow --restow --target %q %q\n' "$HOME" "$package"
+  fi
 done
 if [[ -n ${is_package[hypr]+present} ]]; then
   for package in "${packages[@]}"; do
@@ -145,11 +212,23 @@ if [[ -n ${is_package[hypr]+present} ]]; then
   done
 fi
 if [[ $deploy_system == true ]]; then
-  printf '  - sudo install -m 0644 system/greetd/config.toml /etc/greetd/config.toml\n'
+  system_root=${DOTS_SYSTEM_ROOT:-}
+  greetd_target="$system_root/etc/greetd/config.toml"
+  pam_target_dir="$system_root/etc/pam.d"
+  printf 'Warning: system/pam.d templates hardcode host identity pam://Kelper.\n'
+  printf '  - sudo mkdir -p %s\n' "${greetd_target%/*}"
+  if [[ -e $greetd_target ]]; then
+    printf '  - back up existing %s before overwrite\n' "$greetd_target"
+  fi
+  printf '  - sudo install -m 0644 system/greetd/config.toml %s\n' "$greetd_target"
   for pam_file in "$repo"/system/pam.d/*; do
     [[ -f $pam_file ]] || fail "no PAM templates found in $repo/system/pam.d"
-    printf '  - sudo install -m 0644 %s /etc/pam.d/%s\n' \
-      "${pam_file#"$repo"/}" "${pam_file##*/}"
+    pam_target="$pam_target_dir/${pam_file##*/}"
+    if [[ -e $pam_target ]]; then
+      printf '  - back up existing %s before overwrite\n' "$pam_target"
+    fi
+    printf '  - sudo install -m 0644 %s %s\n' \
+      "${pam_file#"$repo"/}" "$pam_target"
   done
 fi
 if ((${#packages[@]} == 0)) && [[ $deploy_system == false ]]; then
@@ -186,16 +265,61 @@ done
 
 for package in "${packages[@]}"; do
   printf 'Restowing %s...\n' "$package"
-  if ! (cd "$repo" && stow --restow "$package"); then
+  declare -a stow_args=(--restow)
+  if uses_no_folding "$package"; then
+    stow_args+=(--no-folding --target "$HOME")
+  elif [[ $package == wallpaper ]]; then
+    stow_args+=(--target "$HOME/Pictures/Wallpapers")
+  else
+    stow_args+=(--target "$HOME")
+  fi
+  stow_args+=("$package")
+  if ! (cd "$repo" && stow "${stow_args[@]}"); then
     fail "stow failed for '$package'; resolve the reported conflict and retry (files were not adopted or overwritten)"
   fi
 done
 
 if [[ $deploy_system == true ]]; then
-  sudo install -m 0644 "$repo/system/greetd/config.toml" /etc/greetd/config.toml
+  timestamp=$(date -u +%Y%m%dT%H%M%S%NZ)
+  declare -a system_sources=("$repo/system/greetd/config.toml")
+  declare -a system_targets=("$greetd_target")
   for pam_file in "$repo"/system/pam.d/*; do
     [[ -f $pam_file ]] || fail "no PAM templates found in $repo/system/pam.d"
-    sudo install -m 0644 "$pam_file" "/etc/pam.d/${pam_file##*/}"
+    system_sources+=("$pam_file")
+    system_targets+=("$pam_target_dir/${pam_file##*/}")
+  done
+
+  declare -a system_backups=()
+  for target in "${system_targets[@]}"; do
+    backup=
+    if [[ -e $target ]]; then
+      backup="${target}.pre-dots.${timestamp}"
+      suffix=2
+      while [[ -e $backup ]]; do
+        backup="${target}.pre-dots.${timestamp}.${suffix}"
+        suffix=$((suffix + 1))
+      done
+      sudo cp -a -- "$target" "$backup" || fail "could not back up $target"
+      printf 'Backup: %s -> %s\n' "$target" "$backup"
+    fi
+    system_backups+=("$backup")
+  done
+
+  printf 'Rollback instructions:\n'
+  for index in "${!system_targets[@]}"; do
+    target=${system_targets[$index]}
+    backup=${system_backups[$index]}
+    if [[ -n $backup ]]; then
+      printf '  sudo cp -a -- %q %q\n' "$backup" "$target"
+    else
+      printf '  sudo rm -f -- %q  # target did not previously exist\n' "$target"
+    fi
+  done
+
+  sudo mkdir -p -- "${greetd_target%/*}" || fail "could not create ${greetd_target%/*}"
+  for index in "${!system_sources[@]}"; do
+    sudo install -m 0644 "${system_sources[$index]}" "${system_targets[$index]}" ||
+      fail "could not install ${system_targets[$index]}"
   done
 fi
 

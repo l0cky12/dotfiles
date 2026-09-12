@@ -66,6 +66,7 @@ python3 -m unittest tests.test_theme_generator
 | `lmenu.test.sh`, `lmenu-reminder.test.sh` | menu rendering and systemd-timer reminders |
 | `windows-vm.test.sh` | the VM controller |
 | `yubikey-auth.test.sh` | the guarded PAM helper |
+| `dots-deploy.test.sh` | changed-package deployment, manual-package safeguards, system-file safety, and deployment-state handling |
 | `eject-drive.test.sh` | drive ejection, with `--fixture` implying `--dry-run` |
 | `docker-dev-env.test.sh` | the development stack |
 | `hypr-wallpaper-picker.test.sh` | index, search, apply |
