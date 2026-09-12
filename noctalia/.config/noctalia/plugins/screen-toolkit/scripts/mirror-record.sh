@@ -8,6 +8,7 @@
 #   3 — ffmpeg processing failed
 #   4 — file move failed
 set -euo pipefail
+umask 077
 
 SRC="${1:-}"
 DEST_DIR="${2:-}"

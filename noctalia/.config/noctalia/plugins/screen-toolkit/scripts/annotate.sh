@@ -9,6 +9,8 @@
 #   annotate.sh copy-zoom         <file>
 #   annotate.sh share-flatten     <base> <overlay>
 
+umask 077
+
 MODE="$1"
 
 case "$MODE" in

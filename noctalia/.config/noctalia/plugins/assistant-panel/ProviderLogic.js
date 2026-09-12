@@ -279,7 +279,9 @@ function processLoadedState(content) {
 }
 
 function prepareStateForSave(messages, activeTab, maxHistory, chatInputText, chatInputCursorPosition) {
-  var maxLog = maxHistory || 100;
+  // Persist only a small, bounded tail even if an older settings file contains
+  // a larger value.
+  var maxLog = Math.max(1, Math.min(maxHistory || 20, 20));
   var toSave = messages.slice(-maxLog);
 
   return JSON.stringify({

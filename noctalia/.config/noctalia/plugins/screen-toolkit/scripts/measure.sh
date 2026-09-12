@@ -2,6 +2,8 @@
 # measure.sh — capture a measurement overlay
 # Args: sx sy rx ry rw rh lx1 ly1 lx2 ly2 lw lh color scale dest_dir full_path
 set -euo pipefail
+umask 077
+
 [ $# -lt 16 ] && { echo "Usage: measure.sh sx sy rx ry rw rh lx1 ly1 lx2 ly2 lw lh color scale dest_dir full_path" >&2; exit 1; }
 SX=$1;  SY=$2
 RX=$3;  RY=$4;  RW=$5;  RH=$6

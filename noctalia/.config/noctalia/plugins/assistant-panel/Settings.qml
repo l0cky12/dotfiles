@@ -34,7 +34,17 @@ ColumnLayout {
   property string editDeeplApiKey: pluginApi?.pluginSettings?.translator?.deeplApiKey || pluginApi?.manifest?.metadata?.defaultSettings?.translator?.deeplApiKey || ""
 
   // General Settings
-  property int editMaxHistoryLength: pluginApi?.pluginSettings?.maxHistoryLength || pluginApi?.manifest?.metadata?.defaultSettings?.maxHistoryLength || 100
+  property bool editPersistChatHistory: pluginApi?.pluginSettings?.persistChatHistory ?? pluginApi?.manifest?.metadata?.defaultSettings?.persistChatHistory ?? false
+  property int editMaxHistoryLength: Math.min(pluginApi?.pluginSettings?.maxHistoryLength || pluginApi?.manifest?.metadata?.defaultSettings?.maxHistoryLength || 20, 20)
+  readonly property string settingsPath: Qt.resolvedUrl("settings.json").toString().replace("file://", "")
+
+  // Noctalia owns the settings.json write and QML exposes no creation-mode
+  // option, so explicitly restrict the host-managed file after each save.
+  function secureSettingsFile() {
+    Quickshell.execDetached(["chmod", "0600", settingsPath]);
+  }
+
+  Component.onCompleted: secureSettingsFile()
 
   // Panel Settings (detached, position, height, offset, width)
   property bool editPanelDetached: pluginApi?.pluginSettings?.panelDetached ?? pluginApi?.manifest?.metadata?.panel?.detached ?? true
@@ -404,7 +414,18 @@ ColumnLayout {
     }
   }
 
-  // Max history length
+  NToggle {
+    Layout.fillWidth: true
+    label: pluginApi?.tr("settings.persistChatHistory")
+    description: pluginApi?.tr("settings.persistChatHistoryDesc")
+    checked: root.editPersistChatHistory
+    onToggled: function (checked) {
+      root.editPersistChatHistory = checked;
+    }
+    defaultValue: false
+  }
+
+  // Persisted history is deliberately capped at 20 messages.
   ColumnLayout {
     Layout.fillWidth: true
     spacing: Style.marginS
@@ -416,9 +437,9 @@ ColumnLayout {
 
     NSlider {
       Layout.fillWidth: true
-      from: 10
-      to: 500
-      stepSize: 10
+      from: 5
+      to: 20
+      stepSize: 5
       value: root.editMaxHistoryLength
       onValueChanged: root.editMaxHistoryLength = value
     }
@@ -553,6 +574,7 @@ ColumnLayout {
     pluginApi.pluginSettings.translator.realTimeTranslation = root.editRealTimeTranslation;
 
     // Save general settings
+    pluginApi.pluginSettings.persistChatHistory = root.editPersistChatHistory;
     pluginApi.pluginSettings.maxHistoryLength = root.editMaxHistoryLength;
 
     // Save panel settings
@@ -564,6 +586,7 @@ ColumnLayout {
     pluginApi.pluginSettings.scale = root.editScale;
 
     pluginApi.saveSettings();
+    secureSettingsFile();
 
     Logger.i("AssistantPanel", "Settings saved successfully");
   }

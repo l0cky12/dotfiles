@@ -25,7 +25,8 @@
   },
   "metadata": {
     "defaultSettings": {
-      "maxHistoryLength": 100,
+      "persistChatHistory": false,
+      "maxHistoryLength": 20,
       "panelDetached": true,
       "panelPosition": "right",
       "panelHeightRatio": 0.85,

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
+
 GX="$1"; GY="$2"; GW="$3"; GH="$4"
 FILE="/tmp/screen-toolkit-lens.png"
 

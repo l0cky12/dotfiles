@@ -20,6 +20,7 @@
 # Used by: Main.qml (annotateWinProc, pinGrimProc, paletteProc, qrProc)
 
 set -euo pipefail
+umask 077
 
 ACTION="${1:-}"
 

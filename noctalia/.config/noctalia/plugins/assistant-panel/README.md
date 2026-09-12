@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/0d1fb5eb-0b16-4ff4-a6ed-f78c196f756f
 
 ### AI Chat
 - **Multiple AI Providers**: Support for Google Gemini and any model compatible with OpenAI API endpoints.
-- **Conversation History**: Persistent chat history with configurable length
+- **Conversation History**: Optional local persistence, disabled by default and capped at 20 messages
 - **System Prompts**: Customize AI behavior with system instructions
 - **Temperature Control**: Adjust response creativity
 
@@ -83,6 +83,18 @@ When an API key is set via environment variable:
 - A message "Managed via environment variable" will be shown
 - The env var value is used regardless of any value in settings.json
 
+### Local data security
+
+Chat history and unfinished input are not written unless **Persist chat history**
+is enabled. Persisted history is limited to the most recent 20 messages, and
+clearing history deletes its cache file. The plugin restricts its cache and the
+host-managed `settings.json` to the current user (`0600` for files).
+
+API keys entered in the UI still live in Noctalia's local settings JSON. QML
+does not provide a secret-store boundary or file creation modes, so this patch
+applies permissions immediately after host writes. Migrating keys to the
+freedesktop Secret Service API (for example KWallet) is the planned follow-up.
+
 ## IPC Commands
 
 Control the plugin from the command line:
@@ -142,7 +154,8 @@ binds {
 | Base URL | API Endpoint URL (Required for OpenAI Compatible) | `https://api.openai.com/v1/chat/completions` |
 | Temperature | Response creativity (0.0 = focused, 2.0 = creative) | 0.7 |
 | System Prompt | Instructions for AI behavior | General assistant |
-| Max History Length | Number of messages to keep | 100 |
+| Persist Chat History | Save messages and unfinished input locally | false |
+| Max History Length | Number of persisted messages to keep (hard limit: 20) | 20 |
 
 ### Translator Settings
 

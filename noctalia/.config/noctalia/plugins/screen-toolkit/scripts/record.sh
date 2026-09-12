@@ -16,6 +16,8 @@
 #
 # Used by: Record.qml
 set -euo pipefail
+umask 077
+
 ACTION="${1:-}"
 THUMB_OUT="/tmp/screen-toolkit-record-thumb.png"
 PALETTE="/tmp/screen-toolkit-record-palette.png"
