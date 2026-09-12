@@ -48,5 +48,14 @@ if ! command -v musl-gcc >/dev/null 2>&1 || \
   }
   run "$package_helper" -S --needed musl rust-musl
 fi
+# REQUIRED: fill this with a reviewed 40-character commit from
+# https://github.com/omacom-io/ttfx/commit/<sha> (or supply TTFX_PIN in the
+# environment). The placeholder fails closed; review the upstream commit first.
+TTFX_PIN=${TTFX_PIN:-'<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'}
+: "${TTFX_PIN:?Set TTFX_PIN to a reviewed upstream commit}"
+[[ $TTFX_PIN =~ ^[0-9a-fA-F]{40}$ ]] || {
+  printf 'install-ttfx: TTFX_PIN must be a full 40-character commit SHA\n' >&2
+  exit 1
+}
 run cargo install --locked --root "$HOME/.local" --target x86_64-unknown-linux-musl \
-  --git https://github.com/omacom-io/ttfx ttfx
+  --git https://github.com/omacom-io/ttfx --rev "$TTFX_PIN" ttfx

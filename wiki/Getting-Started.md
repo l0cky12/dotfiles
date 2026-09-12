@@ -96,11 +96,34 @@ gitlink here could carry the Powerlevel10k theme or the `fzf-tab` plugin that
 reason. Install all three before stowing `zsh`:
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
+omz_installer="$(mktemp)"
+curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh \
+  --output "$omz_installer"
+sha256sum "$omz_installer"
+printf '%s\n' 'Compare this SHA-256 with a checksum obtained through a trusted channel.'
+less "$omz_installer"  # Inspect the complete script before continuing.
+sh "$omz_installer" "" --unattended
+rm -f "$omz_installer"
+
+(
+# REQUIRED: fill these with reviewed 40-character commits from the linked
+# upstream repositories. The placeholder values fail closed. Review each at
+# https://github.com/romkatv/powerlevel10k/commit/<sha> and
+# https://github.com/Aloxaf/fzf-tab/commit/<sha> before using it.
+POWERLEVEL10K_PIN='<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'
+FZF_TAB_PIN='<REPLACE_WITH_REVIEWED_40_CHARACTER_COMMIT_SHA>'
+: "${POWERLEVEL10K_PIN:?Set POWERLEVEL10K_PIN to a reviewed upstream commit}"
+: "${FZF_TAB_PIN:?Set FZF_TAB_PIN to a reviewed upstream commit}"
+[[ $POWERLEVEL10K_PIN =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+[[ $FZF_TAB_PIN =~ ^[0-9a-fA-F]{40}$ ]] || exit 1
+git clone --no-checkout https://github.com/romkatv/powerlevel10k.git \
   ~/.oh-my-zsh/custom/themes/powerlevel10k
-git clone --depth=1 https://github.com/Aloxaf/fzf-tab.git \
+git -C ~/.oh-my-zsh/custom/themes/powerlevel10k checkout --detach \
+  "$POWERLEVEL10K_PIN"
+git clone --no-checkout https://github.com/Aloxaf/fzf-tab.git \
   ~/.oh-my-zsh/custom/plugins/fzf-tab
+git -C ~/.oh-my-zsh/custom/plugins/fzf-tab checkout --detach "$FZF_TAB_PIN"
+)
 ```
 
 `source $ZSH/oh-my-zsh.sh` failing on every prompt means this step was skipped.
