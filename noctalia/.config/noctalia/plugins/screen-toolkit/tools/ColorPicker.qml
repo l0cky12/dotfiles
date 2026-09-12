@@ -7,6 +7,8 @@ Item {
     id: root
     property var    pluginApi:  null
     property string scriptsDir: ""
+    property string tempDir: ""
+    readonly property string capturePath: tempDir === "" ? "" : tempDir + "/colorpicker.png"
 
     property string resultHex:        ""
     property string resultRgb:        ""
@@ -22,7 +24,7 @@ Item {
     function run() {
         colorPickerProc.exec({ command: [
             root.scriptsDir + "color-picker.sh",
-            "/tmp/screen-toolkit-colorpicker.png"
+            root.capturePath
         ]})
     }
 
@@ -84,7 +86,7 @@ Item {
             root.resultRgb        = rgb
             root.resultHsv        = hsv
             root.resultHsl        = hsl
-            root.colorCapturePath = "/tmp/screen-toolkit-colorpicker.png"
+            root.colorCapturePath = root.capturePath
             root.colorCacheBust   = Date.now()
 
             if (root.pluginApi) {
@@ -93,7 +95,7 @@ Item {
                 settings.resultRgb        = rgb
                 settings.resultHsv        = hsv
                 settings.resultHsl        = hsl
-                settings.colorCapturePath = "/tmp/screen-toolkit-colorpicker.png"
+                settings.colorCapturePath = root.capturePath
                 settings.colorCacheBust   = Date.now()
                 var history = (settings.colorHistory || [])
                 history = [hex].concat(history.filter(c => c !== hex)).slice(0, 8)

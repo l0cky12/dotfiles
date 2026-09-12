@@ -7,6 +7,8 @@ Item {
     id: root
     property var    pluginApi:  null
     property string scriptsDir: ""
+    property string tempDir: ""
+    readonly property string capturePath: tempDir === "" ? "" : tempDir + "/qr.png"
 
     property string qrResult:      ""
     property string qrCapturePath: ""
@@ -15,7 +17,7 @@ Item {
     signal failed()
 
     function run(grimGeometry) {
-        qrProc.exec({ command: [root.scriptsDir + "capture.sh", "qr", grimGeometry] })
+        qrProc.exec({ command: [root.scriptsDir + "capture.sh", "qr", grimGeometry, root.capturePath] })
     }
 
     function clearResults() {
@@ -37,11 +39,11 @@ Item {
             if (code !== 0 || result === "") { root.failed(); return }
 
             root.qrResult      = result
-            root.qrCapturePath = "/tmp/screen-toolkit-qr.png"
+            root.qrCapturePath = root.capturePath
 
             if (root.pluginApi) {
                 root.pluginApi.pluginSettings.qrResult      = result
-                root.pluginApi.pluginSettings.qrCapturePath = "/tmp/screen-toolkit-qr.png"
+                root.pluginApi.pluginSettings.qrCapturePath = root.capturePath
                 root.pluginApi.saveSettings()
             }
 

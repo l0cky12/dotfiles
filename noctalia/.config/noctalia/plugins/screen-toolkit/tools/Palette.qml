@@ -7,6 +7,7 @@ Item {
     id: root
     property var    pluginApi:  null
     property string scriptsDir: ""
+    property string tempDir: ""
 
     property var paletteColors: []
 
@@ -19,7 +20,7 @@ Item {
             root.pluginApi.saveSettings()
         }
         root.paletteColors = []
-        paletteProc.exec({ command: [root.scriptsDir + "capture.sh", "palette", grimGeometry] })
+        paletteProc.exec({ command: [root.scriptsDir + "capture.sh", "palette", grimGeometry, root.tempDir] })
     }
 
     function clearResults() {
