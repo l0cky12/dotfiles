@@ -208,6 +208,9 @@ the Powerlevel10k theme and the `fzf-tab` plugin that `.zshrc` loads from
 `$ZSH_CUSTOM`. Install all three before stowing `zsh`:
 
 ```bash
+(
+# The subshell guards the exit below so a failed pin check can never close an
+# interactive terminal.
 # REQUIRED: fill this with a reviewed 40-character commit from
 # https://github.com/ohmyzsh/ohmyzsh/commit/<sha>. When reviewing the commit,
 # inspect tools/install.sh and record its SHA-256 digest through a trusted channel.

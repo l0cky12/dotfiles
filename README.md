@@ -676,6 +676,9 @@ vendored in this repo** — Oh My Zsh's own `.gitignore` excludes `custom/`, so
 nothing tracked here could ever carry them. Install them once:
 
 ```bash
+(
+# The subshell guards the exit below so a failed pin check can never close an
+# interactive terminal.
 # REQUIRED: fill this with a reviewed 40-character commit from
 # https://github.com/ohmyzsh/ohmyzsh/commit/<sha>. When reviewing the commit,
 # inspect tools/install.sh and record its SHA-256 digest through a trusted channel.
