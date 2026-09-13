@@ -22,7 +22,7 @@ git -C "$fixture_repo" config user.name 'Dots Test'
 git -C "$fixture_repo" config user.email dots@example.invalid
 mkdir -p "$fixture_repo/alpha/.config/alpha" \
   "$fixture_repo/hypr/.config/hypr" "$fixture_repo/neovim/.config/nvim" \
-  "$fixture_repo/wallpaper/theme" "$fixture_repo/docs" \
+  "$fixture_repo/wallpaper/theme" "$fixture_repo/dots/.local/bin" "$fixture_repo/docs" \
   "$fixture_repo/tests" "$fixture_repo/system/greetd" \
   "$fixture_repo/system/pam.d"
 printf 'one\n' > "$fixture_repo/alpha/.config/alpha/config"
@@ -34,6 +34,8 @@ printf 'tests\n' > "$fixture_repo/tests/example"
 printf 'config\n' > "$fixture_repo/system/greetd/config.toml"
 printf 'pam sudo\n' > "$fixture_repo/system/pam.d/sudo"
 printf 'pam lock\n' > "$fixture_repo/system/pam.d/hyprlock"
+cp "$dots" "$fixture_repo/dots/.local/bin/dots"
+chmod +x "$fixture_repo/dots/.local/bin/dots"
 git -C "$fixture_repo" add .
 git -C "$fixture_repo" commit -qm initial
 initial_sha=$(git -C "$fixture_repo" rev-parse HEAD)
@@ -165,6 +167,35 @@ git -C "$fixture_repo" commit -qm hypr
 : > "$calls"
 DOTS_TEST_PGREP_RC=0 run_dots >/dev/null
 grep -Fx 'hyprctl arg=reload' "$calls" >/dev/null || fail 'live Hyprland was not reloaded'
+
+# `update` fast-forwards from the configured upstream, then deploys exactly the
+# package changed by that incoming commit.
+remote_repo="$test_root/remote.git"
+upstream_repo="$test_root/upstream"
+git clone -q --bare "$fixture_repo" "$remote_repo"
+branch=$(git -C "$fixture_repo" branch --show-current)
+git -C "$fixture_repo" remote add origin "$remote_repo"
+git -C "$fixture_repo" push -q -u origin "$branch"
+git clone -q "$remote_repo" "$upstream_repo"
+git -C "$upstream_repo" config user.name 'Dots Upstream'
+git -C "$upstream_repo" config user.email upstream@example.invalid
+printf 'upstream update\n' >> "$upstream_repo/alpha/.config/alpha/config"
+git -C "$upstream_repo" add alpha/.config/alpha/config
+git -C "$upstream_repo" commit -qm upstream-update
+upstream_sha=$(git -C "$upstream_repo" rev-parse HEAD)
+git -C "$upstream_repo" push -q origin "$branch"
+printf '%s\n' "$changed_sha" > "$fixture_state"
+: > "$calls"
+run_dots_update() {
+  HOME=$fixture_home DOTS_REPO=$fixture_repo DOTS_STATE_FILE=$fixture_state \
+    DOTS_SYSTEM_ROOT=$fixture_system_root PATH="$stub_bin:/usr/bin:/bin" \
+    DOTS_TEST_CALLS=$calls "$dots" update "$@"
+}
+run_dots_update >/dev/null
+[[ $(git -C "$fixture_repo" rev-parse HEAD) == "$upstream_sha" ]] ||
+  fail 'update did not fast-forward to the upstream commit'
+grep -F "arg=alpha" "$calls" >/dev/null || fail 'update did not deploy the changed package'
+[[ $(<"$fixture_state") == "$upstream_sha" ]] || fail 'update did not record the pulled commit'
 
 # --system backs up every existing target before installing mode 0644 files.
 mkdir -p "$fixture_system_root/etc/greetd" "$fixture_system_root/etc/pam.d"

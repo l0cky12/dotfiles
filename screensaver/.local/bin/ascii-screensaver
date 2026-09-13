@@ -243,6 +243,11 @@ cleanup_terminals() {
 for monitor in "${monitors[@]}"; do
   command=()
   terminal_command
+  # Wayland terminals are placed on the monitor that is focused when their
+  # initial surface maps.  Move-by-address below remains a safety net, but
+  # focusing first prevents a visible flash (or a compositor race) on the
+  # primary monitor when the launcher started elsewhere.
+  focus_monitor "$monitor" >/dev/null
   setsid "${command[@]}" >/dev/null 2>&1 &
   window_address=
   if ! wait_for_window; then

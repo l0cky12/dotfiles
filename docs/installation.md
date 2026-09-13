@@ -340,3 +340,7 @@ ordinary edits are immediately visible through existing symlinks.
 Restart/reload behavior is component-specific. See
 [Customization](./customization.md#applying-changes) rather than restarting the
 entire session by default.
+
+After stowing `dots`, `dots update` runs `git pull --ff-only` and deploys only
+the packages changed by that pull. It refuses a divergent upstream or local
+changes that Git cannot fast-forward; resolve those deliberately before retrying.

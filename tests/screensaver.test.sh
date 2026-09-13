@@ -99,6 +99,11 @@ spawn_line=$(awk '/setsid/ && /command/ { print NR }' "$bin_root/ascii-screensav
 ((socket_line < spawn_line)) || fail 'event socket is not opened before terminal spawning'
 placement_log=$(grep -E '^hyprctl dispatch (focuswindow|movewindow)' "$ORDER_LOG")
 [[ $placement_log == $'hyprctl dispatch focuswindow address:0xabc\nhyprctl dispatch movewindow mon:DP-1\nhyprctl dispatch focuswindow address:0xdef\nhyprctl dispatch movewindow mon:HDMI-A-1' ]] || fail 'windows were not assigned by address to their intended monitors'
+mapfile -t launch_order < <(grep -E '^(hyprctl eval hl.dispatch\(hl.dsp.focus\(\{ monitor = "(DP-1|HDMI-A-1)" \}\)\)|spawn )' "$ORDER_LOG")
+[[ ${launch_order[*]} == *'monitor = "DP-1" })) spawn '* ]] ||
+  fail 'first terminal was not spawned after focusing DP-1'
+[[ ${launch_order[*]} == *'monitor = "HDMI-A-1" })) spawn '* ]] ||
+  fail 'second terminal was not spawned after focusing HDMI-A-1'
 [[ $(grep '^hyprctl ' "$ORDER_LOG" | tail -n1) == 'hyprctl eval hl.dispatch(hl.dsp.focus({ monitor = "DP-1" }))' ]] || fail 'original monitor was not restored'
 fi
 
