@@ -27,4 +27,15 @@ Scope {
       ownerScreen: modelData.name
     }
   }
+  // The clipboard QR share window, same shape: one instance per monitor, only
+  // the one whose ownerScreen matches ClipboardQrState.overlayScreen visible.
+  Variants {
+    model: Quickshell.screens
+
+    ClipboardQrOverlay {
+      required property var modelData
+      screen: modelData
+      ownerScreen: modelData.name
+    }
+  }
 }

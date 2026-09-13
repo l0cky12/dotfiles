@@ -74,6 +74,15 @@ Scope {
     }
   }
 
+  // The clipboard QR is an overlay rather than a bar panel, so it has no
+  // toggle target of its own on the bar: the lmenu Capture row calls this.
+  IpcHandler {
+    target: "clipboard-qr"
+    function toggle(): void {
+      ClipboardQrState.show(bar.focusedScreen())
+    }
+  }
+
   IpcHandler {
     target: "display"
     function toggle(): void {
