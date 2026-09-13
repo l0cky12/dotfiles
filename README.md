@@ -622,8 +622,7 @@ two backends.
 
 ## Web Apps
 
-Turn a website into a first-class launcher. `SUPER + SHIFT + A` opens the manager
-(also reachable from the **WEB APPS** tile on the dashboard, `SUPER + CTRL + A`).
+Turn a website into a first-class launcher. `SUPER + SHIFT + A` opens the manager.
 
 ```
 Install > Name + URL > icon found automatically > Install

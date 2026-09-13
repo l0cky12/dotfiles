@@ -33,8 +33,7 @@ Singleton {
 
   // --- fetching --------------------------------------------------------------
 
-  // Called when the dashboard opens; only actually hits the network if the
-  // cached result has expired.
+  // Only actually hits the network if the cached result has expired.
   function maybeRefresh() {
     const age = Date.now() - root.lastFetchMs
     if (root.hasData && age < root.refreshIntervalMs)
@@ -62,16 +61,7 @@ Singleton {
     fetchProc.running = true
   }
 
-  Connections {
-    target: DashboardState
-    function onPanelVisibleChanged() {
-      if (DashboardState.panelVisible)
-        root.maybeRefresh()
-    }
-  }
-
-  // The bar and dashboard share this state; the cache check keeps this to one
-  // request per 15 minutes.
+  // The cache check keeps this to one request per 15 minutes.
   Timer {
     interval: 60000
     running: true

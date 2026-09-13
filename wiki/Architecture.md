@@ -52,7 +52,7 @@ anywhere in the repository.
 Hyprland `hyprland.start`
 ├── quickshell
 │   ├── bar and workspace cells
-│   ├── dashboard / network / audio / media / display / Bluetooth panels
+│   ├── network / audio / media / display / Bluetooth panels
 │   ├── freedesktop notification service
 │   ├── cliphist browser
 │   ├── video-download OSD

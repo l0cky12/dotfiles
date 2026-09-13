@@ -20,8 +20,6 @@ One top-layer bar is created per screen. Its active layout is:
 
 Workspace buttons switch to their numbered workspace. Other interactions include:
 
-- Clock: dashboard. Also reachable over IPC via the `dashboard` target's
-  `toggle` call.
 - Media: media panel.
 - Display: display panel; wheel adjusts DDC/CI brightness.
 - Network: themed NetworkManager panel; secured Wi-Fi connections use an
@@ -54,7 +52,6 @@ Workspace buttons switch to their numbered workspace. Other interactions include
 | Audio | Quickshell PipeWire API; default output/input switching and live per-application playback controls |
 | Media | Quickshell MPRIS; recent/pinned players; lyrics from `lrclib.net` |
 | Display | Hyprland monitor model, `ddcutil`, monitor-scale helper |
-| Dashboard | `/proc`, `df`, shell commands, Open-Meteo weather API |
 | Clipboard | `cliphist`, `wl-copy`, local image preview/index state |
 | Keybindings | live `hyprctl binds -j`; destructive entries are not invoked from UI |
 | Theme | Hyprland theme generator |
@@ -62,7 +59,7 @@ Workspace buttons switch to their numbered workspace. Other interactions include
 | Web apps | shell backend creating/removing launchers |
 
 IPC targets let keybindings toggle network, Bluetooth, display, media, clipboard,
-dashboard, keybindings, theme, wallpaper, and web-app panels.
+keybindings, theme, wallpaper, and web-app panels.
 
 ### Battery monitoring
 

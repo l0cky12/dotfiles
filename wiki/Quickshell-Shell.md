@@ -45,8 +45,8 @@ changing either side never nudges the time.
 | the anchor | the clock itself |
 | right of the clock | `KeyboardLayoutWidget`, weather glyph, weather temperature |
 
-The `MediaPanel` and `DashboardPanel` both anchor to the clock, and clicking the
-clock toggles the dashboard.
+The `MediaPanel` anchors to the clock, but is opened from `MediaIcon` or the
+`media` IPC target — the clock itself is a plain label with no click target.
 
 **Right** — `SystemTrayWidget`, `AgentIcon`, `WindowsVmIcon`, `ClipboardIcon`,
 `BluetoothIcon`, `NetworkIcon`, `AudioIcon`, `DisplayIcon`, then a power button
@@ -93,7 +93,6 @@ it requests no keyboard focus. It draws in the bottom-right corner.
 | Audio | Quickshell's PipeWire API |
 | Media | Quickshell MPRIS; recent and pinned players; lyrics from `lrclib.net` |
 | Display | Hyprland's monitor model, `ddcutil`, and `set-monitor-scale.sh` |
-| Dashboard | `/proc`, `df`, shell commands, Open-Meteo |
 | Clipboard | `cliphist`, `wl-copy`, plus a local image preview index |
 | Keybindings | live `hyprctl binds -j`; destructive entries are not invokable from the UI |
 | Theme | the Hyprland theme generator |
@@ -111,7 +110,7 @@ Every panel is reachable over `quickshell ipc call <target> <function>`, which i
 how the keybindings toggle them without spawning anything:
 
 ```text
-audio      bar        bluetooth   clipboard   dashboard   display
+audio      bar        bluetooth   clipboard   display
 keybinds   media      modes       network     notifications
 theme      videoDownload           visualizer
 wallpaper  webapps
@@ -120,7 +119,7 @@ wallpaper  webapps
 Example:
 
 ```bash
-quickshell ipc call dashboard toggle
+quickshell ipc call media toggle
 quickshell ipc call notifications statusJson
 ```
 
@@ -144,7 +143,7 @@ dropdown.
 | --- | --- |
 | Bar shell | `Bar.qml`, `WorkspacesModule.qml`, `IconButton.qml`, `Card.qml` |
 | Clock and calendar | `ClockState.qml`, `ClockWidget.qml`, `DesktopClock.qml`, `CalendarGrid.qml`, `CalendarPopup.qml`, `TimezonePopup.qml`, `DateTimeCard.qml` |
-| Dashboard | `DashboardState.qml`, `DashboardPanel.qml`, `TabBar.qml`, `DashTab.qml`, `MediaTab.qml`, `PerfTab.qml`, `WorkspacesTab.qml`, `WeatherTab.qml`, `MetricCard.qml`, `Gauge.qml`, `HeroGauge.qml`, `ProfileCard.qml`, `SysState.qml` |
+| System metrics (unmounted since the dashboard drawer was removed) | `SysState.qml`, `MediaTab.qml`, `PerfTab.qml`, `WorkspacesTab.qml`, `WeatherTab.qml`, `MetricCard.qml`, `Gauge.qml`, `HeroGauge.qml`, `ProfileCard.qml` |
 | Network | `NetworkState/Icon/Panel.qml` |
 | Audio and media | `AudioState/Icon/Panel.qml`, `AudioPanelContent.qml`, `VolumeSlider.qml`, `MediaState/Icon/Panel.qml`, `MediaPreviewCard.qml`, `LyricsState.qml`, `LyricsView.qml` |
 | Visualiser | `CavaState.qml`, `CavaBars.qml`, `CavaEdgeVisualizer.qml`, `VisualizerState.qml` |

@@ -76,14 +76,6 @@ Scope {
   }
 
   IpcHandler {
-    target: "dashboard"
-    function toggle(): void {
-      DashboardState.togglePanel(bar.focusedScreen())
-    }
-
-  }
-
-  IpcHandler {
     target: "display"
     function toggle(): void {
       DisplayState.togglePanel(bar.focusedScreen())
@@ -332,23 +324,12 @@ Scope {
           }
         }
 
-        // Clicking the centered clock keeps the dashboard behavior.
+        // The media panel anchors to the centered clock; it is opened from the
+        // media icon or the `media` IPC target, not by clicking the clock. The
+        // clock itself is a plain label with no click target.
         MediaPanel {
           anchorItem: clockLabel
           ownerScreen: panel.modelData.name
-        }
-
-        DashboardPanel {
-          anchorItem: clockLabel
-          ownerScreen: panel.modelData.name
-        }
-
-        MouseArea {
-          anchors.fill: clockLabel
-          hoverEnabled: true
-          cursorShape: Qt.PointingHandCursor
-          acceptedButtons: Qt.LeftButton
-          onClicked: DashboardState.togglePanel(panel.modelData.name)
         }
       }
 
