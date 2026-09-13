@@ -1,7 +1,12 @@
-# Ignore Neovim-owned state if this package is folded despite the documented
-# --no-folding deployment command. This file does not itself prevent folding.
-*
-!.gitignore
-!colors/
+# Keep local Neovim state out of the package. Deploy with --no-folding so
+# application-created files remain in ~/.config/nvim instead of this checkout.
+.neoconf.json
+*.log
+debug
+doc/tags
+data
+
+# Theme generation owns this directory. Only its deployment placeholder is
+# tracked; generated colorschemes stay local.
 colors/*
 !colors/.stow-keep
