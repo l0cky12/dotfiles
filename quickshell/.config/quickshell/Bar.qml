@@ -97,6 +97,16 @@ Scope {
   }
 
   IpcHandler {
+    target: "app-keybinds"
+    function neovim(): void {
+      AppKeybindsState.togglePanel(bar.focusedScreen(), "neovim")
+    }
+    function herdr(): void {
+      AppKeybindsState.togglePanel(bar.focusedScreen(), "herdr")
+    }
+  }
+
+  IpcHandler {
     target: "theme"
     function toggle(): void {
       ThemeState.togglePanel(bar.focusedScreen())
@@ -140,6 +150,17 @@ Scope {
       required property var modelData
       screen: modelData
       ownerScreen: modelData.name
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+
+    KeybindsPanel {
+      required property var modelData
+      screen: modelData
+      ownerScreen: modelData.name
+      controller: AppKeybindsState
     }
   }
 

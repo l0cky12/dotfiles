@@ -262,8 +262,9 @@ bind("SUPER + Q", "close window", hl.dsp.window.close())
 
     if shutil.which("qmllint"):
         subprocess.run(["qmllint", str(REPO / "quickshell/.config/quickshell/KeybindsState.qml"),
+                        str(REPO / "quickshell/.config/quickshell/AppKeybindsState.qml"),
                         str(REPO / "quickshell/.config/quickshell/KeybindsPanel.qml")], check=True)
-        print("ok: qmllint KeybindsState.qml KeybindsPanel.qml")
+        print("ok: qmllint keybinding palette state and panel files")
     else:
         print("skip: qmllint is not installed")
 

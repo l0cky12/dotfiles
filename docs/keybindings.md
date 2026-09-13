@@ -19,6 +19,9 @@ opened with `SUPER+K`.
 | `SUPER+P` | power menu | `scripts/power-menu.sh`, launcher-neutral |
 | `SUPER+ALT+P` | monitor profiles | themed Rofi menu; includes the next-profile cycle |
 | `SUPER+K` | searchable bindings | Quickshell keybinding panel |
+| `SUPER+CTRL+U` | pull and deploy dotfiles updates | fast-forward pull, then re-Stow changed packages |
+| `SUPER+N` | Neovim keybindings | queries the active local Neovim/LazyVim runtime |
+| `SUPER+H` | Herdr keybindings | reads local Herdr defaults and `~/.config/herdr/config.toml` |
 | `SUPER+I` | coding agent | `ai-agent` in Kitty, via `run-if-deployed.sh` |
 | `SUPER+CTRL+T` | activity | floating `btop` in the configured terminal |
 | `SUPER+ALT+T` | network speed test | live Quickshell gauges over fast.com transfers measured through kernel interface counters |
