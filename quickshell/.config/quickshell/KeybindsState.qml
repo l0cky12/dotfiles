@@ -83,6 +83,9 @@ Singleton {
     { rank: 40, re: /^voice dictation$/i },
     { rank: 41, re: /^hermes$/i },
     { rank: 42, re: /^web app manager$/i },
+    // Same rank as the manager it opens, so the two web app entries sit
+    // together and the tie breaks alphabetically.
+    { rank: 42, re: /^install current site as a web app$/i },
     { rank: 43, re: /^coding agent$/i },
     { rank: 44, re: /^drop-down terminal$/i },
     { rank: 45, re: /^emoji menu$/i },
