@@ -230,7 +230,7 @@ Honours `HYPR_WALLPAPER_DIR`, `HYPR_WALLPAPER_RUNTIME_DIR`, and
 
 ## Web apps
 
-`SUPER+ALT+A` opens the manager; the **WEB APPS** dashboard tile does the same.
+`SUPER+ALT+A` opens the manager.
 
 ```bash
 webapp list

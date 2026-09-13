@@ -31,7 +31,7 @@ best place for durable customization.
 Hyprland `hyprland.start` event
 ├── quickshell
 │   ├── bar and workspace controls
-│   ├── dashboard/network/audio/media/display panels
+│   ├── network/audio/media/display panels
 │   ├── freedesktop notification service
 │   ├── cliphist browser
 │   ├── video-download OSD

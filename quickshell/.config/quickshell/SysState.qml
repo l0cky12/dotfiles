@@ -4,18 +4,20 @@ import Quickshell.Io
 import Quickshell.Services.UPower
 import QtQuick
 
-// Local system metrics for the dashboard.
+// Local system metrics.
 //
 // Everything comes from /proc and /sys reads except disk usage, which needs df.
-// Polling only runs while the dashboard is open, so a closed dashboard costs
-// nothing.
+// Polling only runs while `active` is set, so an unused SysState costs nothing.
 //
 // hwmon and DRM card indices are NOT stable across boots, so the sensor paths
 // are resolved by matching hwmon/name at startup rather than hardcoded.
 Singleton {
   id: root
 
-  readonly property bool active: DashboardState.panelVisible
+  // The clock's dashboard drawer used to drive this. With the drawer gone
+  // nothing mounts the metric views, so polling stays off until a future
+  // consumer sets this.
+  property bool active: false
 
   // --- resolved sensor paths -------------------------------------------------
 
@@ -210,7 +212,7 @@ Singleton {
     }
   }
 
-  // Fast metrics: only while the dashboard is on screen.
+  // Fast metrics: only while a consumer has set `active`.
   Timer {
     interval: 1500
     running: root.active

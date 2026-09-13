@@ -22,7 +22,7 @@ deploying it on another account or computer.
 Hyprland
 ├── Quickshell
 │   ├── top bar and workspaces
-│   ├── dashboard and control panels
+│   ├── control panels
 │   ├── notifications
 │   ├── clipboard history
 │   ├── browser-download progress OSD
