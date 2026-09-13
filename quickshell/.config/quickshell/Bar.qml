@@ -6,7 +6,6 @@ import QtQuick
 Scope {
   id: bar
   property bool barVisible: true
-  property bool barTransparent: false
   property bool barAtBottom: false
 
   // Panels opened from a keybind rather than a click target the focused
@@ -90,6 +89,16 @@ Scope {
   }
 
   IpcHandler {
+    target: "app-keybinds"
+    function neovim(): void {
+      AppKeybindsState.togglePanel(bar.focusedScreen(), "neovim")
+    }
+    function herdr(): void {
+      AppKeybindsState.togglePanel(bar.focusedScreen(), "herdr")
+    }
+  }
+
+  IpcHandler {
     target: "theme"
     function toggle(): void {
       ThemeState.togglePanel(bar.focusedScreen())
@@ -133,6 +142,17 @@ Scope {
       required property var modelData
       screen: modelData
       ownerScreen: modelData.name
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+
+    KeybindsPanel {
+      required property var modelData
+      screen: modelData
+      ownerScreen: modelData.name
+      controller: AppKeybindsState
     }
   }
 
@@ -237,12 +257,11 @@ Scope {
 
       Rectangle {
         anchors.fill: parent
-        color: bar.barTransparent ? "transparent" : Theme.bg
+        color: Theme.bg
       }
 
-      // Empty bar space toggles transparency on double click. Dragging it
-      // down/up moves the bar between screen edges without stealing clicks
-      // from any widget layered above this area.
+      // Dragging empty bar space down/up moves the bar between screen edges
+      // without stealing clicks from any widget layered above this area.
       MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton
@@ -255,7 +274,6 @@ Scope {
           else if (distance < -Theme.fs(12))
             bar.barAtBottom = false
         }
-        onDoubleClicked: bar.barTransparent = !bar.barTransparent
       }
 
       Row {
@@ -282,6 +300,13 @@ Scope {
           font.family: Theme.uiFamily
           font.bold: true
           font.pixelSize: Theme.fs(14 * panel.barScale)
+        }
+
+        // Keep clock clicks from reaching the empty-bar drag control below.
+        MouseArea {
+          id: clockClickGuard
+          anchors.fill: clockLabel
+          acceptedButtons: Qt.LeftButton
         }
 
         Row {
@@ -340,7 +365,7 @@ Scope {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.fs(2 * panel.barScale)
 
-        SystemTrayWidget { parentWindow: panel; barScale: panel.barScale }
+        AppLauncher { barScale: panel.barScale }
         AgentIcon { barScale: panel.barScale }
         WindowsVmIcon { barScale: panel.barScale }
         ClipboardIcon { screenName: panel.modelData.name; barScale: panel.barScale }

@@ -1,0 +1,2 @@
+-- Options are automatically loaded before lazy.nvim startup.
+-- Add project-independent options here.

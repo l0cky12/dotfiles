@@ -12,6 +12,8 @@ import QtQuick
 Singleton {
   id: root
 
+  readonly property string title: "Keybindings"
+
   property bool panelVisible: false
   // Screen the palette opened on, matching the other panels.
   property string panelScreen: ""

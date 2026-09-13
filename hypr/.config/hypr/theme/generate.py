@@ -38,6 +38,8 @@ WALLPAPER_STATE_FILE = Path(os.environ.get(
     Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
     / "hyprland-desktop/wallpaper/current",
 ))
+T3CODE_HOME = Path(os.environ.get("T3CODE_HOME", Path.home() / ".t3"))
+T3CODE_THEME_ID = "dotfiles-desktop"
 
 # Colour output only when a human is watching.
 _TTY = sys.stdout.isatty()
@@ -54,6 +56,7 @@ OPTIONAL_TARGETS = {
     "neovim-theme.lua": "neovim",
     "btop-theme.tpl": "btop",
     "obsidian-theme.css": "obsidian",
+    "t3code-theme.json": "t3code",
 }
 
 OPTIONAL_DEPLOY_DIRS = {
@@ -63,13 +66,20 @@ OPTIONAL_DEPLOY_DIRS = {
 }
 
 
+def _t3code_theme_dest(prefix: Path) -> Path:
+    """Use T3 Code's state dir live and a visible stand-in for previews."""
+    base = T3CODE_HOME if prefix == CONFIG_HOME else prefix / "t3code"
+    return base / "userdata/themes" / f"{T3CODE_THEME_ID}.json"
+
+
 def targets(prefix: Path, theme: tl.Theme) -> list[tl.Artifact]:
     """Describe every template, destination, and validator.
 
-    Destinations are real config paths, not copies: this repo is stowed, so
-    ~/.config/<app> already points into it. Optional deployment is decided from
-    the live XDG config tree even when `prefix` points at a harmless preview
-    tree; ``--validate-all`` still renders every target.
+    Most destinations are real config paths, not copies: this repo is stowed,
+    so ~/.config/<app> already points into it. T3 Code's supported publisher is
+    the exception and lives in its state directory. Optional deployment is
+    decided from the live app/config tree even when `prefix` points at a
+    harmless preview tree; ``--validate-all`` still renders every target.
     """
     return [
         tl.Artifact(
@@ -101,6 +111,7 @@ def targets(prefix: Path, theme: tl.Theme) -> list[tl.Artifact]:
             "obsidian-theme.css",
             prefix / "obsidian/snippets/generated-theme.css",
         ),
+        tl.Artifact("t3code-theme.json", _t3code_theme_dest(prefix)),
     ]
 
 
@@ -117,7 +128,12 @@ def deployed_targets(
     messages: list[str] = []
     for artifact in artifacts:
         app = OPTIONAL_TARGETS.get(artifact.template)
-        if app and not (live_prefix / OPTIONAL_DEPLOY_DIRS[app]).is_dir():
+        deployed = (
+            T3CODE_HOME.is_dir()
+            if app == "t3code"
+            else not app or (live_prefix / OPTIONAL_DEPLOY_DIRS[app]).is_dir()
+        )
+        if app and not deployed:
             messages.append(f"  {app}: skipped (not deployed)")
             continue
         selected.append(artifact)
@@ -173,6 +189,58 @@ def _check_regreet_toml(out: Path) -> None:
             raise tl.ThemeError(f"{out.name}: [{table}] is missing required key '{key}'")
 
 
+T3CODE_COLOR_ROLES = (
+    "chrome", "toolbar", "toolbarForeground", "toolbarBorder",
+    "toolbarControl", "toolbarControlForeground", "toolbarControlHover",
+    "surface", "surfaceRaised", "surfaceOverlay", "text", "textMuted",
+    "border", "input", "focus", "accentForeground", "secondary",
+    "secondaryForeground", "muted", "mutedForeground", "placeholder",
+    "secondaryLabel", "iconMuted", "error", "errorForeground",
+    "errorSurface", "warning", "warningForeground", "warningSurface",
+    "update", "updateForeground", "updateSurface", "accentSurface",
+    "accentSurfaceForeground", "messageSurface", "messageForeground",
+    "messageAction", "messageActionForeground", "messageActionHover",
+    "codeBackground", "codeForeground", "sidebar", "sidebarForeground",
+    "sidebarMutedForeground", "sidebarControlSurface", "sidebarRowHover",
+    "sidebarRowActive", "sidebarRowSelected", "sidebarBorder",
+    "terminalBackground", "terminalForeground", "terminalCursor",
+    "terminalSelection", "terminalScrollbar", "terminalScrollbarHover",
+)
+
+
+def _check_t3code_json(out: Path, theme: tl.Theme) -> None:
+    data = json.loads(out.read_text())
+    if data.get("appearance") != theme.mode:
+        raise tl.ThemeError(
+            f"{out.name}: appearance does not match theme mode '{theme.mode}'"
+        )
+    if data.get("canvas") != theme.colors["background"]:
+        raise tl.ThemeError(f"{out.name}: canvas does not match theme background")
+    if data.get("accent") != theme.colors["accent"]:
+        raise tl.ThemeError(f"{out.name}: accent does not match theme accent")
+    colors = data.get("colors")
+    if not isinstance(colors, dict):
+        raise tl.ThemeError(f"{out.name}: colors must be an object")
+    missing = [role for role in T3CODE_COLOR_ROLES if role not in colors]
+    if missing:
+        raise tl.ThemeError(
+            f"{out.name}: missing required color role(s) {', '.join(missing)}"
+        )
+    unknown = sorted(set(colors) - set(T3CODE_COLOR_ROLES))
+    if unknown:
+        raise tl.ThemeError(
+            f"{out.name}: unknown color role(s) {', '.join(unknown)}"
+        )
+    invalid = [
+        role for role, value in colors.items()
+        if not isinstance(value, str) or not tl.HEX_RE.fullmatch(value)
+    ]
+    if invalid:
+        raise tl.ThemeError(
+            f"{out.name}: invalid color value(s) for {', '.join(invalid)}"
+        )
+
+
 def build(
     theme: tl.Theme,
     stage: Path,
@@ -197,6 +265,8 @@ def build(
             _check_greeter_css(out, theme)
         elif name == "regreet-greeter.toml":
             _check_regreet_toml(out)
+        elif name == "t3code-theme.json":
+            _check_t3code_json(out, theme)
         staged.append((out, dest))
     return staged
 
@@ -225,7 +295,10 @@ def _pids_of(name: str) -> list[str]:
 
 
 def reload_apps(
-    theme: tl.Theme, kitty_conf: Path, decorations: Path
+    theme: tl.Theme,
+    kitty_conf: Path,
+    decorations: Path,
+    t3code_installed: bool = False,
 ) -> tuple[list[str], list[str]]:
     done: list[str] = []
     deferred: list[str] = []
@@ -285,8 +358,34 @@ def reload_apps(
         if _run(["swaync-client", "--reload-config"]):
             done.append("swaync")
 
-    # These read the theme when next launched. Say so rather than implying they
-    # were reloaded.
+    # Chromium (including Helium), Electron, GTK and websites using
+    # prefers-color-scheme consume the desktop portal's appearance preference.
+    # On this setup xdg-desktop-portal-gtk publishes the GNOME interface key.
+    # Keep this best-effort: a missing schema/backend must not roll back an
+    # otherwise valid palette switch.
+    appearance = "prefer-dark" if theme.is_dark else "prefer-light"
+    if shutil.which("gsettings") and _run([
+        "gsettings", "set", "org.gnome.desktop.interface", "color-scheme",
+        appearance,
+    ]):
+        done.append(f"system appearance ({theme.mode})")
+    else:
+        deferred.append(
+            "system-aware apps (desktop color-scheme setting unavailable)"
+        )
+
+    # T3 Code watches this stable environment-theme file and retints connected
+    # clients on replacement. Re-applying the id also recovers if a client was
+    # manually pointed at another card since the previous desktop switch.
+    if t3code_installed:
+        if shutil.which("t3") and _run(["t3", "theme", "set", T3CODE_THEME_ID]):
+            done.append("T3 Code")
+        else:
+            deferred.append(
+                f"T3 Code (select '{T3CODE_THEME_ID}' once in Appearance)"
+            )
+
+    # These read the theme when next launched.
     deferred += ["rofi", "wofi", "fastfetch", "hyprlock"]
     deferred.append("zsh (new shells; run `exec zsh` here)")
     return done, deferred
@@ -681,11 +780,16 @@ def cmd_set(args: argparse.Namespace) -> int:
 
     kitty_conf = prefix / "kitty/theme/current-theme.conf"
     decorations = prefix / "hypr/conf/decorations.lua"
-    done, deferred = reload_apps(theme, kitty_conf, decorations)
+    done, deferred = reload_apps(
+        theme,
+        kitty_conf,
+        decorations,
+        "t3code" in installed_optional,
+    )
     if done:
         print(DIM("  reloaded: " + ", ".join(done)))
     if deferred:
-        print(DIM("  on next launch: " + ", ".join(deferred)))
+        print(DIM("  deferred: " + ", ".join(deferred)))
 
     if args.install_greeter:
         install_greeter_to_etc(prefix, args.dry_run)

@@ -1655,7 +1655,7 @@ Variants {
             var apiKey     = (root.mainInstance?.pluginApi?.pluginSettings?.x02ApiKey ?? "").trim()
             var expiry     = (root.mainInstance?.pluginApi?.pluginSettings?.x02Expiry ?? "7d").trim()
             var scriptPath = Qt.resolvedUrl("../scripts/share-upload.sh").toString().replace("file://", "")
-            uploadProc.command = ["bash", scriptPath, file, expiry]
+            uploadProc.command = ["bash", scriptPath, file, expiry, root.tempDir]
             uploadProc.stdinEnabled = true
             uploadProc.running = true
             uploadProc.write(apiKey + "\n")
@@ -1759,4 +1759,3 @@ Variants {
         }
     }
 }
-

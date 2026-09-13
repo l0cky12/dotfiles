@@ -21,6 +21,7 @@ swaync/.config/swaync/style.css
 wofi/.config/wofi/style.css
 noctalia/.config/noctalia/colors.json
 noctalia/.config/noctalia/colorschemes/
+noctalia/.config/noctalia/plugins/*/settings.json
 greeter/.config/greeter/greeter.css
 greeter/.config/greeter/regreet.toml
 neovim/.config/nvim/colors/*.lua

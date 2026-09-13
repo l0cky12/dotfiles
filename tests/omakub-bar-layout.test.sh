@@ -15,7 +15,7 @@ for component in \
   'UpdatesIcon {' \
   'BatteryIcon {' \
   'KeyboardLayoutWidget {' \
-  'SystemTrayWidget {' \
+  'AppLauncher {' \
   'AgentIcon {' \
   'BluetoothIcon {' \
   'NetworkIcon {' \
@@ -36,7 +36,16 @@ done
 
 grep -Fq '"h:mm AP"' "$bar" || fail 'center clock is not fixed to 12-hour h:mm AP'
 grep -Fq 'anchors.centerIn: parent' "$bar" || fail 'clock has no centered anchor'
-grep -Fq 'onDoubleClicked:' "$bar" || fail 'empty-space transparency toggle is missing'
+! grep -Fq 'onClicked: DashboardState.togglePanel(panel.modelData.name)' "$bar" || fail 'center clock still opens the dashboard'
+awk '
+  /id: clockClickGuard/ { in_guard = 1 }
+  in_guard && /anchors.fill: clockLabel/ { fills_clock = 1 }
+  in_guard && /acceptedButtons: Qt.LeftButton/ { accepts_left_click = 1 }
+  in_guard && /^        }/ { exit }
+  END { exit !(fills_clock && accepts_left_click) }
+' "$bar" || fail 'center clock does not absorb clicks before they reach the bar control'
+! grep -Fq 'onDoubleClicked: bar.barTransparent = !bar.barTransparent' "$bar" || fail 'empty-bar clicks still toggle transparency'
+! grep -Fq 'barTransparent' "$bar" || fail 'bar retains unused transparency state'
 grep -Fq 'bar.barAtBottom = true' "$bar" || fail 'downward position drag is missing'
 grep -Fq 'bar.barAtBottom = false' "$bar" || fail 'upward position drag is missing'
 

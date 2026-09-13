@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import qs.Commons
 import qs.Widgets
 
@@ -20,6 +21,13 @@ ColumnLayout {
     property string searchEngineUrl:        ""
     property bool   _loaded: false
     property string _previewNow: ""
+    readonly property string settingsPath: Qt.resolvedUrl("settings.json").toString().replace("file://", "")
+
+    // Noctalia owns settings.json writes and QML exposes no creation-mode
+    // option. Correct the mode after load and after every host-managed write.
+    function secureSettingsFile() {
+        Quickshell.execDetached(["chmod", "0600", settingsPath])
+    }
 
     Timer {
         id: previewClock
@@ -43,7 +51,7 @@ ColumnLayout {
         _loaded = true
     }
 
-    Component.onCompleted: _load()
+    Component.onCompleted: { _load(); secureSettingsFile() }
     onPluginApiChanged:    _load()
 
     function saveSettings() {
@@ -59,6 +67,7 @@ ColumnLayout {
         pluginApi.pluginSettings.gifMaxSeconds          = root.gifMaxSeconds
         pluginApi.pluginSettings.searchEngineUrl        = root.searchEngineUrl
         pluginApi.saveSettings()
+        secureSettingsFile()
     }
 
     function buildPreview(fmt) {

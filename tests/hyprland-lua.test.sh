@@ -53,6 +53,9 @@ end
 hl.dsp.window.float = function(args)
     return { kind = "window.float", args = args }
 end
+hl.dsp.window.fullscreen = function(args)
+    return { kind = "window.fullscreen", args = args }
+end
 hl.dsp.layout = function(action)
     return { kind = "layout", action = action }
 end
@@ -127,6 +130,7 @@ expect_exec("SUPER + ALT + A", "web app manager",
     "quickshell ipc call webapps toggle")
 expect_exec("SUPER + CTRL + T", "activity (btop, floating)",
     "/home/liam/.config/hypr/scripts/btop-float.sh")
+expect_exec("SUPER + T", "theme picker", "quickshell ipc call theme toggle")
 expect_exec("SUPER + CTRL + SHIFT + G", "play temporary dotfiles history",
     "/home/liam/.config/hypr/scripts/gource-dotfiles.sh")
 expect_exec("SUPER + SHIFT + Backspace", "toggle window gaps on all workspaces",
@@ -156,14 +160,19 @@ expect_exec("SUPER + SHIFT + V", "split vertically (next window opens below)",
     "/home/liam/.config/hypr/scripts/window-layout.sh split-vertical")
 
 local floating_toggle_found = false
+local fullscreen_found = false
 for _, capture in ipairs(captures) do
-    if capture.keys == "SUPER + T" and capture.description == "toggle window floating / tiling" and
+    if capture.keys == "SUPER + SHIFT + F" and capture.description == "toggle window floating / tiling" and
             capture.dispatcher.kind == "window.float" and capture.dispatcher.args.action == "toggle" then
         floating_toggle_found = true
-        break
+    end
+    if capture.keys == "SUPER + F" and capture.description == "fullscreen (true)" and
+            capture.dispatcher.kind == "window.fullscreen" and capture.dispatcher.args.mode == "fullscreen" then
+        fullscreen_found = true
     end
 end
 assert(floating_toggle_found, "missing native Lua floating toggle binding")
+assert(fullscreen_found, "missing native Lua fullscreen binding")
 
 for workspace = 1, 10 do
     expect_move("SUPER + SHIFT + " .. number_keys[workspace], "move to workspace " .. workspace,
@@ -192,6 +201,18 @@ grep -Fqx 'bindd = $mainMod CTRL, Escape, start ASCII screensaver, exec, $script
 grep -Fqx 'bindd = $mainMod CTRL SHIFT, G, play temporary dotfiles history, exec, $scriptsDir/gource-dotfiles.sh' \
   "$hypr_root/conf/keybinding.conf" ||
   fail 'legacy Gource binding is missing or changed'
+
+grep -Fqx 'bindd = $mainMod, T, theme picker, exec, quickshell ipc call theme toggle' \
+  "$hypr_root/conf/keybinding.conf" ||
+  fail 'legacy theme picker binding is missing or changed'
+
+grep -Fqx 'bindd = SUPER, F, fullscreen (true), fullscreen, 0' \
+  "$hypr_root/conf/keybinding.conf" ||
+  fail 'legacy fullscreen binding is missing or changed'
+
+grep -Fqx 'bindd = $mainMod SHIFT, F, toggle window floating / tiling, togglefloating,' \
+  "$hypr_root/conf/keybinding.conf" ||
+  fail 'legacy floating-toggle binding is missing or changed'
 
 grep -Fqx 'bindd = $mainMod SHIFT, L, cycle window layout, exec, $scriptsDir/window-layout.sh cycle' \
   "$hypr_root/conf/keybinding.conf" ||

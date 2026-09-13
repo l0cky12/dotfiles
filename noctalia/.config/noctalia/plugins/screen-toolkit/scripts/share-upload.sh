@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# share-upload.sh <file> [expiry]
+# share-upload.sh <file> [expiry] <temp_dir>
 # api_key: read from stdin; if empty, falls back to uguu.se (anonymous, 3h, 128MB max)
 # expiry:  1h | 1d | 7d | 30d | permanent (X02 only, default: 7d)
 # Prints URL to stdout on success, exits non-zero on failure
@@ -13,9 +13,11 @@
 # Used by: annotate (for now)
 
 set -euo pipefail
+umask 077
 
 FILE="${1:-}"
 EXPIRY="${2:-7d}"
+TEMP_DIR="${3:-}"
 
 UGUU_MAX_BYTES=$((128 * 1024 * 1024))  # 128 MB
 
@@ -28,20 +30,31 @@ IFS= read -r API_KEY || true
 
 # ── X02 (authenticated) ───────────────────────────────────────────────────────
 if [ -n "$API_KEY" ]; then
+    [ -d "$TEMP_DIR" ] || { echo "ERROR: invalid temporary directory" >&2; exit 1; }
     EXPIRY_FLAG=()
     if [ "$EXPIRY" != "permanent" ] && [ -n "$EXPIRY" ]; then
         EXPIRY_FLAG=(-F "expiry=${EXPIRY}")
     fi
 
-    URL=$(printf 'x-api-key: %s\n' "$API_KEY" | curl -sS -f \
+    CURL_CONFIG=$(mktemp -- "$TEMP_DIR/x02-curl.XXXXXX.conf")
+    cleanup() { rm -f -- "$CURL_CONFIG"; }
+    trap cleanup EXIT
+    API_KEY=${API_KEY//$'\r'/}
+    API_KEY=${API_KEY//$'\n'/}
+    API_KEY=${API_KEY//\\/\\\\}
+    API_KEY=${API_KEY//\"/\\\"}
+    printf 'header = "x-api-key: %s"\n' "$API_KEY" > "$CURL_CONFIG"
+    chmod 0600 -- "$CURL_CONFIG"
+    URL=$(curl -sS -f \
         -X POST "https://up.x02.me/api/upload" \
-        --header @- \
         -F "file=@${FILE}" \
         "${EXPIRY_FLAG[@]}" \
         --connect-timeout 20 \
         --max-time 120 \
+        --config "$CURL_CONFIG" \
         2>/dev/null) \
         || { echo "ERROR: X02 upload request failed" >&2; exit 4; }
+    cleanup
 
     if [ -n "$URL" ] && [[ "$URL" == http* ]]; then
         printf '%s\n' "$URL"

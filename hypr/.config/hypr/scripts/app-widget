@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# Focus a configured application when it already has a Hyprland window;
+# otherwise launch its desktop entry. This is deliberately a narrow interface
+# for the Quickshell pinned-app widget rather than a general command runner.
+set -euo pipefail
+
+dry_run=false
+if [[ ${1:-} == --dry-run ]]; then
+  dry_run=true
+  shift
+fi
+
+desktop_id=${1:-}
+wm_class=${2:-}
+if [[ $# -ne 2 || ! $desktop_id =~ ^[[:alnum:]_.-]+$ || ! $wm_class =~ ^[[:alnum:]_.-]+$ ]]; then
+  printf 'usage: %s [--dry-run] <desktop-id> <wm-class>\n' "${0##*/}" >&2
+  exit 2
+fi
+
+command -v hyprctl >/dev/null 2>&1 || {
+  printf 'hyprctl is required\n' >&2
+  exit 1
+}
+command -v jq >/dev/null 2>&1 || {
+  printf 'jq is required\n' >&2
+  exit 1
+}
+
+clients=$(hyprctl -j clients 2>/dev/null || printf '[]')
+address=$(jq -r --arg class "$wm_class" \
+  '.[] | select(.class == $class) | .address' <<<"$clients" | head -n1)
+
+if [[ $address =~ ^0x[[:xdigit:]]+$ ]]; then
+  if $dry_run; then
+    printf 'action=would-focus desktop_id=%s address=%s\n' "$desktop_id" "$address"
+  else
+    hyprctl dispatch focuswindow "address:$address"
+  fi
+  exit 0
+fi
+
+if $dry_run; then
+  printf 'action=would-launch desktop_id=%s\n' "$desktop_id"
+  exit 0
+fi
+
+exec gtk-launch "${desktop_id%.desktop}"

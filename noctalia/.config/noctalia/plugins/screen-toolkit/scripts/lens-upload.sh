@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 umask 077
+
 GX="$1"; GY="$2"; GW="$3"; GH="$4"
 TEMP_DIR="$5"
 FILE=$(mktemp -- "$TEMP_DIR/lens.XXXXXX.png")

@@ -23,7 +23,6 @@ Item {
     font.family: Theme.glyphFamily
     font.pixelSize: root.s(14)
     color: UpdatesState.totalCount > 0 ? Theme.onAccent : Theme.textMuted
-    opacity: (UpdatesState.updating || UpdatesState.checking) ? 0.55 : 1
   }
 
   MouseArea {

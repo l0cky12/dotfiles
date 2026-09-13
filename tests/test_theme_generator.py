@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import configparser
 import hashlib
 import io
 import json
@@ -17,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 THEME_DIR = ROOT / "hypr/.config/hypr/theme"
 THEMES = ROOT / "hypr/.config/hypr/themes"
+PORTALS = ROOT / "xdg/.config/xdg-desktop-portal/hyprland-portals.conf"
 
 # Import through the stowed package path, exactly like the desktop scripts do.
 sys.path.insert(0, str(THEME_DIR))
@@ -31,6 +33,7 @@ KEY_OUTPUTS = (
     "quickshell-theme.json",
     "kitty-theme.conf",
     "rofi-theme.rasi",
+    "t3code-theme.json",
 )
 FIXTURE_ENV = "THEME_TEST_FIXTURE_DIR"
 SNAPSHOT_ENV = "THEME_TEST_SNAPSHOT_JSON"
@@ -97,16 +100,19 @@ class ThemeGeneratorTest(unittest.TestCase):
         original_config_home = generate.CONFIG_HOME
         original_cache_home = generate.CACHE_HOME
         original_wallpaper_state_file = generate.WALLPAPER_STATE_FILE
+        original_t3code_home = generate.T3CODE_HOME
 
         def restore_generator_paths() -> None:
             generate.CONFIG_HOME = original_config_home
             generate.CACHE_HOME = original_cache_home
             generate.WALLPAPER_STATE_FILE = original_wallpaper_state_file
+            generate.T3CODE_HOME = original_t3code_home
 
         self.addCleanup(restore_generator_paths)
         generate.CONFIG_HOME = Path(env["XDG_CONFIG_HOME"])
         generate.CACHE_HOME = Path(env["XDG_CACHE_HOME"])
         generate.WALLPAPER_STATE_FILE = self.root / "state/wallpaper"
+        generate.T3CODE_HOME = self.root / "t3-home"
 
     def test_renders_every_theme_into_temporary_stage(self) -> None:
         self.assertGreater(len(self.themes), 0, "theme discovery found nothing")
@@ -139,14 +145,38 @@ class ThemeGeneratorTest(unittest.TestCase):
                     (self.root / slug / "stage" / "quickshell-theme.json").read_text()
                 )
                 self.assertEqual(quickshell["colors"]["accent"], accent)
+                t3code = json.loads(
+                    (self.root / slug / "stage" / "t3code-theme.json").read_text()
+                )
+                self.assertEqual(t3code["appearance"], theme.mode)
+                self.assertEqual(t3code["canvas"], theme.colors["background"])
+                self.assertEqual(t3code["accent"], accent)
+                self.assertEqual(
+                    t3code["colors"]["terminalForeground"],
+                    theme.colors["foreground"],
+                )
+                self.assertEqual(
+                    t3code["colors"]["terminalSelection"],
+                    theme.colors["selection"],
+                )
                 for name in ("kitty-theme.conf", "rofi-theme.rasi"):
                     self.assertIn(accent, (self.root / slug / "stage" / name).read_text())
+
+    def test_hyprland_portal_routes_settings_to_gtk(self) -> None:
+        config = configparser.ConfigParser()
+        self.assertEqual(config.read(PORTALS), [str(PORTALS)])
+        preferred = config["preferred"]
+        self.assertEqual(preferred["default"], "hyprland;gtk;")
+        self.assertEqual(
+            preferred["org.freedesktop.impl.portal.Settings"], "gtk;"
+        )
 
     def test_prefix_preview_renders_targets_deployed_in_live_config(self) -> None:
         theme = self.themes["tokyo-night"]
         prefix = self.root / "prefix"
         for directory in ("nvim/colors", "btop/themes", "obsidian/snippets"):
             (generate.CONFIG_HOME / directory).mkdir(parents=True)
+        generate.T3CODE_HOME.mkdir()
 
         stdout = io.StringIO()
         with redirect_stdout(stdout):
@@ -176,6 +206,12 @@ class ThemeGeneratorTest(unittest.TestCase):
         )
         self.assertIn(f"--interactive-accent: {theme.colors['accent']};", obsidian)
         self.assertIn(f"--text-muted: {theme.colors['muted']};", obsidian)
+        t3code = json.loads(
+            (prefix / "t3code/userdata/themes/dotfiles-desktop.json").read_text()
+        )
+        self.assertEqual(t3code["name"], f"Dotfiles — {theme.name}")
+        self.assertEqual(t3code["appearance"], theme.mode)
+        self.assertEqual(t3code["colors"]["sidebar"], theme.colors["background_alt"])
         self.assertIn("set color_theme", stdout.getvalue())
         self.assertIn("enable generated-theme.css", stdout.getvalue())
 
@@ -191,11 +227,79 @@ class ThemeGeneratorTest(unittest.TestCase):
             ])
 
         self.assertEqual(result, 0, stdout.getvalue())
-        for app in ("neovim", "btop", "obsidian"):
+        for app in ("neovim", "btop", "obsidian", "t3code"):
             self.assertIn(f"{app}: skipped (not deployed)", stdout.getvalue())
         self.assertFalse((prefix / "nvim").exists())
         self.assertFalse((prefix / "btop").exists())
         self.assertFalse((prefix / "obsidian").exists())
+        self.assertFalse((prefix / "t3code").exists())
+
+    def test_reload_propagates_mode_and_selects_t3code_theme(self) -> None:
+        kitty_conf = self.root / "kitty.conf"
+        decorations = self.root / "decorations.lua"
+        kitty_conf.write_text("background #000000\n")
+        decorations.write_text("return true\n")
+
+        for slug, expected in (
+            ("tokyo-night", "prefer-dark"),
+            ("flexoki-light", "prefer-light"),
+        ):
+            with self.subTest(theme=slug):
+                commands = []
+
+                def available(name: str) -> str | None:
+                    return f"/usr/bin/{name}" if name in {"gsettings", "t3"} else None
+
+                def record(cmd: list[str], timeout: int = 5) -> bool:
+                    commands.append(cmd)
+                    return True
+
+                with (
+                    unittest.mock.patch.object(
+                        generate.shutil, "which", side_effect=available
+                    ),
+                    unittest.mock.patch.object(generate, "_pids_of", return_value=[]),
+                    unittest.mock.patch.object(generate, "_run", side_effect=record),
+                ):
+                    done, deferred = generate.reload_apps(
+                        self.themes[slug], kitty_conf, decorations, True
+                    )
+
+                self.assertIn(
+                    [
+                        "gsettings", "set", "org.gnome.desktop.interface",
+                        "color-scheme", expected,
+                    ],
+                    commands,
+                )
+                self.assertIn(
+                    ["t3", "theme", "set", generate.T3CODE_THEME_ID], commands
+                )
+                self.assertIn(f"system appearance ({self.themes[slug].mode})", done)
+                self.assertIn("T3 Code", done)
+                self.assertNotIn("T3 Code", " ".join(deferred))
+
+    def test_reload_degrades_cleanly_without_desktop_theme_tools(self) -> None:
+        kitty_conf = self.root / "kitty.conf"
+        decorations = self.root / "decorations.lua"
+        kitty_conf.touch()
+        decorations.touch()
+
+        with (
+            unittest.mock.patch.object(generate.shutil, "which", return_value=None),
+            unittest.mock.patch.object(generate, "_pids_of", return_value=[]),
+        ):
+            done, deferred = generate.reload_apps(
+                self.themes["tokyo-night"], kitty_conf, decorations, True
+            )
+
+        self.assertEqual(done, [])
+        self.assertIn(
+            "system-aware apps (desktop color-scheme setting unavailable)", deferred
+        )
+        self.assertIn(
+            "T3 Code (select 'dotfiles-desktop' once in Appearance)", deferred
+        )
 
     def test_btop_sync_is_advisory_and_ignores_its_arguments(self) -> None:
         prefix = unittest.mock.MagicMock(spec=Path)

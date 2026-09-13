@@ -90,13 +90,17 @@ if (logic.curlConfigValue("safe\r\nheader = \"injected\"").includes("\r") ||
   throw new Error("curl config values retain CR/LF characters");
 NODE
 
-# The QML caller writes the X02 key to stdin, and the script reads it there.
+# The QML caller writes the X02 key to stdin, and the script transfers it to a
+# mode-0600, trap-cleaned curl config file in the plugin session directory.
 assert_absent "$annotate" 'command[[:space:]]*[:=][^]]*apiKey'
 assert_present "$annotate" 'uploadProc\.write\(apiKey \+ "\\n"\)'
 assert_absent "$share_script" 'API_KEY="\$\{[0-9]'
 assert_absent "$share_script" '(-H|--header)[[:space:]]+"x-api-key:'
 assert_present "$share_script" 'read -r API_KEY'
-assert_present "$share_script" '--header @-'
+assert_present "$share_script" 'mktemp -- "\$TEMP_DIR/x02-curl\.XXXXXX\.conf"'
+assert_present "$share_script" 'chmod 0600 -- "\$CURL_CONFIG"'
+assert_present "$share_script" 'trap cleanup EXIT'
+assert_present "$share_script" '--config "\$CURL_CONFIG"'
 read_line=$(grep -n -m1 'IFS= read -r API_KEY' "$share_script" | cut -d: -f1)
 file_check_line=$(grep -n -m1 '\[ -n "\$FILE" \]' "$share_script" | cut -d: -f1)
 curl_check_line=$(grep -n -m1 'command -v curl' "$share_script" | cut -d: -f1)
@@ -108,6 +112,14 @@ mkdir -p "$test_root/bin"
 cat >"$test_root/bin/curl" <<'CURL_FIXTURE'
 #!/usr/bin/env bash
 printf '%s\n' "$@" >"$CURL_ARGS"
+while (( $# )); do
+  if [[ $1 == --config ]]; then
+    cp -- "$2" "$CURL_CONFIG_COPY"
+    stat -c '%a' -- "$2" >"$CURL_CONFIG_MODE"
+    break
+  fi
+  shift
+done
 cat >"$CURL_STDIN"
 printf '%s\n' 'https://fixture.example/upload'
 CURL_FIXTURE
@@ -117,12 +129,17 @@ printf 'png' >"$test_root/image.png"
 PATH="$test_root/bin:$PATH" \
 CURL_ARGS="$test_root/curl.args" \
 CURL_STDIN="$test_root/curl.stdin" \
-  "$share_script" "$test_root/image.png" 7d \
+CURL_CONFIG_COPY="$test_root/curl.config" \
+CURL_CONFIG_MODE="$test_root/curl.config.mode" \
+  "$share_script" "$test_root/image.png" 7d "$test_root" \
   < <(printf '%s' 'fixture-x02-key-SEC03') >"$test_root/result"
 
 assert_absent "$test_root/curl.args" 'fixture-x02-key-SEC03'
-assert_present "$test_root/curl.args" '^@-$'
-assert_present "$test_root/curl.stdin" '^x-api-key: fixture-x02-key-SEC03$'
+assert_present "$test_root/curl.args" '^--config$'
+assert_present "$test_root/curl.config" '^header = "x-api-key: fixture-x02-key-SEC03"$'
+assert_present "$test_root/curl.config.mode" '^600$'
+[[ ! -e $(awk '/^--config$/ { getline; print; exit }' "$test_root/curl.args") ]] \
+  || fail "share-upload left its curl config file behind"
 assert_present "$test_root/result" '^https://fixture\.example/upload$'
 
-printf 'ok: credentials and request content are delivered through stdin, not argv or logs\n'
+printf 'ok: credentials and request content are kept out of argv and logs\n'

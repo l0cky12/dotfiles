@@ -28,6 +28,7 @@ Item {
   // Cache directory for state (messages, activeTab) - use global noctalia cache
   readonly property string cacheDir: typeof Settings !== 'undefined' && Settings.cacheDir ? Settings.cacheDir + "plugins/assistant-panel/" : ""
   readonly property string stateCachePath: cacheDir + "state.json"
+  readonly property bool persistChatHistory: pluginApi?.pluginSettings?.persistChatHistory ?? false
 
   property string activeTab: "ai"  // UI state - persisted to cache
   property string chatInputText: "" // Chat input state - persisted to cache
@@ -88,14 +89,35 @@ Item {
   Component.onCompleted: {
     Logger.i("AssistantPanel", "Plugin initialized");
     // State loading is handled by FileView onLoaded
-    ensureCacheDir();
+    if (!persistChatHistory)
+      deleteStateCache();
   }
 
-  // Ensure cache directory exists
+  onPersistChatHistoryChanged: {
+    if (persistChatHistory)
+      saveState();
+    else
+      deleteStateCache();
+  }
+
+  // FileView does not expose creation modes. Restrict its directory before a
+  // write and explicitly correct the file mode immediately afterwards.
   function ensureCacheDir() {
     if (cacheDir) {
-      Quickshell.execDetached(["mkdir", "-p", cacheDir]);
+      Quickshell.execDetached(["install", "-d", "-m", "0700", cacheDir]);
     }
+  }
+
+  function secureStateCache() {
+    if (stateCachePath)
+      Quickshell.execDetached(["chmod", "0600", stateCachePath]);
+  }
+
+  function deleteStateCache() {
+    saveStateQueued = false;
+    saveStateTimer.stop();
+    if (stateCachePath)
+      Quickshell.execDetached(["rm", "-f", "--", stateCachePath]);
   }
 
   // FileView for state cache (messages, activeTab)
@@ -105,7 +127,11 @@ Item {
     watchChanges: false
 
     onLoaded: {
-      loadStateFromCache();
+      secureStateCache();
+      if (persistChatHistory)
+        loadStateFromCache();
+      else
+        deleteStateCache();
     }
 
     onLoadFailed: function (error) {
@@ -150,12 +176,16 @@ Item {
   property bool saveStateQueued: false
 
   function saveState() {
+    if (!persistChatHistory) {
+      deleteStateCache();
+      return;
+    }
     saveStateQueued = true;
     saveStateTimer.restart();
   }
 
   function performSaveState() {
-    if (!saveStateQueued || !cacheDir)
+    if (!saveStateQueued || !cacheDir || !persistChatHistory)
       return;
     saveStateQueued = false;
 
@@ -172,6 +202,7 @@ Item {
       );
 
       stateCacheFile.setText(dataStr);
+      secureStateCache();
     } catch (e) {
       Logger.e("AssistantPanel", "Failed to save state cache: " + e);
     }
@@ -193,7 +224,9 @@ Item {
   // Clear chat history
   function clearMessages() {
     root.messages = [];
-    saveState();
+    root.chatInputText = "";
+    root.chatInputCursorPosition = 0;
+    deleteStateCache();
     Logger.i("AssistantPanel", "Chat history cleared");
   }
 

@@ -17,6 +17,7 @@
 # Used by: Record.qml
 set -euo pipefail
 umask 077
+
 ACTION="${1:-}"
 THUMB_OUT=""
 PALETTE=""

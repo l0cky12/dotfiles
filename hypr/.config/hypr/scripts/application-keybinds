@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""Emit the active local Neovim or Herdr keybindings as palette JSON.
+
+The caller is intentionally a display-only menu: it never executes a selected
+binding.  Neovim is queried through its local runtime, while Herdr combines its
+locally installed default config with the local user override file.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import tomllib
+
+
+def error(title: str, message: str) -> dict:
+    return {"title": title, "rows": [], "error": message}
+
+
+def row(shortcut: str, description: str) -> dict:
+    return {"shortcut": shortcut, "description": description,
+            "searchText": f"{shortcut} {description}".lower()}
+
+
+def neovim() -> dict:
+    fixture = os.environ.get("APPLICATION_KEYBINDS_NVIM_JSON")
+    if fixture:
+        maps = json.loads(Path(fixture).read_text(encoding="utf-8"))
+    else:
+        binary = shutil.which("nvim")
+        if not binary:
+            return error("Neovim keybindings", "Neovim is not installed")
+        with tempfile.TemporaryDirectory(prefix="application-keybinds.") as directory:
+            output = Path(directory) / "maps.json"
+            lua_path = json.dumps(str(output))
+            command = (
+                "local maps = {}; "
+                "for _, mode in ipairs({'n', 'i', 'v', 'x', 'o', 't', 'c'}) do "
+                "for _, map in ipairs(vim.api.nvim_get_keymap(mode)) do "
+                "table.insert(maps, {mode = mode, lhs = map.lhs, rhs = map.rhs, desc = map.desc}) end end; "
+                f"vim.fn.writefile({{vim.json.encode(maps)}}, {lua_path})"
+            )
+            try:
+                subprocess.run([binary, "--headless", "+lua " + command, "+qa!"],
+                               check=True, timeout=20, stdout=subprocess.DEVNULL,
+                               stderr=subprocess.PIPE, text=True)
+                maps = json.loads(output.read_text(encoding="utf-8"))
+            except (OSError, subprocess.SubprocessError, json.JSONDecodeError) as exc:
+                return error("Neovim keybindings", f"Could not read local Neovim maps: {exc}")
+
+    mode_names = {"n": "Normal", "i": "Insert", "v": "Visual", "x": "Visual",
+                  "o": "Operator", "t": "Terminal", "c": "Command"}
+    rows = []
+    seen = set()
+    for mapping in maps:
+        lhs = str(mapping.get("lhs") or "").strip()
+        if not lhs:
+            continue
+        mode = str(mapping.get("mode") or "n")
+        description = str(mapping.get("desc") or mapping.get("rhs") or "").strip()
+        if not description:
+            continue
+        key = (mode, lhs, description)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(row(f"{mode_names.get(mode, mode)}  {lhs}", description))
+    rows.sort(key=lambda item: (item["shortcut"], item["description"]))
+    return {"title": "Neovim keybindings", "rows": rows}
+
+
+HERDR_LABELS = {
+    "prefix": "prefix", "goto": "go to", "new_tab": "new tab",
+    "next_tab": "next tab", "previous_tab": "previous tab",
+    "focus_pane_left": "focus pane left", "focus_pane_right": "focus pane right",
+    "focus_pane_up": "focus pane up", "focus_pane_down": "focus pane down",
+    "split_horizontal": "split horizontally", "split_vertical": "split vertically",
+    "detach": "detach", "help": "show keybinding help", "command_palette": "command palette",
+}
+
+
+def read_toml(path: Path) -> dict:
+    return tomllib.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+
+def herdr() -> dict:
+    config_path = Path(os.environ.get("HERDR_CONFIG") or Path.home() / ".config/herdr/config.toml")
+    fixture = os.environ.get("APPLICATION_KEYBINDS_HERDR_DEFAULT_CONFIG")
+    defaults: dict = {}
+    try:
+        if fixture:
+            defaults = read_toml(Path(fixture))
+        elif binary := shutil.which("herdr"):
+            rendered = subprocess.run([binary, "--default-config"], check=True, timeout=10,
+                                     capture_output=True, text=True).stdout
+            defaults = tomllib.loads(rendered)
+        elif not config_path.is_file():
+            return error("Herdr keybindings", "Herdr is not installed and its local config was not found")
+        config = read_toml(config_path)
+    except (OSError, subprocess.SubprocessError, tomllib.TOMLDecodeError) as exc:
+        return error("Herdr keybindings", f"Could not read local Herdr config: {exc}")
+
+    keys = dict(defaults.get("keys", {}))
+    keys.update(config.get("keys", {}))
+    rows = []
+    for action, binding in keys.items():
+        if action == "command" or binding in (None, ""):
+            continue
+        bindings = binding if isinstance(binding, list) else [binding]
+        for shortcut in bindings:
+            rows.append(row(str(shortcut), HERDR_LABELS.get(action, action.replace("_", " "))))
+    for command in config.get("keys", {}).get("command", []):
+        if isinstance(command, dict) and command.get("key"):
+            rows.append(row(str(command["key"]), str(command.get("description") or "custom command")))
+    rows.sort(key=lambda item: (item["shortcut"], item["description"]))
+    return {"title": "Herdr keybindings", "rows": rows}
+
+
+def main() -> None:
+    if len(sys.argv) != 2 or sys.argv[1] not in {"neovim", "herdr"}:
+        raise SystemExit(f"usage: {Path(sys.argv[0]).name} (neovim|herdr)")
+    print(json.dumps(neovim() if sys.argv[1] == "neovim" else herdr()))
+
+
+if __name__ == "__main__":
+    main()

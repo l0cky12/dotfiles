@@ -1,0 +1,2 @@
+-- Autocmds are automatically loaded on the VeryLazy event.
+-- Add project-independent autocmds here with vim.api.nvim_create_autocmd.

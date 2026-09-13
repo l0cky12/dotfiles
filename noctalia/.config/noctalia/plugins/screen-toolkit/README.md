@@ -39,6 +39,12 @@ You can quickly upload screenshots and get a shareable link.
 - **Default (no setup):** uses https://uguu.se/ — links expire after ~3 hours
 - **Want more control:** get a free API key from https://up.x02.me/ to increase upload limits and choose expiry from settings: `1h | 1d | 7d | 30d | permanent` (default: 7d).
 
+The optional X02 key is currently stored in Noctalia's local `settings.json`.
+Noctalia's QML settings API has no secret-store boundary or file creation-mode
+control, so the plugin corrects that file to mode `0600` after host writes and
+its file-writing helpers use a restrictive umask. Moving the key to the
+freedesktop Secret Service API (for example KWallet) is planned as a follow-up.
+
 ### Recording UI behavior
 When recording is active, the plugin icon shows a red pulsing dot. Clicking the icon stops the recording.
 

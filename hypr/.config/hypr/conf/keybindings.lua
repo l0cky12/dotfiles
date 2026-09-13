@@ -31,6 +31,9 @@ exec(mod .. " + P", "power menu", "bash " .. cfg.scripts_dir .. "/power-menu.sh"
 exec(mod .. " + ALT + P", "monitor profiles", cfg.scripts_dir .. "/monitor-profile-menu.sh")
 exec(mod .. " + ALT + E", "emoji menu", cfg.scripts_dir .. "/RofiEmoji.sh")
 exec(mod .. " + K", "keybindings", "quickshell ipc call keybinds toggle")
+package_exec(mod .. " + CTRL + U", "pull and deploy dotfiles updates", "dots", "dots update")
+exec(mod .. " + N", "Neovim keybindings", "quickshell ipc call app-keybinds neovim")
+exec(mod .. " + H", "Herdr keybindings", "quickshell ipc call app-keybinds herdr")
 exec(mod .. " + I", "coding agent",
     cfg.scripts_dir .. "/run-if-deployed.sh ai ai-agent")
 
@@ -53,7 +56,7 @@ exec(mod .. " + CTRL + A", "toggle audio panel", "quickshell ipc call audio togg
 exec(mod .. " + CTRL + B", "toggle Bluetooth panel", "quickshell ipc call bluetooth toggle")
 exec(mod .. " + SHIFT + B", "power profile menu", cfg.scripts_dir .. "/power-profile.sh menu")
 exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")
-exec(mod .. " + CTRL + SHIFT + SPACE", "theme picker", "quickshell ipc call theme toggle")
+exec(mod .. " + T", "theme picker", "quickshell ipc call theme toggle")
 exec(mod .. " + Backspace", "toggle window transparency on all workspaces", cfg.scripts_dir .. "/toggle-transparency.sh")
 exec(mod .. " + SHIFT + Backspace", "toggle window gaps on all workspaces", cfg.scripts_dir .. "/toggle-gaps.sh")
 bind(mod .. " + CTRL + N", "night light", function()
@@ -126,7 +129,7 @@ for workspace = 11, 15 do
         move_active_window_dispatcher(workspace, false))
 end
 
-bind(mod .. " + SHIFT + F", "fullscreen (true)", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
+bind(mod .. " + F", "fullscreen (true)", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
 bind(mod .. " + CTRL + F", "maximize (keep bar)", hl.dsp.window.fullscreen({ mode = "maximized" }))
 
 -- Programs.
@@ -145,7 +148,7 @@ exec(mod .. " + SHIFT + ALT + W", "default browser private window", cfg.scripts_
 exec(mod .. " + S", "spotify", "spotify")
 exec(mod .. " + O", "obsidian", "obsidian")
 exec(mod .. " + R", "voice dictation", "hyprvoice toggle")
-bind(mod .. " + T", "toggle window floating / tiling", hl.dsp.window.float({ action = "toggle" }))
+bind(mod .. " + SHIFT + F", "toggle window floating / tiling", hl.dsp.window.float({ action = "toggle" }))
 exec(mod .. " + SHIFT + L", "cycle window layout", window_layout .. " cycle")
 exec(mod .. " + SHIFT + H", "hermes", "hermes")
 exec(mod .. " + SHIFT + W", "wallpaper picker", "~/.local/bin/hypr-wallpaper-picker")
