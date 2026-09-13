@@ -13,6 +13,7 @@ usage() {
   cat <<EOF
 Usage: $program deploy [--dry-run] [--system --yes] [--all]
                        [--no-folding-pkg PACKAGE]
+       $program update [--dry-run]
 
 Deploy changed GNU Stow packages from ~/dotfiles.
 
@@ -22,6 +23,10 @@ Deploy changed GNU Stow packages from ~/dotfiles.
   --all      Restow every package, including packages requiring manual Stow options
   --no-folding-pkg PACKAGE
              Explicitly deploy neovim, btop, obsidian, or wallpaper safely
+
+update pulls the configured upstream with --ff-only, then deploys packages
+changed by the new commit. --dry-run reports the current deployment plan and
+does not contact the remote or modify files.
 EOF
 }
 
@@ -37,11 +42,14 @@ fi
 
 command_name=$1
 shift
-[[ $command_name == deploy ]] || {
+case $command_name in
+  deploy|update) ;;
+  *)
   printf '%s: unknown command: %s\n' "$program" "$command_name" >&2
   usage >&2
   exit 2
-}
+  ;;
+esac
 
 while (($# > 0)); do
   case $1 in
@@ -68,6 +76,11 @@ if [[ $deploy_system == true && $assume_yes != true ]]; then
   fail "--system requires explicit confirmation with --yes"
 fi
 
+if [[ $command_name == update ]]; then
+  [[ $deploy_system == false && $deploy_all == false && ${#requested_manual_packages[@]} == 0 ]] ||
+    fail "update only accepts --dry-run"
+fi
+
 command -v git >/dev/null 2>&1 || fail "git is required"
 
 repo=${DOTS_REPO:-"$HOME/dotfiles"}
@@ -75,6 +88,16 @@ state_file=${DOTS_STATE_FILE:-"${XDG_STATE_HOME:-$HOME/.local/state}/dots/last-d
 [[ -d $repo ]] || fail "repository not found: $repo"
 git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
   fail "not a Git repository: $repo"
+
+if [[ $command_name == update ]]; then
+  if [[ $dry_run == true ]]; then
+    exec "$0" deploy --dry-run
+  fi
+  printf 'Pulling updates for %s...\n' "$repo"
+  git -C "$repo" pull --ff-only ||
+    fail "git pull --ff-only failed; resolve local changes or upstream history, then retry"
+  exec "$repo/dots/.local/bin/dots" deploy
+fi
 
 head_sha=$(git -C "$repo" rev-parse --verify HEAD^{commit}) ||
   fail "cannot resolve HEAD in $repo"

@@ -228,6 +228,7 @@ dots deploy --dry-run  # show packages and actions without changing anything
 dots deploy            # restow changed packages and reload live Hyprland if needed
 dots deploy --all      # restow every package
 dots deploy --system   # also install the greetd and PAM templates via sudo
+dots update            # fast-forward pull, then restow packages changed upstream
 ```
 
 System templates are opt-in and are never stowed. Stow conflicts stop the
