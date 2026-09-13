@@ -38,6 +38,12 @@ PanelWindow {
   readonly property int cardH: Math.min(Theme.webappCardH,
                                         panel.height - 2 * Theme.webappOuterMargin)
 
+  // Super+Space opens the form before its URL has been read, so the address is
+  // the field that still wants the user; Tab reaches the name from there.
+  function focusInstallForm() {
+    urlField.forceActiveFocus()
+  }
+
   function dismiss() {
     if (WebAppState.confirmingId !== "") {
       WebAppState.cancelRemove()
@@ -721,6 +727,14 @@ PanelWindow {
     target: WebAppState
     // Land back on the list after a successful install so the new app is visible.
     function onInstalled(name) { panel.mode = "list" }
+    // Super+Space on a panel that is already open: onVisibleChanged will not
+    // fire, so the requested view has to be applied directly.
+    function onShowInstallForm() {
+      if (!panel.visible)
+        return
+      panel.mode = "install"
+      panel.focusInstallForm()
+    }
   }
 
   onVisibleChanged: {
@@ -729,9 +743,14 @@ PanelWindow {
       WebAppState.cancelRemove()
       return
     }
-    panel.mode = "list"
+    // "list" unless installCurrent() asked for the form. Consumed here so the
+    // next plain Super+Alt+A opens on the list again.
+    panel.mode = WebAppState.requestedMode
+    WebAppState.requestedMode = "list"
     WebAppState.cancelRemove()
     keys.forceActiveFocus()
+    if (panel.mode === "install")
+      panel.focusInstallForm()
     panel.shown = true
   }
 }

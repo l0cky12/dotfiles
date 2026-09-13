@@ -144,8 +144,15 @@ def cmd_discover_icon(args: argparse.Namespace) -> int:
     stem = wl.validate_id(args.id) if args.id else (wl.slugify(wl.url_host(url)) or "icon")
     stage = wl.CACHE_HOME / "webapps"
     found = wl.discover_icon(url, stage, stem)
+    # The suggested name comes from the host, not from the icon, so it is
+    # reported either way -- a site with no usable icon still deserves a
+    # pre-filled name, which is the case the Super+Space install lands in.
     if found is None:
-        json.dump({"ok": False, "reason": "no icon found"}, sys.stdout)
+        json.dump({
+            "ok": False,
+            "reason": "no icon found",
+            "suggested_name": wl.name_from_url(url),
+        }, sys.stdout)
         sys.stdout.write("\n")
         return 0
     path, source = found
