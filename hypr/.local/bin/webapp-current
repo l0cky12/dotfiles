@@ -1,0 +1,170 @@
+#!/usr/bin/env bash
+# webapp-current — install the site in the focused browser window as a web app.
+#
+#   webapp-current            open the install form, prefilled when possible
+#   webapp-current --print    print the reconstructed URL and exit (no UI)
+#
+# Bound to Super+Space. The one-step version of the flow that otherwise means
+# Ctrl+L, copy, Super+Alt+A, Install…, paste.
+#
+# HOW THE URL IS RECOVERED
+#
+# Hyprland exposes no URL for a window -- `hyprctl activewindow -j` gives a
+# class, a title and an address, and nothing else. What it does give is enough
+# for app-mode windows: Chromium-family browsers build their own WM class for a
+# `--app=` window and ignore --class on Wayland, producing
+#
+#     <product>-<host>__<path>-<Profile>
+#
+# with the path's slashes folded to underscores. That format is recorded from
+# the writing side in ~/.config/hypr/webapp/weblib.py (derived_wm_class, and the
+# comment block above it); url_from_class below is its inverse.
+#
+# LIMITATIONS, because the class is lossy
+#
+#   * The query string and fragment are dropped by the browser before the class
+#     is built, so they cannot be recovered. `…/app?tab=2` comes back as `…/app`.
+#   * An underscore that was literally in the path is indistinguishable from a
+#     folded slash and comes back as a slash.
+#   * The scheme is always https; the class does not record it.
+#   * Only Chromium-family app windows have such a class at all.
+#
+# So a plain browser window -- a normal tab, where the class is just
+# `brave-browser` or `helium-browser` -- yields no URL. That is not an error:
+# the form still opens, empty, and the address the user selected with Ctrl+L can
+# be pasted into it.
+#
+# HANDOFF TO THE SHELL
+#
+# The URL is written to $XDG_RUNTIME_DIR/webapp-current-url (0600, owner only)
+# and the shell is then asked to read it:
+#
+#     quickshell ipc call webapps installCurrent
+#
+# A file rather than an IPC argument because no other IPC target in this shell
+# takes one, and the file keeps an untrusted URL out of an argument list
+# entirely. The file is rewritten on every run -- with an empty line when there
+# is no URL -- so a stale URL from an earlier press can never be prefilled. The
+# reading side is WebAppState.qml (handoffFile / installCurrent).
+
+set -euo pipefail
+
+HYPRCTL=${HYPRCTL:-hyprctl}
+QUICKSHELL=${QUICKSHELL:-quickshell}
+
+handoff_dir=${XDG_RUNTIME_DIR:-/tmp}
+handoff_file="$handoff_dir/webapp-current-url"
+
+usage() {
+  printf 'Usage: %s [--print]\n' "${0##*/}"
+}
+
+die() {
+  printf 'webapp-current: %s\n' "$1" >&2
+  exit "${2:-1}"
+}
+
+# A host we are willing to turn into a URL. Mirrors the backend's rules closely
+# enough to refuse an obviously broken class before opening anything; manager.py
+# re-validates authoritatively.
+valid_host() {
+  local host=$1
+  [[ -n $host ]] || return 1
+  [[ $host =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$ ]] || return 1
+  [[ $host == *.* || $host == localhost ]] || return 1
+}
+
+# Rebuild a URL from a Chromium app-mode window class. Prints it on success.
+#
+#   0  a URL was recovered
+#   1  not an app-mode class -- a plain browser window, or not a browser at all
+#   2  an app-mode class whose host is unusable
+url_from_class() {
+  local class=$1 head rest host tail path
+  # `__` separates host from path, and the profile is the final `-` segment. A
+  # path may itself contain `-` ("…/my-app"), so the profile is trimmed from the
+  # right rather than the path being read from the left.
+  [[ $class == *__* ]] || return 1
+  head=${class%%__*}
+  rest=${class#*__}
+  [[ $head == *-* && $rest == *-* ]] || return 1
+  host=${head#*-}
+  tail=${rest%-*}
+  path=${tail//_//}
+  valid_host "$host" || return 2
+  printf 'https://%s/%s\n' "$host" "$path"
+}
+
+focused_class() {
+  local active class
+  active=$("$HYPRCTL" -j activewindow) ||
+    die "could not ask Hyprland for the focused window"
+  class=$(jq -r 'if (.class // "") != "" then .class else (.initialClass // "") end' \
+    <<< "$active") || die "could not read the focused window's class"
+  [[ -n $class ]] || die "no window is focused"
+  printf '%s\n' "$class"
+}
+
+# The file is written even when the URL is empty: see HANDOFF above.
+write_handoff() {
+  local url=$1 temp
+  mkdir -p -- "$handoff_dir"
+  temp=$(mktemp "$handoff_file.XXXXXX") || die "could not write $handoff_file"
+  trap 'rm -f -- "$temp"' EXIT
+  chmod 600 -- "$temp"
+  printf '%s\n' "$url" > "$temp"
+  mv -f -- "$temp" "$handoff_file"
+  trap - EXIT
+}
+
+main() {
+  local print_only=0 class url status
+
+  case ${1:-} in
+    "") ;;
+    --print) print_only=1 ;;
+    -h | --help | help)
+      usage
+      return 0
+      ;;
+    *)
+      usage >&2
+      return 2
+      ;;
+  esac
+  (($# <= 1)) || {
+    usage >&2
+    return 2
+  }
+
+  command -v "$HYPRCTL" >/dev/null 2>&1 || die "$HYPRCTL is not installed" 127
+  command -v jq >/dev/null 2>&1 || die "jq is not installed" 127
+
+  # focused_class dies with its own message; the substitution only relays it.
+  class=$(focused_class) || exit $?
+  if url=$(url_from_class "$class"); then
+    status=0
+  else
+    status=$?
+  fi
+  case $status in
+    0) ;;
+    2) die "the focused window's class ($class) has no usable host" ;;
+    *) url="" ;;
+  esac
+
+  if ((print_only)); then
+    [[ -n $url ]] ||
+      die "the focused window is not a web app window (class: $class)"
+    printf '%s\n' "$url"
+    return 0
+  fi
+
+  write_handoff "$url"
+  command -v "$QUICKSHELL" >/dev/null 2>&1 ||
+    die "$QUICKSHELL is not installed" 127
+  "$QUICKSHELL" ipc call webapps installCurrent >/dev/null ||
+    die "the shell did not answer; is Quickshell running?"
+}
+
+main "$@"

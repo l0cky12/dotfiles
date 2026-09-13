@@ -3,7 +3,8 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// State for the web app manager overlay (Super+Shift+A).
+// State for the web app manager overlay (Super+Alt+A), and for the one-step
+// install of the focused browser page (Super+Space).
 //
 // This is a front-end only. Every filesystem and network operation lives in the
 // `webapp` backend; the shell just collects a name and a URL, shows what the
@@ -22,6 +23,10 @@ Singleton {
 
   property bool panelVisible: false
   property string panelScreen: ""
+
+  // The view the panel should land on the next time it opens. WebAppPanel reads
+  // and clears it; "install" is only ever set by installCurrent().
+  property string requestedMode: "list"
 
   function togglePanel(screenName) {
     if (panelVisible && panelScreen === screenName) {
@@ -139,6 +144,11 @@ Singleton {
   }
 
   function urlEdited(text) {
+    // The field's text is bound to formUrl, so setting formUrl from code (see
+    // prefillUrl) echoes straight back here. Ignoring the echo keeps that path
+    // to a single icon lookup instead of two.
+    if (text === root.formUrl)
+      return
     root.formUrl = text
     root.formError = ""
     if (root.iconState !== "chosen") {
@@ -170,13 +180,16 @@ Singleton {
           if (d.ok) {
             root.iconPath = d.path
             root.iconState = "found"
-            // Only ever fills an empty field; never overwrites what was typed.
-            if (root.formName.trim() === "" && d.suggested_name)
-              root.formName = d.suggested_name
           } else {
             root.iconPath = ""
             root.iconState = "none"
           }
+          // The suggestion is derived from the host, so it is worth having even
+          // when no icon was found -- that is the case a Super+Space install
+          // lands in when the site has no usable icon. Only ever fills an empty
+          // field; never overwrites what was typed.
+          if (root.formName.trim() === "" && d.suggested_name)
+            root.formName = d.suggested_name
         } catch (e) {
           root.iconState = "none"
         }
@@ -187,6 +200,71 @@ Singleton {
       if (code !== 0 && root.iconState === "searching")
         root.iconState = "none"
     }
+  }
+
+  // --- install the focused page (Super+Space) ---------------------------------
+  //
+  // ~/.local/bin/webapp-current works out the URL of the focused browser window
+  // from its Wayland class, writes it to $XDG_RUNTIME_DIR/webapp-current-url
+  // (0600), and then calls `quickshell ipc call webapps installCurrent`. That
+  // file is the whole handoff contract; the script's header documents the same
+  // thing from its side.
+  //
+  // A file rather than an IPC argument because no target in this shell takes
+  // one, and it keeps a URL reconstructed from a window class out of an
+  // argument list. The script rewrites the file on every run -- writing an
+  // empty line when it could not recover a URL -- so this is never stale.
+  // An empty file simply opens the form empty, which is the right answer for a
+  // plain browser tab: the class of a normal window carries no URL.
+
+  readonly property string handoffPath:
+    (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/webapp-current-url"
+
+  // Raised when the form is opened this way, for a panel that is already on
+  // screen; requestedMode covers the panel that is about to open. Both run and
+  // both land on "install", so the order they arrive in does not matter.
+  signal showInstallForm()
+
+  // The panel opens first and the URL lands in it afterwards. Reading the file
+  // is asynchronous, and the form is worth having either way: a missing or
+  // unreadable handoff file leaves an empty form, which is what a plain browser
+  // tab gets anyway.
+  function installCurrent(screenName) {
+    if (screenName === "")
+      return
+    root.resetForm()
+    root.requestedMode = "install"
+    root.panelScreen = screenName
+    root.panelVisible = true
+    root.refresh()
+    root.showInstallForm()
+    handoffFile.reload()
+  }
+
+  FileView {
+    id: handoffFile
+    path: root.handoffPath
+    printErrors: false
+
+    // There is deliberately no onLoadFailed: a missing or unreadable file is
+    // the ordinary state before the first Super+Space, and the form is already
+    // open and already empty by the time this resolves either way.
+    onLoaded: root.prefillUrl(handoffFile.text())
+  }
+
+  // Prefills the URL field without the typing debounce: the address is known in
+  // full, so there is nothing to wait for. The name is deliberately left empty
+  // -- discover-icon reports the backend's own host-derived suggestion and
+  // iconProc fills it in, so that rule stays in one place.
+  function prefillUrl(url) {
+    const clean = String(url || "").trim()
+    root.formUrl = clean
+    root.formError = ""
+    root.iconPath = ""
+    root.iconState = ""
+    iconDebounce.stop()
+    if (root.urlValid)
+      root.discoverIcon()
   }
 
   function chooseIcon(path) {

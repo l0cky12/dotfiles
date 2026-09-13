@@ -138,6 +138,10 @@ exec(mod .. " + U", "eject removable drives", cfg.scripts_dir .. "/eject-drive.s
 exec(mod .. " + A", "application launcher", cfg.scripts_dir .. "/quick-search.sh drun")
 exec(mod .. " + SHIFT + A", "lmenu root", "$HOME/.local/bin/lmenu toggle")
 exec(mod .. " + ALT + A", "web app manager", "quickshell ipc call webapps toggle")
+-- One-step install of the page in the focused browser window: the helper
+-- recovers the URL from the window's Wayland class and opens the install form
+-- with it. A plain browser tab has no URL in its class, so the form opens empty.
+exec(mod .. " + Space", "install current site as a web app", "$HOME/.local/bin/webapp-current")
 exec(mod .. " + W", "browser", "helium-browser")
 exec(mod .. " + ALT + W", "Windows VM", "$HOME/.local/bin/windows-vm launch")
 exec(mod .. " + CTRL + ALT + W", "stop Windows VM", "$HOME/.local/bin/windows-vm stop")

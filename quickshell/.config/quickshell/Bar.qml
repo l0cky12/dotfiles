@@ -121,6 +121,13 @@ Scope {
     function toggle(): void {
       WebAppState.togglePanel(bar.focusedScreen())
     }
+    // Super+Space, via ~/.local/bin/webapp-current. Takes no argument: the
+    // script leaves the URL in $XDG_RUNTIME_DIR/webapp-current-url and
+    // WebAppState reads it from there. See the handoff comment in
+    // WebAppState.qml.
+    function installCurrent(): void {
+      WebAppState.installCurrent(bar.focusedScreen())
+    }
   }
 
   IpcHandler {
