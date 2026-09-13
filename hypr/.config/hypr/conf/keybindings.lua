@@ -31,6 +31,9 @@ exec(mod .. " + P", "power menu", "bash " .. cfg.scripts_dir .. "/power-menu.sh"
 exec(mod .. " + ALT + P", "monitor profiles", cfg.scripts_dir .. "/monitor-profile-menu.sh")
 exec(mod .. " + ALT + E", "emoji menu", cfg.scripts_dir .. "/RofiEmoji.sh")
 exec(mod .. " + K", "keybindings", "quickshell ipc call keybinds toggle")
+package_exec(mod .. " + CTRL + U", "pull and deploy dotfiles updates", "dots", "dots update")
+exec(mod .. " + N", "Neovim keybindings", "quickshell ipc call app-keybinds neovim")
+exec(mod .. " + H", "Herdr keybindings", "quickshell ipc call app-keybinds herdr")
 exec(mod .. " + I", "coding agent",
     cfg.scripts_dir .. "/run-if-deployed.sh ai ai-agent")
 

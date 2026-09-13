@@ -14,9 +14,10 @@ import Quickshell.Wayland
 PanelWindow {
   id: panel
   required property string ownerScreen
+  property var controller: KeybindsState
 
-  visible: KeybindsState.panelVisible
-        && KeybindsState.panelScreen === panel.ownerScreen
+  visible: panel.controller.panelVisible
+        && panel.controller.panelScreen === panel.ownerScreen
 
   anchors { top: true; bottom: true; left: true; right: true }
   exclusionMode: ExclusionMode.Ignore
@@ -35,7 +36,7 @@ PanelWindow {
   readonly property int chromeHeight:
     2 * Theme.menuPadding + Theme.menuHeaderHeight + Theme.gapM + 1 + Theme.gapS
   readonly property int listHeight:
-    KeybindsState.filtered.length * Theme.menuRowHeight
+    panel.controller.filtered.length * Theme.menuRowHeight
   readonly property int cardHeight:
     Math.min(Theme.menuMaxHeight, panel.availHeight,
              panel.chromeHeight + Math.max(Theme.menuRowHeight, panel.listHeight))
@@ -43,7 +44,7 @@ PanelWindow {
   // Monospace, so the longest shortcut by character count is the widest one.
   readonly property string longestShortcut: {
     var best = ""
-    const rows = KeybindsState.filtered
+    const rows = panel.controller.filtered
     for (var i = 0; i < rows.length; i++) {
       if (rows[i].shortcut.length > best.length)
         best = rows[i].shortcut
@@ -65,7 +66,7 @@ PanelWindow {
              Math.min(Theme.menuColumnMax, Math.ceil(columnMetrics.width)))
 
   function commit() {
-    KeybindsState.activate(KeybindsState.selected)
+    panel.controller.activate(panel.controller.selected)
   }
 
   // --- scrim ---
@@ -75,7 +76,7 @@ PanelWindow {
 
     MouseArea {
       anchors.fill: parent
-      onClicked: KeybindsState.close()
+      onClicked: panel.controller.close()
     }
   }
 
@@ -126,20 +127,20 @@ PanelWindow {
             clip: true
             focus: true
 
-            onTextChanged: KeybindsState.query = text
+            onTextChanged: panel.controller.query = text
 
             Text {
               anchors.verticalCenter: parent.verticalCenter
               visible: search.text === ""
-              text: "Keybindings…"
+              text: panel.controller.title + "…"
               color: Theme.textMuted
               font.family: Theme.glyphFamily
               font.pixelSize: Theme.menuFontTitle
             }
 
-            Keys.onEscapePressed: KeybindsState.close()
-            Keys.onUpPressed: KeybindsState.moveSelection(-1)
-            Keys.onDownPressed: KeybindsState.moveSelection(1)
+            Keys.onEscapePressed: panel.controller.close()
+            Keys.onUpPressed: panel.controller.moveSelection(-1)
+            Keys.onDownPressed: panel.controller.moveSelection(1)
             Keys.onReturnPressed: panel.commit()
             Keys.onEnterPressed: panel.commit()
 
@@ -148,17 +149,17 @@ PanelWindow {
             Keys.onPressed: event => {
               const ctrl = (event.modifiers & Qt.ControlModifier) !== 0
               if (ctrl && event.key === Qt.Key_N) {
-                KeybindsState.moveSelection(1); event.accepted = true
+                panel.controller.moveSelection(1); event.accepted = true
               } else if (ctrl && event.key === Qt.Key_P) {
-                KeybindsState.moveSelection(-1); event.accepted = true
+                panel.controller.moveSelection(-1); event.accepted = true
               } else if (event.key === Qt.Key_PageDown) {
-                KeybindsState.moveSelection(10); event.accepted = true
+                panel.controller.moveSelection(10); event.accepted = true
               } else if (event.key === Qt.Key_PageUp) {
-                KeybindsState.moveSelection(-10); event.accepted = true
+                panel.controller.moveSelection(-10); event.accepted = true
               } else if (event.key === Qt.Key_Home) {
-                KeybindsState.selectFirst(); event.accepted = true
+                panel.controller.selectFirst(); event.accepted = true
               } else if (event.key === Qt.Key_End) {
-                KeybindsState.selectLast(); event.accepted = true
+                panel.controller.selectLast(); event.accepted = true
               }
             }
           }
@@ -185,14 +186,14 @@ PanelWindow {
           wrapMode: Text.WordWrap
           font.family: Theme.glyphFamily
           font.pixelSize: Theme.menuFontBody
-          color: KeybindsState.lastError !== "" ? Theme.error : Theme.textMuted
+          color: panel.controller.lastError !== "" ? Theme.error : Theme.textMuted
           text: {
-            if (KeybindsState.lastError !== "")
-              return KeybindsState.lastError
-            if (KeybindsState.rows.length === 0)
+            if (panel.controller.lastError !== "")
+              return panel.controller.lastError
+            if (panel.controller.rows.length === 0)
               return "No keybindings found"
-            if (KeybindsState.filtered.length === 0)
-              return "No bindings match “" + KeybindsState.query + "”"
+            if (panel.controller.filtered.length === 0)
+              return "No bindings match “" + panel.controller.query + "”"
             return ""
           }
         }
@@ -206,8 +207,8 @@ PanelWindow {
           anchors.bottom: parent.bottom
           anchors.topMargin: Theme.gapS
           clip: true
-          model: KeybindsState.filtered
-          currentIndex: KeybindsState.selectedIndex
+          model: panel.controller.filtered
+          currentIndex: panel.controller.selectedIndex
           // Driven from the search field, so the list must not steal keys.
           interactive: true
           keyNavigationEnabled: false
@@ -219,7 +220,7 @@ PanelWindow {
             id: row
             required property var modelData
             required property int index
-            readonly property bool isCurrent: index === KeybindsState.selectedIndex
+            readonly property bool isCurrent: index === panel.controller.selectedIndex
 
             width: list.width
             height: Theme.menuRowHeight
@@ -292,9 +293,9 @@ PanelWindow {
               // for whatever row lands under it, yanking the selection off the
               // top result before the user has done anything. Only real pointer
               // movement takes the selection.
-              onPositionChanged: KeybindsState.selectedIndex = row.index
+              onPositionChanged: panel.controller.selectedIndex = row.index
               onClicked: {
-                KeybindsState.selectedIndex = row.index
+                panel.controller.selectedIndex = row.index
                 panel.commit()
               }
             }
@@ -307,8 +308,8 @@ PanelWindow {
   onVisibleChanged: {
     if (visible) {
       search.text = ""
-      KeybindsState.query = ""
-      KeybindsState.selectedIndex = 0
+      panel.controller.query = ""
+      panel.controller.selectedIndex = 0
       search.forceActiveFocus()
     }
   }
