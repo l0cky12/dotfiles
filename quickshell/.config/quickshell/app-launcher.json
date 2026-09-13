@@ -1,0 +1,10 @@
+{
+  "apps": [
+    {
+      "desktopId": "spotify",
+      "name": "Spotify",
+      "icon": "spotify-client",
+      "wmClass": "spotify"
+    }
+  ]
+}

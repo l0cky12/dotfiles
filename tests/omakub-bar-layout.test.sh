@@ -15,7 +15,7 @@ for component in \
   'UpdatesIcon {' \
   'BatteryIcon {' \
   'KeyboardLayoutWidget {' \
-  'SystemTrayWidget {' \
+  'AppLauncher {' \
   'AgentIcon {' \
   'BluetoothIcon {' \
   'NetworkIcon {' \

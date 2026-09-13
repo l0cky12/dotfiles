@@ -355,7 +355,7 @@ Scope {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.fs(2 * panel.barScale)
 
-        SystemTrayWidget { parentWindow: panel; barScale: panel.barScale }
+        AppLauncher { barScale: panel.barScale }
         AgentIcon { barScale: panel.barScale }
         WindowsVmIcon { barScale: panel.barScale }
         ClipboardIcon { screenName: panel.modelData.name; barScale: panel.barScale }
