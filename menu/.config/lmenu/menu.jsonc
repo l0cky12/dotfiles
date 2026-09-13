@@ -241,7 +241,7 @@
     "icon": "󰐲",
     "label": "QR code from clipboard",
     "when": "command -v qrencode >/dev/null",
-    "action": "wl-paste | qrencode -o - -t PNG | wl-copy --type image/png && notify-send 'lmenu' 'QR code copied to the clipboard'"
+    "action": "quickshell ipc call clipboard-qr toggle"
   },
 
   {
