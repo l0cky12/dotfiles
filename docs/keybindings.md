@@ -156,7 +156,7 @@ Output placement for these numbered workspaces is profile-dependent; see
 | --- | --- |
 | `SUPER+SHIFT+F` | true fullscreen (Hyprland mode 0) |
 | `SUPER+CTRL+F` | maximize while retaining bar/gaps (mode 1) |
-| `SUPER+T` | toggle the active window between floating and tiled |
+| `SUPER+F` | toggle the active window between floating and tiled |
 | `SUPER+J` | toggle the next dwindle split between horizontal and vertical |
 | `SUPER+Arrow` | move focus in that direction |
 | `SUPER+CTRL+Arrow` | move window in that direction |

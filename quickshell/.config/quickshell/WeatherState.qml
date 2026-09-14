@@ -11,10 +11,26 @@ import QtQuick
 Singleton {
   id: root
 
-  // Chicago, IL. Change these two numbers to relocate.
+  // Location comes from weather.json next to this file; Chicago defaults.
   property real latitude: 41.8781
   property real longitude: -87.6298
   property string timezone: "America/Chicago"
+
+  FileView {
+    path: Qt.resolvedUrl("weather.json")
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: {
+      try {
+        const c = JSON.parse(text())
+        if (isFinite(c.latitude)) root.latitude = c.latitude
+        if (isFinite(c.longitude)) root.longitude = c.longitude
+        if (typeof c.timezone === "string" && c.timezone !== "") root.timezone = c.timezone
+        root.refresh()
+      } catch (e) {}
+    }
+  }
 
   // idle | loading | ok | error
   property string status: "idle"
@@ -56,7 +72,7 @@ Singleton {
       "--data-urlencode", "temperature_unit=fahrenheit",
       "--data-urlencode", "wind_speed_unit=mph",
       "--data-urlencode", "timezone=" + root.timezone,
-      "--data-urlencode", "forecast_days=7",
+      "--data-urlencode", "forecast_days=10",
       "https://api.open-meteo.com/v1/forecast"]
     fetchProc.running = true
   }

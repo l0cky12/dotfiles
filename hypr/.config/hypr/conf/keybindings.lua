@@ -129,7 +129,7 @@ for workspace = 11, 15 do
         move_active_window_dispatcher(workspace, false))
 end
 
-bind(mod .. " + F", "fullscreen (true)", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
+bind(mod .. " + SHIFT + F", "fullscreen (true)", hl.dsp.window.fullscreen({ mode = "fullscreen" }))
 bind(mod .. " + CTRL + F", "maximize (keep bar)", hl.dsp.window.fullscreen({ mode = "maximized" }))
 
 -- Programs.
@@ -152,7 +152,7 @@ exec(mod .. " + SHIFT + ALT + W", "default browser private window", cfg.scripts_
 exec(mod .. " + S", "spotify", "spotify")
 exec(mod .. " + O", "obsidian", "obsidian")
 exec(mod .. " + R", "voice dictation", "hyprvoice toggle")
-bind(mod .. " + SHIFT + F", "toggle window floating / tiling", hl.dsp.window.float({ action = "toggle" }))
+bind(mod .. " + F", "toggle window floating / tiling", hl.dsp.window.float({ action = "toggle" }))
 exec(mod .. " + SHIFT + L", "cycle window layout", window_layout .. " cycle")
 exec(mod .. " + SHIFT + H", "hermes", "hermes")
 exec(mod .. " + SHIFT + W", "wallpaper picker", "~/.local/bin/hypr-wallpaper-picker")

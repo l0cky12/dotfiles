@@ -187,7 +187,7 @@ From the cloned repository root, deploy only the components you want. For the
 currently active desktop, the relevant package names are:
 
 ```bash
-stow hypr hyprlock quickshell rofi kitty cliphist browser xdg windows security systemd greeter
+stow hypr hyprlock quickshell rofi kitty cliphist browser menu xdg windows security systemd greeter
 ```
 
 Preview the exact links before deploying a selection:
