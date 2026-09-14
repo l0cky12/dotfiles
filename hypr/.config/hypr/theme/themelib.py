@@ -54,7 +54,7 @@ STYLE_DEFAULTS = {
     "rounding": 10,
     "border_width": 2,
     "surface_opacity": 0.92,
-    "kitty_opacity": 0.60,
+    "kitty_opacity": 0.70,
     "scrim_opacity": 0.50,
     "shadow_opacity": 0.40,
     "blur": True,
