@@ -162,11 +162,11 @@ expect_exec("SUPER + SHIFT + V", "split vertically (next window opens below)",
 local floating_toggle_found = false
 local fullscreen_found = false
 for _, capture in ipairs(captures) do
-    if capture.keys == "SUPER + SHIFT + F" and capture.description == "toggle window floating / tiling" and
+    if capture.keys == "SUPER + F" and capture.description == "toggle window floating / tiling" and
             capture.dispatcher.kind == "window.float" and capture.dispatcher.args.action == "toggle" then
         floating_toggle_found = true
     end
-    if capture.keys == "SUPER + F" and capture.description == "fullscreen (true)" and
+    if capture.keys == "SUPER + SHIFT + F" and capture.description == "fullscreen (true)" and
             capture.dispatcher.kind == "window.fullscreen" and capture.dispatcher.args.mode == "fullscreen" then
         fullscreen_found = true
     end
@@ -206,11 +206,11 @@ grep -Fqx 'bindd = $mainMod, T, theme picker, exec, quickshell ipc call theme to
   "$hypr_root/conf/keybinding.conf" ||
   fail 'legacy theme picker binding is missing or changed'
 
-grep -Fqx 'bindd = SUPER, F, fullscreen (true), fullscreen, 0' \
+grep -Fqx 'bindd = SUPER SHIFT, F, fullscreen (true), fullscreen, 0' \
   "$hypr_root/conf/keybinding.conf" ||
   fail 'legacy fullscreen binding is missing or changed'
 
-grep -Fqx 'bindd = $mainMod SHIFT, F, toggle window floating / tiling, togglefloating,' \
+grep -Fqx 'bindd = $mainMod, F, toggle window floating / tiling, togglefloating,' \
   "$hypr_root/conf/keybinding.conf" ||
   fail 'legacy floating-toggle binding is missing or changed'
 

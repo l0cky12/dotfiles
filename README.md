@@ -40,7 +40,7 @@ contents into `~`.
 
 ```bash
 stow ai browser cliphist fastfetch greeter hypr hyprlock kitty modes noctalia \
-     quickshell rofi screensaver security ssh swaync systemd tmux windows \
+     menu quickshell rofi screensaver security ssh swaync systemd tmux windows \
      wallpaper wofi xdg zsh
 ```
 
@@ -63,6 +63,7 @@ stow wofi        # ~/.config/wofi
 stow swaync      # ~/.config/swaync
 stow fastfetch   # ~/.config/fastfetch
 stow noctalia    # ~/.config/noctalia
+stow menu        # ~/.config/lmenu, ~/.local/bin/lmenu
 stow quickshell  # ~/.config/quickshell
 stow windows     # Windows VM helper, Compose template, and application entry
 stow cliphist    # ~/.config/cliphist
