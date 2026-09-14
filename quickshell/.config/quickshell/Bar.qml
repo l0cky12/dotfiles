@@ -318,11 +318,15 @@ Scope {
           font.pixelSize: Theme.fs(14 * panel.barScale)
         }
 
-        // Keep clock clicks from reaching the empty-bar drag control below.
         MouseArea {
-          id: clockClickGuard
           anchors.fill: clockLabel
           acceptedButtons: Qt.LeftButton
+          onClicked: calendarPopup.visible = !calendarPopup.visible
+        }
+
+        CalendarPopup {
+          id: calendarPopup
+          anchorItem: clockLabel
         }
 
         Row {
@@ -345,29 +349,45 @@ Scope {
 
           KeyboardLayoutWidget { barScale: panel.barScale }
 
-          Text {
+          Row {
+            id: weatherReadout
             anchors.verticalCenter: parent.verticalCenter
-            text: WeatherState.hasData
-                  ? WeatherState.codeGlyph(WeatherState.current.code,
-                                           WeatherState.current.isDay) : ""
-            color: Theme.text
-            font.family: Theme.glyphFamily
-            font.pixelSize: Theme.fs(15 * panel.barScale)
-          }
+            spacing: Theme.fs(4 * panel.barScale)
 
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: WeatherState.hasData
-                  ? WeatherState.fmtTemp(WeatherState.current.temp) : "weather…"
-            color: Theme.textDim
-            font.family: Theme.uiFamily
-            font.pixelSize: Theme.fs(12 * panel.barScale)
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: WeatherState.hasData
+                    ? WeatherState.codeGlyph(WeatherState.current.code,
+                                             WeatherState.current.isDay) : ""
+              color: Theme.text
+              font.family: Theme.glyphFamily
+              font.pixelSize: Theme.fs(15 * panel.barScale)
+            }
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: WeatherState.hasData
+                    ? WeatherState.fmtTemp(WeatherState.current.temp) : "weather…"
+              color: Theme.textDim
+              font.family: Theme.uiFamily
+              font.pixelSize: Theme.fs(12 * panel.barScale)
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              onClicked: forecastPopup.visible = !forecastPopup.visible
+            }
+
+            WeatherForecastPopup {
+              id: forecastPopup
+              anchorItem: weatherReadout
+            }
           }
         }
 
         // The media panel anchors to the centered clock; it is opened from the
-        // media icon or the `media` IPC target, not by clicking the clock. The
-        // clock itself is a plain label with no click target.
+        // media icon or the `media` IPC target. Left-clicking the clock opens
+        // the calendar instead.
         MediaPanel {
           anchorItem: clockLabel
           ownerScreen: panel.modelData.name
@@ -391,16 +411,17 @@ Scope {
         DisplayIcon { screenName: panel.modelData.name; barScale: panel.barScale }
 
         IconButton {
+          id: powerButton
           anchors.verticalCenter: parent.verticalCenter
           glyph: String.fromCodePoint(0xf0425) // md-power
           size: Theme.fs(28 * panel.barScale)
           glyphSize: Theme.fs(15 * panel.barScale)
-          onClicked: powerMenu.running = true
+          onClicked: powerPopup.visible = !powerPopup.visible
         }
 
-        Process {
-          id: powerMenu
-          command: ["bash", Quickshell.env("HOME") + "/.config/hypr/scripts/power-menu.sh"]
+        PowerPopup {
+          id: powerPopup
+          anchorItem: powerButton
         }
       }
     }

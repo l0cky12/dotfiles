@@ -8,7 +8,9 @@ readonly LOCK_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprlock.conf"
 
 usage() {
   cat <<'EOF'
-Usage: launcher.sh [--dry-run ACTION]
+Usage: launcher.sh [ACTION | --dry-run ACTION]
+
+With ACTION alone, runs it directly with no picker or confirmation.
 
 Actions: lock, logout, suspend, reboot, shutdown
 EOF
@@ -148,6 +150,10 @@ if [[ ${1:-} == --dry-run ]]; then
   exit
 fi
 
+if [[ $# -eq 1 ]]; then
+  run_action "$1"
+  exit
+fi
 [[ $# -eq 0 ]] || {
   usage >&2
   exit 2

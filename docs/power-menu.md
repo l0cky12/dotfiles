@@ -32,6 +32,10 @@ used for the direct letter shortcuts.
 
 ## Behavior
 
+The quickshell bar's power button opens a native popup (`PowerPopup.qml`) and
+runs the chosen action with `launcher.sh ACTION`, which skips the Rofi picker.
+Log out, reboot and shutdown ask for a second click in the popup.
+
 The menu supports mouse selection, arrows plus Enter, and these direct keys:
 
 | Key | Action |
