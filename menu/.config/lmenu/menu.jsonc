@@ -230,6 +230,14 @@
     "action": "~/.config/hypr/scripts/capture/capture.sh ocr"
   },
   {
+    "id": "trigger.capture.qr",
+    "icon": "󰐲",
+    "label": "QR Code",
+    "aliases": ["scan qr", "decode qr", "barcode"],
+    "when": "command -v zbarimg >/dev/null",
+    "action": "~/.config/hypr/scripts/capture/capture.sh qr"
+  },
+  {
     "id": "trigger.capture.color",
     "icon": "󰸱",
     "label": "Colour picker",
@@ -237,9 +245,10 @@
     "action": "~/.config/hypr/scripts/capture/capture.sh color"
   },
   {
-    "id": "trigger.capture.qr",
+    "id": "trigger.capture.qr-from-clipboard",
     "icon": "󰐲",
     "label": "QR code from clipboard",
+    "aliases": ["make qr", "encode qr"],
     "when": "command -v qrencode >/dev/null",
     "action": "quickshell ipc call clipboard-qr toggle"
   },
@@ -547,6 +556,33 @@
     "label": "Input",
     "when": "[[ -f ~/.config/hypr/hyprland.conf ]]",
     "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/hyprland.conf"
+  },
+  {
+    "id": "setup.voice-dictation",
+    "icon": "󰍬",
+    "label": "Voice dictation",
+    "title": "Voice dictation",
+    "aliases": ["microphone", "speech", "hyprvoice"]
+  },
+  {
+    "id": "setup.voice-dictation.default-output",
+    "icon": "󰍬",
+    "label": "Follow default audio output",
+    "checked": "~/.config/hypr/scripts/voice-dictation status 2>/dev/null | grep -qx 'mode=default-output'",
+    "action": "~/.config/hypr/scripts/voice-dictation use-default-output"
+  },
+  {
+    "id": "setup.voice-dictation.choose",
+    "icon": "󰍬",
+    "label": "Choose microphone…",
+    "action": "~/.config/hypr/scripts/voice-dictation choose"
+  },
+  {
+    "id": "setup.voice-dictation.configure",
+    "icon": "󰒓",
+    "label": "Configure Hyprvoice…",
+    "when": "command -v hyprvoice >/dev/null",
+    "action": "kitty -e hyprvoice configure"
   },
   {
     "id": "setup.workspaces",

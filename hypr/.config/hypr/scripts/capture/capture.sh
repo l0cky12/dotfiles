@@ -5,6 +5,7 @@
 #   capture.sh screenshot [smart|region|window|monitor] [--copy|--save|--delay=N]
 #   capture.sh record     [toggle|start|stop|status|menu] [...]
 #   capture.sh ocr        [region|smart|window|monitor] [--lang=…] [--psm=…]
+#   capture.sh qr         select and decode a QR code to the sensitive clipboard
 #   capture.sh color      [--format=hex|rgb]
 #   capture.sh menu
 #   capture.sh doctor     report which backends are present
@@ -23,6 +24,7 @@ case "$SUB" in
   screenshot|shot) exec "$_dir/screenshot.sh" "$@" ;;
   record|rec)      exec "$_dir/record.sh" "$@" ;;
   ocr|text)        exec "$_dir/ocr.sh" "$@" ;;
+  qr|qrcode)       exec "$_dir/qr.sh" "$@" ;;
   color|colour)    exec "$_dir/color.sh" "$@" ;;
   menu)            exec "$_dir/menu.sh" "$@" ;;
   select)          exec "$_dir/select.sh" "$@" ;;
@@ -45,6 +47,7 @@ case "$SUB" in
     check gpu-screen-recorder "screen recording"
     check ffmpeg              "recording post-process + thumbnails"
     check tesseract           "OCR"
+    check zbarimg             "QR code decoding"
     check magick              "OCR preprocessing, colour fallback"
     check mpv                 "webcam overlay, video playback"
     check rofi                "capture menu"

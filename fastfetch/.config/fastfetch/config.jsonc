@@ -14,110 +14,110 @@
     {
     "type": "os",
     "key": " DISTRO",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "kernel",
     "key": "│ ├",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "packages",
     "key": "│ ├󰏖",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "shell",
     "key": "│ └",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "wm",
     "key": " DE/WM",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "wmtheme",
     "key": "│ ├󰉼",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "icons",
     "key": "│ ├󰀻",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
         "type": "cursor",
         "key": "│ ├",
-        "keyColor": "green",
+        "keyColor": "blue",
     },
     {
         "type": "terminalfont",
         "key": "│ ├",
-        "keyColor": "green",
+        "keyColor": "blue",
     },
     {
     "type": "terminal",
     "key": "│ └",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "host",
     "key": "󰌢 SYSTEM",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "cpu",
     "key": "│ ├󰻠",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "gpu",
     "key": "│ ├󰻑",
     "format": "{2}",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
             "type": "display",
     "key": "│ ├󰍹",
-    "keyColor": "green",
+    "keyColor": "blue",
     "compactType": "original-with-refresh-rate"
     },
     {
     "type": "memory",
     "key": "│ ├󰾆",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "swap",
     "key": "│ ├󰓡",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "uptime",
     "key": "│ ├󰅐",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "display",
     "key": "│ └󰍹",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "sound",
     "key": " AUDIO",
     "format": "{2}",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "player",
     "key": "│ ├󰥠",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "media",
     "key": "│ └󰝚",
-    "keyColor": "green"
+    "keyColor": "blue"
     },
     {
     "type": "custom",

@@ -78,6 +78,7 @@ Also needed: a working Wayland session, a D-Bus user bus, a font stack, the
 | FFmpeg | post-processing and browser thumbnails |
 | ImageMagick (`magick`) | OCR preprocessing, image validation |
 | Tesseract + language data | OCR |
+| `zbar` (`zbarimg`) | QR-code decoding from a selected screen region |
 | `satty` | screenshot editing |
 | `v4l2-ctl` | webcam discovery |
 | mpv | recording playback, webcam overlay |

@@ -455,6 +455,7 @@ Singleton {
       }
 
       const row = {
+        category: "Desktop",
         shortcut: shortcut,
         mods: mods,
         description: description,
@@ -473,7 +474,7 @@ Singleton {
     // searchText is built last so it includes the merged alternate shortcuts.
     for (var j = 0; j < list.length; j++) {
       const r = list[j]
-      r.searchText = (r.shortcut + " " + r.description + " "
+      r.searchText = (r.category + " " + r.shortcut + " " + r.description + " "
                     + r.dispatcher + " " + r.arg).toLowerCase()
     }
 
@@ -493,9 +494,9 @@ Singleton {
   // Closes first, then dispatches on the next tick, so window-relative
   // dispatchers act on the toplevel underneath instead of the dismissing overlay.
   function activate(row) {
-    root.panelVisible = false
     if (!row || !row.actionable)
       return
+    root.panelVisible = false
     pending.row = row
     pending.restart()
   }

@@ -77,7 +77,7 @@ clipboard with MIME type `text/uri-list`; `--notify` reports the final state.
 
 Entry point: `hypr/.config/hypr/scripts/capture/capture.sh`.
 
-It dispatches to `screenshot.sh`, `record.sh`, `ocr.sh`, `color.sh`, and `menu.sh`.
+It dispatches to `screenshot.sh`, `record.sh`, `ocr.sh`, `qr.sh`, `color.sh`, and `menu.sh`.
 `select.sh` supplies transform-aware Hyprland geometry and frozen-screen region
 selection; `common.sh` and `config.sh` are sourced libraries.
 
@@ -92,6 +92,7 @@ selection; `common.sh` and `config.sh` are sourced libraries.
 | `capture.sh record webcam-toggle` | shows or hides a standalone webcam preview | mpv overlay and runtime PID/state files |
 | `capture.sh record webcam-size smaller\|larger` | opens a missing overlay, then steps it through small, medium, and large presets | mpv JSON IPC with PID-scoped Hyprland fallback |
 | `capture.sh ocr` | selects/freeze-captures, preprocesses, runs Tesseract, copies text | Wayland clipboard |
+| `capture.sh qr` | selects/freeze-captures a region, decodes QR symbols only, then copies the value as sensitive clipboard content | Wayland clipboard; no file, output, or success notification |
 | `capture.sh color` | picks a screen color | Wayland clipboard and notification |
 | `capture.sh menu` | interactive operation chooser | depends on selection |
 | `capture.sh doctor` | reports command availability | no desktop mutation intended |

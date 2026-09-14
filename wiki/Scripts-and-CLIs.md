@@ -144,7 +144,7 @@ its `condition_cmd` the same way, inline.
 ## Capture suite
 
 Entry point: `hypr/.config/hypr/scripts/capture/capture.sh`. It dispatches to
-`screenshot.sh`, `record.sh`, `ocr.sh`, `color.sh`, and `menu.sh`. `select.sh`
+`screenshot.sh`, `record.sh`, `ocr.sh`, `qr.sh`, `color.sh`, and `menu.sh`. `select.sh`
 supplies transform-aware Hyprland geometry and frozen-screen region selection;
 `common.sh` and `config.sh` are sourced libraries.
 
@@ -157,6 +157,7 @@ supplies transform-aware Hyprland geometry and frozen-screen region selection;
 | `record webcam-toggle` | show or hide a standalone webcam preview |
 | `record webcam-size smaller\|larger` | opens a missing overlay, then steps through three 16:9 presets |
 | `ocr` | select, freeze-capture, preprocess, Tesseract, copy |
+| `qr` | select a region, decode QR symbols only, copy the value as sensitive clipboard content |
 | `color` | pick a screen colour to the clipboard |
 | `menu` | interactive chooser |
 | `doctor` | report command availability; changes nothing |

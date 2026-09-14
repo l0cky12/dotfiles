@@ -90,6 +90,7 @@ paru -S --needed curl jq gawk iproute2
 | FFmpeg | post-processing and browser thumbnails |
 | ImageMagick (`magick`) | OCR preprocessing, image validation/manipulation |
 | Tesseract + selected language data | OCR |
+| `zbar` (`zbarimg`) | QR-code decoding from a selected screen region |
 | `satty` | screenshot editing |
 | `v4l2-ctl` | webcam discovery |
 | mpv | recording/video playback |

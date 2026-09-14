@@ -90,7 +90,10 @@ keyboard (`hypr/.config/hypr/scripts/capture/`):
 | `Super+Ctrl+C` | Open the capture menu with all of the above. |
 | `Super+Alt+C` | Toggle a webcam overlay; `Super+Alt+[` and `Super+Alt+]` resize it. |
 
-- Menu way: lmenu → **Trigger → Capture**.
+- Menu way: lmenu → **Trigger → Capture**. Its **QR Code** entry selects a
+  region and copies only a decoded QR value to the sensitive clipboard. The
+  value is not printed or included in a notification, and the decoder ignores
+  non-QR barcode formats.
 - More: [Troubleshooting § Capture failures](Troubleshooting.md).
 
 ## Lock, sleep, and desktop modes

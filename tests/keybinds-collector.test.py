@@ -269,9 +269,19 @@ bind("SUPER + Q", "close window", hl.dsp.window.close())
         print("skip: qmllint is not installed")
 
     if shutil.which("quickshell"):
-        subprocess.run(["quickshell", "-p", str(
-            REPO / "quickshell/.config/quickshell/KeybindsSmoke.qml")], check=True,
-            timeout=30)
+        smoke = subprocess.Popen(
+            ["quickshell", "-p", str(
+                REPO / "quickshell/.config/quickshell/KeybindsSmoke.qml")],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        try:
+            output, _ = smoke.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            smoke.terminate()
+            output, _ = smoke.communicate(timeout=5)
+        assert "ok: KeybindsState fixture build and search" in output, output
+        assert "FAIL:" not in output, output
+        if smoke.returncode not in (0, -15):
+            raise subprocess.CalledProcessError(smoke.returncode, smoke.args, output)
         print("ok: Quickshell palette build/search smoke")
     else:
         print("skip: quickshell is not installed")

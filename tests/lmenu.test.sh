@@ -298,6 +298,9 @@ LMENU_MENU="$menu" LMENU_EXTENSIONS=/nonexistent python3 "$parser" rows trigger.
   >"$test_root/capture.out"
 grep -Fq 'trigger.capture.transcode' "$test_root/capture.out" &&
   fail 'Transcode is still duplicated inside Capture'
+[[ $(LMENU_MENU="$menu" LMENU_EXTENSIONS=/nonexistent python3 "$parser" \
+  resolve trigger.capture trigger.capture.qr) == $'leaf\t~/.config/hypr/scripts/capture/capture.sh qr' ]] ||
+  fail 'QR Code does not dispatch through the QR capture helper'
 
 # The list theme exists, follows the palette and stays monospace, which is what
 # makes the padded suffix column line up.

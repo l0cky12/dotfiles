@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+# Route Hyprvoice through either the microphone paired with the default audio
+# output or an explicitly selected PipeWire source.
+set -euo pipefail
+
+config=${VOICE_DICTATION_CONFIG:-"${XDG_CONFIG_HOME:-$HOME/.config}/hypr/voice-dictation.json"}
+hyprvoice_config=${HYPRVOICE_CONFIG:-"${XDG_CONFIG_HOME:-$HOME/.config}/hyprvoice/config.toml"}
+hyprvoice_bin=${HYPRVOICE:-hyprvoice}
+
+die() { printf 'voice-dictation: %s\n' "$*" >&2; exit 1; }
+valid_name() { [[ $1 =~ ^[[:alnum:]_.:-]+$ ]]; }
+
+mode() {
+  [[ -r $config ]] || { printf 'default-output'; return; }
+  jq -r '.mode // "default-output"' "$config" 2>/dev/null || printf 'default-output'
+}
+
+selected_source() {
+  [[ -r $config ]] || return 1
+  jq -r '.source // empty' "$config" 2>/dev/null
+}
+
+save_selection() {
+  local selected_mode=$1 source=${2:-} tmp
+  mkdir -p -- "$(dirname -- "$config")"
+  tmp=$(mktemp "${config}.XXXXXX")
+  jq -n --arg mode "$selected_mode" --arg source "$source" \
+    '{mode: $mode, source: $source}' >"$tmp"
+  mv -f -- "$tmp" "$config"
+}
+
+sources_json() {
+  pw-dump | jq -c '[.[]
+    | select(.type == "PipeWire:Interface:Node")
+    | .info.props as $props
+    | select($props["media.class"] == "Audio/Source")
+    | select(($props["node.name"] // "") != "")
+    | {name: $props["node.name"], label: ($props["node.description"] // $props["node.name"]), deviceId: ($props["device.id"] // "")}
+  ]'
+}
+
+resolve_default_output_source() {
+  local device_id
+  device_id=$(wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null |
+    sed -n 's/^[[:space:]]*\* device.id = "\([^"]*\)"/\1/p' | head -n1)
+  [[ $device_id =~ ^[0-9]+$ ]] || die 'could not identify the default audio output device'
+  sources_json | jq -r --arg id "$device_id" \
+    '.[] | select((.deviceId | tostring) == $id) | .name' | head -n1
+}
+
+resolve_source() {
+  local selected_mode source
+  selected_mode=$(mode)
+  case $selected_mode in
+    default-output)
+      source=$(resolve_default_output_source)
+      [[ -n $source ]] || die 'the default audio output has no matching microphone'
+      ;;
+    source)
+      source=$(selected_source || true)
+      valid_name "$source" || die 'the configured microphone name is invalid'
+      sources_json | jq -e --arg source "$source" \
+        '.[] | select(.name == $source)' >/dev/null || die 'the configured microphone is unavailable'
+      ;;
+    *) die 'the configured input mode is invalid' ;;
+  esac
+  printf '%s\n' "$source"
+}
+
+sync_hyprvoice_config() {
+  local source=$1
+  [[ -f $hyprvoice_config ]] || die 'Hyprvoice is not configured; run hyprvoice onboarding first'
+  python3 - "$hyprvoice_config" "$source" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+device = sys.argv[2]
+text = path.read_text()
+section = re.compile(r"(?ms)^\[recording\]\s*$\n(.*?)(?=^\[|\Z)")
+match = section.search(text)
+if match:
+    body = match.group(1)
+    lines = body.splitlines(keepends=True)
+    device_lines = [index for index, line in enumerate(lines)
+                    if re.match(r"^(?P<indent>\s*)device\s*=.*(?:\n|$)", line)]
+    if device_lines:
+        first = device_lines[0]
+        indent = re.match(r"^(?P<indent>\s*)", lines[first]).group("indent")
+        lines[first] = f'{indent}device = "{device}"\n'
+        # Older runs could have appended another device key.  TOML forbids
+        # duplicate keys, so remove every remaining one in this section.
+        for index in reversed(device_lines[1:]):
+            del lines[index]
+        body = "".join(lines)
+    else:
+        line = f'device = "{device}"\n'
+        body = line + body
+    text = text[:match.start(1)] + body + text[match.end(1):]
+else:
+    line = f'device = "{device}"\n'
+    if text and not text.endswith("\n"):
+        text += "\n"
+    text += "\n[recording]\n" + line
+tmp = path.with_suffix(path.suffix + ".tmp")
+tmp.write_text(text)
+tmp.replace(path)
+PY
+}
+
+choose() {
+  local choice key
+  command -v rofi >/dev/null 2>&1 || die 'rofi is required to choose a dictation microphone'
+  choice=$({
+    printf 'Follow default output\tdefault-output\n'
+    sources_json | jq -r '.[] | "\(.label)\t\(.name)"'
+  } | rofi -dmenu -i -p 'Dictation microphone') || exit 0
+  key=${choice#*$'\t'}
+  [[ $key != "$choice" ]] || die 'no microphone was selected'
+  if [[ $key == default-output ]]; then
+    save_selection default-output
+  else
+    valid_name "$key" || die 'selected microphone name is invalid'
+    save_selection source "$key"
+  fi
+}
+
+toggle() {
+  local source=$1 dry_run=$2
+  if [[ $dry_run == true ]]; then
+    printf 'action=would-toggle device=%s\n' "$source"
+    return
+  fi
+  command -v "$hyprvoice_bin" >/dev/null 2>&1 ||
+    die 'Hyprvoice is not installed; install hyprvoice-bin and run hyprvoice onboarding'
+  sync_hyprvoice_config "$source"
+  exec "$hyprvoice_bin" toggle
+}
+
+usage() {
+  printf 'usage: %s {toggle [--dry-run]|resolve-source|use-default-output|use-source NAME|choose|status}\n' "${0##*/}" >&2
+  exit 2
+}
+
+case ${1:-} in
+  toggle)
+    [[ -z ${3:-} && ( -z ${2:-} || ${2:-} == --dry-run ) ]] || usage
+    source=$(resolve_source)
+    if [[ ${2:-} == --dry-run ]]; then
+      toggle "$source" true
+    else
+      toggle "$source" false
+    fi
+    ;;
+  resolve-source) [[ $# -eq 1 ]] || usage; resolve_source ;;
+  use-default-output) [[ $# -eq 1 ]] || usage; save_selection default-output ;;
+  use-source) [[ $# -eq 2 ]] || usage; valid_name "$2" || die 'invalid microphone name'; save_selection source "$2" ;;
+  choose) [[ $# -eq 1 ]] || usage; choose ;;
+  status) printf 'mode=%s\n' "$(mode)"; resolve_source | sed 's/^/device=/' ;;
+  *) usage ;;
+esac
