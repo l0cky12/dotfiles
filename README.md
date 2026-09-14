@@ -501,6 +501,7 @@ Generated config files (decorations, colours, themes) are gitignored. After `sto
 
 ```bash
 theme set <slug>
+~/.config/hypr/scripts/auto-monitor-profile.sh --force
 ```
 
 Run T3 Code once so `~/.t3` exists, then switch a theme. The generator publishes

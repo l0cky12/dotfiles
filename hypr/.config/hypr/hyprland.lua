@@ -85,5 +85,14 @@ require("conf/keybindings")
 require("conf/window_rules")
 require("conf/autostart")
 require("conf/decorations")
-require("monitors")
-require("workspaces")
+
+local function require_generated(module)
+    local file = io.open(home .. "/.config/hypr/" .. module .. ".lua", "r")
+    if file then
+        file:close()
+        require(module)
+    end
+end
+
+require_generated("monitors")
+require_generated("workspaces")

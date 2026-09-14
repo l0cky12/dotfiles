@@ -228,7 +228,9 @@ grep -Fqx 'windowrule = match:class ^t3code$, workspace 4 silent' \
 mkdir -p "$test_root/config" "$test_root/home" "$test_root/runtime"
 cp -a "$hypr_root/." "$test_root/config/hypr/"
 rm -f "$test_root/config/hypr/hyprland.conf" \
-  "$test_root/config/hypr/workspaces.conf"
+  "$test_root/config/hypr/workspaces.conf" \
+  "$test_root/config/hypr/monitors.lua" \
+  "$test_root/config/hypr/workspaces.lua"
 XDG_RUNTIME_DIR="$test_root/runtime" \
   python3 "$hypr_root/theme/generate.py" set everforest \
     --prefix "$test_root/config" --no-reload >/dev/null
