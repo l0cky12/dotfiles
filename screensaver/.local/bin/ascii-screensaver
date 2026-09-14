@@ -148,11 +148,40 @@ focus_monitor() {
   "$hyprctl_command" eval "$(monitor_focus_expression "$1")"
 }
 
+# This Hyprland routes `hyprctl dispatch` through the Lua provider, so the
+# legacy `focuswindow address:...` / `movewindow mon:...` strings are a Lua
+# syntax error and never placed anything.  Address the window explicitly rather
+# than relying on focus, and re-assert fullscreen: moving a window across
+# monitors clears it, which left the screensaver as a small floating window.
 move_window_to_monitor() {
   local monitor=$1 address=${2#0x}
-  "$hyprctl_command" dispatch focuswindow "address:0x$address" >/dev/null
-  "$hyprctl_command" dispatch movewindow "mon:$monitor"
+  monitor=${monitor//\\/\\\\}
+  monitor=${monitor//\"/\\\"}
+  "$hyprctl_command" dispatch "hl.dsp.focus({ window = \"address:0x$address\" })" >/dev/null
+  "$hyprctl_command" dispatch "hl.dsp.window.move({ monitor = \"$monitor\", window = \"address:0x$address\" })" >/dev/null
+  ensure_fullscreen "$address"
 }
+
+fullscreen_state() {
+  "$hyprctl_command" clients -j 2>/dev/null |
+    jq -r --arg a "0x$1" 'map(select(.address == $a)) | .[0].fullscreen // empty'
+}
+
+# hl.dsp.window.fullscreen TOGGLES, and the window rule has usually already
+# fullscreened the window -- dispatching unconditionally turned it back off.
+# The move also clears fullscreen asynchronously, so a single read races the
+# compositor: settle first, then toggle only while the state is still wrong.
+ensure_fullscreen() {
+  local address=$1 attempt
+  for attempt in 1 2 3 4 5; do
+    sleep 0.15
+    [[ $(fullscreen_state "$address") == 2 ]] && continue
+    "$hyprctl_command" dispatch \
+      "hl.dsp.window.fullscreen({ mode = \"fullscreen\", window = \"address:0x$address\" })" >/dev/null
+  done
+  [[ $(fullscreen_state "$address") == 2 ]]
+}
+
 
 if [[ -n ${SCREENSAVER_MONITORS_JSON:-} ]]; then
   monitors_json=$SCREENSAVER_MONITORS_JSON
@@ -176,9 +205,11 @@ if ((dry_run)); then
     printf 'spawn='
     printf '%q ' "${command[@]}"
     printf 'select='
-    printf '%q ' "$hyprctl_command" dispatch focuswindow "address:<mapped-window>"
+    printf '%q ' "$hyprctl_command" dispatch 'hl.dsp.focus({ window = "address:<mapped-window>" })'
     printf 'place='
-    printf '%q ' "$hyprctl_command" dispatch movewindow "mon:$monitor"
+    printf '%q ' "$hyprctl_command" dispatch "hl.dsp.window.move({ monitor = \"$monitor\", window = \"address:<mapped-window>\" })"
+    printf 'fullscreen='
+    printf '%q ' "$hyprctl_command" dispatch 'hl.dsp.window.fullscreen({ mode = "fullscreen", window = "address:<mapped-window>" })'
     printf '\n'
   done
   if [[ -n $original_monitor ]]; then
@@ -208,7 +239,7 @@ command -v "$terminal" >/dev/null 2>&1 || {
 
 # Open the event stream before the first spawn. Opening it later loses fast
 # openwindow events and can place every asynchronous terminal on one monitor.
-exec {events}< <(socat -U - "UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock")
+exec {events}< <(socat -U - "UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock" 2>/dev/null)
 
 restore_focus() {
   [[ -z $original_monitor ]] || focus_monitor "$original_monitor" >/dev/null 2>&1 || true
@@ -240,6 +271,11 @@ cleanup_terminals() {
   pkill -f '[i]o.github.fhlkfds.screensaver' >/dev/null 2>&1 || true
 }
 
+# Each spawn waits up to 5s for its window, and restore_focus runs afterwards.
+# Renderers must not treat any of that churn as a dismissal.
+export SCREENSAVER_GRACE_UNTIL=$((EPOCHSECONDS + 5 * ${#monitors[@]} + 5))
+
+placed=()
 for monitor in "${monitors[@]}"; do
   command=()
   terminal_command
@@ -256,4 +292,15 @@ for monitor in "${monitors[@]}"; do
     exit 1
   fi
   move_window_to_monitor "$monitor" "$window_address" >/dev/null
+  placed+=("$monitor $window_address")
 done
+
+# A terminal that maps later can knock an earlier one out of fullscreen, so
+# reconcile every window once they are all up rather than trusting the state
+# observed mid-loop.
+for entry in "${placed[@]}"; do
+  ensure_fullscreen "${entry#* }" ||
+    printf 'ascii-screensaver: %s is not fullscreen on %s\n' "${entry#* }" "${entry%% *}" >&2
+done
+
+exit 0

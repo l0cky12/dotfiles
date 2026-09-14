@@ -79,9 +79,30 @@ printf '%s\n' \
   'openwindow>>abc,1,io.github.fhlkfds.screensaver,one' \
   'openwindow>>def,1,io.github.fhlkfds.screensaver,two'
 SH
+# Models the one behaviour that matters: `window.fullscreen` TOGGLES, and
+# `clients -j` reports the resulting state. FULLSCREEN_AT_MAP decides whether
+# the window rule already fullscreened the window before the launcher looks.
 cat >"$test_root/bin/hyprctl" <<'SH'
 #!/usr/bin/env bash
 printf 'hyprctl %s\n' "$*" >>"$ORDER_LOG"
+state_dir=${FS_STATE_DIR:?}
+if [[ $1 == clients ]]; then
+  entries=()
+  for addr in 0xabc 0xdef; do
+    f=$state_dir/$addr
+    [[ -f $f ]] || printf '%s' "${FULLSCREEN_AT_MAP:-0}" >"$f"
+    entries+=("{\"address\":\"$addr\",\"fullscreen\":$(<"$f")}")
+  done
+  printf '[%s]\n' "$(IFS=,; printf '%s' "${entries[*]}")"
+  exit 0
+fi
+if [[ $1 == dispatch && $2 == *window.fullscreen* ]]; then
+  addr=${2##*address:}; addr=${addr%%\"*}
+  f=$state_dir/$addr
+  [[ -f $f ]] || printf '%s' "${FULLSCREEN_AT_MAP:-0}" >"$f"
+  # Toggle, exactly like the real dispatcher.
+  if [[ $(<"$f") == 2 ]]; then printf '0' >"$f"; else printf '2' >"$f"; fi
+fi
 SH
 cat >"$test_root/bin/kitty" <<'SH'
 #!/usr/bin/env bash
@@ -89,6 +110,8 @@ printf 'spawn %s\n' "$*" >>"$ORDER_LOG"
 SH
 chmod +x "$test_root/bin/socat" "$test_root/bin/hyprctl" "$test_root/bin/kitty"
 export ORDER_LOG="$test_root/order.log"
+export FS_STATE_DIR="$test_root/fsstate"
+mkdir -p "$FS_STATE_DIR"
 export XDG_RUNTIME_DIR="$test_root/runtime"
 export HYPRLAND_INSTANCE_SIGNATURE=test
 mkdir -p "$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE"
@@ -97,14 +120,56 @@ SCREENSAVER_TERMINAL_ID=kitty.desktop "$bin_root/ascii-screensaver" force
 socket_line=$(grep -n '^exec {events}< ' "$bin_root/ascii-screensaver" | cut -d: -f1)
 spawn_line=$(awk '/setsid/ && /command/ { print NR }' "$bin_root/ascii-screensaver")
 ((socket_line < spawn_line)) || fail 'event socket is not opened before terminal spawning'
-placement_log=$(grep -E '^hyprctl dispatch (focuswindow|movewindow)' "$ORDER_LOG")
-[[ $placement_log == $'hyprctl dispatch focuswindow address:0xabc\nhyprctl dispatch movewindow mon:DP-1\nhyprctl dispatch focuswindow address:0xdef\nhyprctl dispatch movewindow mon:HDMI-A-1' ]] || fail 'windows were not assigned by address to their intended monitors'
+# Assert the OUTCOME (each window ends up on its monitor and fullscreen), not a
+# literal call sequence -- the fullscreen dispatcher is a toggle, so the number
+# of calls legitimately depends on the state at map time.
+for pair in 'DP-1 0xabc' 'HDMI-A-1 0xdef'; do
+  set -- $pair
+  grep -qF "hl.dsp.focus({ window = \"address:$2\" })" "$ORDER_LOG" ||
+    fail "window $2 was never addressed directly"
+  move=$(grep -nF "hl.dsp.window.move({ monitor = \"$1\", window = \"address:$2\" })" "$ORDER_LOG" | cut -d: -f1)
+  [[ -n $move ]] || fail "window $2 was never moved to $1"
+  [[ $(cat "$FS_STATE_DIR/$2" 2>/dev/null) == 2 ]] || fail "window $2 did not end up fullscreen on $1"
+  # The re-assert has to happen after the move; moving clears fullscreen.
+  awk -v m="$move" -v a="$2" 'NR > m && index($0, "window.fullscreen") && index($0, "address:" a) { found = 1 }
+    END { exit !found }' "$ORDER_LOG" ||
+    fail "fullscreen was not re-asserted after moving $2 to $1"
+done
+
+# Regression: this Hyprland parses `hyprctl dispatch` as Lua, so the legacy
+# string dispatchers are a syntax error and silently place nothing.
+if grep -qE "dispatch (focuswindow|movewindow|fullscreenstate)[ \"']" "$bin_root/ascii-screensaver"; then
+  fail 'launcher still uses legacy string dispatchers that this Hyprland rejects'
+fi
+
 mapfile -t launch_order < <(grep -E '^(hyprctl eval hl.dispatch\(hl.dsp.focus\(\{ monitor = "(DP-1|HDMI-A-1)" \}\)\)|spawn )' "$ORDER_LOG")
 [[ ${launch_order[*]} == *'monitor = "DP-1" })) spawn '* ]] ||
   fail 'first terminal was not spawned after focusing DP-1'
 [[ ${launch_order[*]} == *'monitor = "HDMI-A-1" })) spawn '* ]] ||
   fail 'second terminal was not spawned after focusing HDMI-A-1'
 [[ $(grep '^hyprctl ' "$ORDER_LOG" | tail -n1) == 'hyprctl eval hl.dispatch(hl.dsp.focus({ monitor = "DP-1" }))' ]] || fail 'original monitor was not restored'
+
+
+# Regression: the launcher must give renderers a grace window that outlasts the
+# whole spawn loop, or each instance pkills the set when the next monitor is
+# focused while still empty.
+grep -Fq 'export SCREENSAVER_GRACE_UNTIL=' "$bin_root/ascii-screensaver" ||
+  fail 'launcher does not publish a startup grace window to renderers'
+
+# Regression: window.fullscreen is a TOGGLE and the window rule has usually
+# already fullscreened the window. Dispatching unconditionally turned it back
+# off, which is what left the screensaver tiled at a fraction of the screen.
+: >"$ORDER_LOG"
+rm -f "$FS_STATE_DIR"/*
+FULLSCREEN_AT_MAP=2 SCREENSAVER_TERMINAL_ID=kitty.desktop "$bin_root/ascii-screensaver" force
+for addr in 0xabc 0xdef; do
+  [[ $(cat "$FS_STATE_DIR/$addr" 2>/dev/null) == 2 ]] ||
+    fail "window $addr that was already fullscreen got toggled out of fullscreen"
+done
+grep -F 'window.fullscreen' "$ORDER_LOG" | grep -qF 'address:0xabc' &&
+  fail 'launcher toggled fullscreen on a window that was already fullscreen'
+: >"$ORDER_LOG"
+rm -f "$FS_STATE_DIR"/*
 fi
 
 mkdir -p "$test_root/home/.config/hypr/scripts"
@@ -158,6 +223,11 @@ HOME="$test_root/home" HYPRLOCK_RUNNING=1 "$bin_root/screensaver-lock"
 grep -Fq -- '--random-effect --no-eol --no-restore-cursor' "$bin_root/ascii-screensaver-render" || fail 'renderer options changed'
 grep -Fq "stty size" "$bin_root/ascii-screensaver-render" || fail 'renderer resize wait is missing'
 grep -Fq "read -rsn1 -t 1" "$bin_root/ascii-screensaver-render" || fail 'renderer keyboard poll is missing'
+grep -Fq 'grace_until=${SCREENSAVER_GRACE_UNTIL:-0}' "$bin_root/ascii-screensaver-render" ||
+  fail 'renderer does not honour the launcher grace window'
+if grep -Fq "activewindow -j 2>/dev/null | jq -e --arg class" "$bin_root/ascii-screensaver-render"; then
+  fail 'renderer still dismisses on an empty focused monitor'
+fi
 grep -Fq "hl.config({ cursor = { invisible = true } })" "$bin_root/ascii-screensaver-render" || fail 'renderer does not hide the cursor through the Lua provider'
 grep -Fq "hl.config({ cursor = { invisible = false } })" "$bin_root/ascii-screensaver-render" || fail 'renderer does not restore the cursor through the Lua provider'
 if grep -Fq 'keyword cursor:invisible' "$bin_root/ascii-screensaver-render"; then
@@ -171,6 +241,12 @@ grep -Fq 'ascii-screensaver force' "$repo_root/hypr/.config/hypr/conf/keybinding
 grep -Fq 'toggle-screensaver' "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Lua config omits the screensaver toggle binding'
 grep -Fq 'name = "ascii-screensaver"' "$repo_root/hypr/.config/hypr/conf/window_rules.lua" || fail 'Lua config omits the screensaver window rule'
 grep -Fq 'windowrulev2 = fullscreen,class:^(io\.github\.fhlkfds\.screensaver)$' "$repo_root/hypr/.config/hypr/conf/windows-rules.conf" || fail 'legacy config omits the screensaver window rule'
+if grep -Fq 'windowrulev2 = float,class:^(io\.github\.fhlkfds\.screensaver)$' "$repo_root/hypr/.config/hypr/conf/windows-rules.conf"; then
+  fail 'legacy config still floats the screensaver, so a dropped fullscreen shrinks it'
+fi
+if grep -A6 'name = "ascii-screensaver"' "$repo_root/hypr/.config/hypr/conf/window_rules.lua" | grep -Fq 'float = true'; then
+  fail 'Lua config still floats the screensaver, so a dropped fullscreen shrinks it'
+fi
 
 if ((!jq_available)); then
   printf 'degraded: jq-independent screensaver and lock fixtures passed\n'

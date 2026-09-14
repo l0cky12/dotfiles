@@ -55,8 +55,19 @@ done
 
 tty_path=$(tty)
 tty_name=${tty_path#/dev/}
+# The launcher focuses each monitor in turn before spawning its terminal, so a
+# monitor that is briefly empty is NOT a dismissal -- treating it as one made
+# every already-running instance pkill the whole set mid-launch.  Only a real
+# foreign window counts, and not until the launcher's grace window has passed.
+grace_until=${SCREENSAVER_GRACE_UNTIL:-0}
+
 in_focus() {
-  "$hyprctl_command" activewindow -j 2>/dev/null | jq -e --arg class "$class" '.class == $class' >/dev/null
+  local out
+  ((EPOCHSECONDS >= grace_until)) || return 0
+  out=$("$hyprctl_command" activewindow -j 2>/dev/null) || return 0
+  [[ -n $out ]] || return 0
+  jq -e 'has("class") and (.class | length) > 0' <<<"$out" >/dev/null || return 0
+  jq -e --arg class "$class" '.class == $class' <<<"$out" >/dev/null
 }
 
 while true; do

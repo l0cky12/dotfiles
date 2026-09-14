@@ -50,7 +50,8 @@ hl.window_rule({ match = { class = "^t3code$" }, workspace = "4 silent" })
 hl.window_rule({
     name = "ascii-screensaver",
     match = { class = [[^io\.github\.fhlkfds\.screensaver$]] },
+    -- No float rule: if fullscreen is ever dropped the window must fall back to
+    -- tiled, not to a small floating window.
     fullscreen = true,
-    float = true,
     animation = "slide",
 })
