@@ -228,8 +228,8 @@ Item {
 
         onClicked: (mouse) => {
             if (mouse.button === Qt.LeftButton) {
-                Logger.d("Arch Updater", "Updating from bar...")
-                root.pluginApi.mainInstance.update()
+                Logger.d("Arch Updater", "Opening panel from bar...")
+                pluginApi.openPanel(root.screen, root) // Open panel
             }
             else if (mouse.button === Qt.RightButton) {
                 Logger.d("Arch Updater", "Opening context menu from bar...")

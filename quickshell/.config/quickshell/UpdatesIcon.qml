@@ -30,7 +30,6 @@ Item {
     anchors.fill: parent
     hoverEnabled: true
     acceptedButtons: Qt.LeftButton
-    enabled: !UpdatesState.checking && !UpdatesState.updating
     onClicked: UpdatesState.update()
   }
 
