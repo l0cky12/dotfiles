@@ -1,0 +1,10 @@
+base-devel
+git
+stow
+sudo
+vim
+zsh
+networkmanager
+ufw
+openssh
+pciutils

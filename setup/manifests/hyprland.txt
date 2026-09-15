@@ -1,0 +1,14 @@
+hyprland
+hyprlock
+hypridle
+hyprpaper
+waybar
+wofi
+rofi-wayland
+kitty
+swaync
+xdg-desktop-portal-hyprland
+polkit-kde-agent
+pipewire
+wireplumber
+pavucontrol
