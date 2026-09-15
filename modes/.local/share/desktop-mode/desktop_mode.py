@@ -255,7 +255,8 @@ class Controller:
             return False, False, "hyprctl or hyprsunset is unavailable"
         running = self._command(["pgrep", "-x", "hyprsunset"])
         if running.returncode:
-            return True, False, "hyprsunset is not running"
+            # Enabling starts hyprsunset, so an absent daemon is simply "off".
+            return True, False, None
         result = self._command(["hyprctl", "hyprsunset", "temperature"])
         digits = "".join(char for char in result.stdout if char.isdigit())
         if result.returncode or not digits:
@@ -293,7 +294,7 @@ class Controller:
         item = state["modes"].get(name, {})
         desired = observed if name == "screensaver-auto" else bool(item.get("desired", observed))
         return {"name": name, "desired": desired, "observed": observed, "available": available,
-                "expires_at": item.get("expires_at"), "error": error or item.get("error")}
+                "expires_at": item.get("expires_at"), "error": error}
 
     def status(self) -> dict[str, Any]:
         state = self.store.read()
