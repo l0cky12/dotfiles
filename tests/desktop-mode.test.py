@@ -105,6 +105,28 @@ class DesktopModeTests(unittest.TestCase):
         self.assertTrue(item["desired"])
         self.assertEqual(item["error"], "fixture failure")
 
+    def test_stopped_hyprsunset_is_off_not_an_error(self) -> None:
+        def runner(argv, **_kwargs):
+            return subprocess.CompletedProcess(argv, 1, "", "")  # pgrep: no match
+        controller = Controller(self.config, self.store, runner)
+        with mock.patch("desktop_mode.shutil.which", return_value="/usr/bin/fixture"):
+            item = controller.status_one("night-light")
+        self.assertTrue(item["available"])
+        self.assertFalse(item["observed"])
+        self.assertIsNone(item["error"])
+
+    def test_probed_mode_error_clears_when_backend_recovers(self) -> None:
+        def runner(argv, **_kwargs):
+            if argv[-2:] == ["status", "--json"]:
+                return subprocess.CompletedProcess(argv, 0, json.dumps({"available": True, "dnd": False}), "")
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        controller = Controller(self.config, self.store, runner)
+        self.store.update(lambda value: value["modes"]["do-not-disturb"].update(
+            error="notification service unavailable"))
+        self.assertIsNone(controller.status_one("do-not-disturb")["error"])
+        controller.reconcile()
+        self.assertIsNone(self.store.read()["modes"]["do-not-disturb"]["error"])
+
     def test_reconcile_restores_desired_backend_state(self) -> None:
         calls = []
         def runner(argv, **_kwargs):
