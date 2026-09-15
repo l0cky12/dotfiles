@@ -19,7 +19,9 @@ Item {
   Text {
     id: label
     anchors.centerIn: parent
-    text: "󰚰  " + UpdatesState.totalCount
+    // An ellipsis while the upgrade terminal is open makes a second click
+    // obviously unnecessary, instead of looking like the first one was ignored.
+    text: UpdatesState.updating ? "󰚰  …" : "󰚰  " + UpdatesState.totalCount
     font.family: Theme.glyphFamily
     font.pixelSize: root.s(14)
     color: UpdatesState.totalCount > 0 ? Theme.onAccent : Theme.textMuted
@@ -62,7 +64,11 @@ Item {
               ? UpdatesState.aurPackages.join(", ")
               : "None")
             + (UpdatesState.stale ? "\nLast check failed" : "")
-            + "\nClick to update"
+            + (UpdatesState.updating
+              ? "\nUpdating…"
+              : UpdatesState.updateQueued
+                ? "\nUpdate queued until the check finishes"
+                : "\nClick to update")
       color: Theme.text
       font.family: Theme.uiFamily
       font.pixelSize: Theme.fs(12)

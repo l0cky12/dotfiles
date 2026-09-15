@@ -45,10 +45,59 @@ if output=$(PATH="$fixture" "$repo_root/hypr/.config/hypr/scripts/arch-updates" 
 fi
 [[ -z $output ]]
 
+# --- update path -------------------------------------------------------------
+# The terminal stub records its argv instead of launching anything, so the
+# composed upgrade command can be asserted on a host that has neither an AUR
+# helper nor apt.
+script="$repo_root/hypr/.config/hypr/scripts/arch-updates"
 mv "$fixture/yay" "$fixture/paru"
 printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "$ARCH_UPDATES_TEST_LOG"\n' > "$fixture/kitty"
 chmod +x "$fixture/kitty"
-ARCH_UPDATES_TEST_LOG="$fixture/update.log" PATH="$fixture" \
-  "$repo_root/hypr/.config/hypr/scripts/arch-updates" update
-grep -Fx 'exec "$1" -Syu' "$fixture/update.log" >/dev/null
-grep -Fx "$fixture/paru" "$fixture/update.log" >/dev/null
+
+run_update_stub() {
+  rm -f "$fixture/update.log"
+  ARCH_UPDATES_TEST_LOG="$fixture/update.log" PATH="$fixture" TERMINAL="" "$script" update
+}
+
+# Arch: the AUR helper is the upgrade command, and it wins over apt.
+printf '#!/bin/sh\nexit 0\n' > "$fixture/apt"
+chmod +x "$fixture/apt"
+run_update_stub
+grep -Fx "$fixture/paru -Syu" "$fixture/update.log" >/dev/null
+# The window must stay open on a read rather than exiting the moment yay does.
+grep -Fq 'read -rp "Done. Press Enter to close. "' "$fixture/update.log"
+# The upgrade's exit status has to survive, or the widget cannot tell a failed
+# update from a clean one and wrongly zeroes its count.
+grep -Fq 'exit $status' "$fixture/update.log"
+
+# Debian: with no AUR helper, apt takes over. This branch never runs on the
+# Arch machines, so the stub is the only thing that will catch a typo in it.
+rm "$fixture/paru"
+run_update_stub
+grep -Fx 'sudo apt update && sudo apt full-upgrade' "$fixture/update.log" >/dev/null
+
+# $TERMINAL is preferred over the built-in candidate list.
+printf '#!/bin/sh\nprintf "%%s\\n" "$@" > "$ARCH_UPDATES_TEST_LOG"\n' > "$fixture/myterm"
+chmod +x "$fixture/myterm"
+rm -f "$fixture/update.log"
+ARCH_UPDATES_TEST_LOG="$fixture/update.log" PATH="$fixture" TERMINAL=myterm \
+  "$script" update
+[[ -s $fixture/update.log ]]
+rm "$fixture/myterm"
+
+# No terminal emulator and no package manager are both reported as failures, so
+# the widget can surface them instead of looking like a dead button.
+mv "$fixture/kitty" "$fixture/kitty.off"
+if PATH="$fixture" TERMINAL="" "$script" update 2>/dev/null; then
+  printf 'FAIL: missing terminal reported success\n' >&2
+  exit 1
+fi
+mv "$fixture/kitty.off" "$fixture/kitty"
+
+rm "$fixture/apt"
+if PATH="$fixture" TERMINAL="" "$script" update 2>/dev/null; then
+  printf 'FAIL: missing package manager reported success\n' >&2
+  exit 1
+fi
+
+printf 'arch-updates: ok\n'

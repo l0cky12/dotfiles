@@ -91,19 +91,63 @@ print_count() {
     "$(package_names_json "$repo_output")" "$(package_names_json "$aur_output")"
 }
 
-run_update() {
+notify() {
+  command -v notify-send >/dev/null 2>&1 && notify-send "System Update" "$1"
+  printf '%s\n' "$1" >&2
+}
+
+# The AUR helper doubles as the Arch upgrade path; apt covers the Debian boxes.
+# Neither branch is reachable on the other distro, so both are asserted in
+# tests/arch-updates.test.sh rather than only on whichever machine runs this.
+update_command() {
   local helper
 
-  if ! helper=$(aur_helper); then
-    command -v notify-send >/dev/null 2>&1 && notify-send "Arch Updates" "Install yay or paru to update."
+  if helper=$(aur_helper); then
+    printf '%s -Syu' "$helper"
     return 0
   fi
-  if ! command -v kitty >/dev/null 2>&1; then
-    command -v notify-send >/dev/null 2>&1 && notify-send "Arch Updates" "Kitty is not installed."
+  if command -v apt >/dev/null 2>&1; then
+    printf 'sudo apt update && sudo apt full-upgrade'
     return 0
+  fi
+  return 1
+}
+
+terminal() {
+  local candidate
+
+  for candidate in "${TERMINAL:-}" kitty foot alacritty ghostty; do
+    [[ -n $candidate ]] || continue
+    command -v "$candidate" >/dev/null 2>&1 && { command -v "$candidate"; return 0; }
+  done
+  return 1
+}
+
+# The upgrade needs an interactive terminal so sudo and the AUR helper can
+# prompt, and the window is held open on a read so the log stays readable.
+# Exiting with the upgrade's status lets the widget tell "finished" from
+# "failed" instead of zeroing its count either way.
+# ponytail: relies on the terminal forwarding the child exit code; if one does
+# not, the widget just keeps its counts and flags them stale.
+run_update() {
+  local term command
+
+  if ! command=$(update_command); then
+    notify "Install yay, paru, or apt to update."
+    return 1
+  fi
+  if ! term=$(terminal); then
+    notify "No terminal emulator found."
+    return 1
   fi
 
-  kitty --hold --title "System Update" bash -lc 'exec "$1" -Syu' _ "$helper"
+  "$term" --title "System Update" bash -lc '
+    eval "$1"
+    status=$?
+    printf "\n"
+    read -rp "Done. Press Enter to close. " _
+    exit $status
+  ' _ "$command"
 }
 
 case ${1:-count} in
