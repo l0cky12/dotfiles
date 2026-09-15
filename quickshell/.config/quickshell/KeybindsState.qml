@@ -127,13 +127,14 @@ Singleton {
     { rank: 79, re: /^toggle window gaps/i },
     { rank: 80, re: /^cycle window layout$/i },
     { rank: 81, re: /^play temporary dotfiles history$/i },
-    { rank: 82, re: /^volume (up|down)( \(pactl\))?$/i },
-    { rank: 83, re: /^mute( \(pactl\))?$/i },
-    { rank: 84, re: /^play \/ pause$|^pause$|^(next|previous) track$|^stop playback$/i },
-    { rank: 85, re: /^brightness (up|down)$/i },
-    { rank: 86, re: /^lid (closed|opened):/i },
-    { rank: 87, re: /^(Zoom in|Zoom out|Reset zoom)$/i },
-    { rank: 88, re: /mouse/i }
+    { rank: 82, re: /^pull and apply dotfiles$/i },
+    { rank: 83, re: /^volume (up|down)( \(pactl\))?$/i },
+    { rank: 84, re: /^mute( \(pactl\))?$/i },
+    { rank: 85, re: /^play \/ pause$|^pause$|^(next|previous) track$|^stop playback$/i },
+    { rank: 86, re: /^brightness (up|down)$/i },
+    { rank: 87, re: /^lid (closed|opened):/i },
+    { rank: 88, re: /^(Zoom in|Zoom out|Reset zoom)$/i },
+    { rank: 89, re: /mouse/i }
   ]
 
   function rankFor(description) {
