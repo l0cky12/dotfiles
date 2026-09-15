@@ -1,0 +1,9 @@
+firefox
+chromium
+thunar
+file-roller
+fastfetch
+btop
+ripgrep
+fd
+fzf
