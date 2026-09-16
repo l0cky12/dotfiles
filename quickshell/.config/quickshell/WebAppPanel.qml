@@ -127,9 +127,11 @@ PanelWindow {
         }
 
         // Header action: add from the list, back from the form.
+        // Exit button sits right of it, so shift it left.
         Rectangle {
           id: headerBtn
-          anchors.right: parent.right
+          anchors.right: exitBtn.left
+          anchors.rightMargin: Theme.gapXS
           anchors.verticalCenter: parent.verticalCenter
           width: headerBtnLabel.implicitWidth + Theme.gapL
           height: Theme.webappButtonH
@@ -160,6 +162,18 @@ PanelWindow {
               }
             }
           }
+        }
+
+        // Exit: closes the panel from either view. Esc already does this; this
+        // is the clickable version so nothing depends on the keybind.
+        IconButton {
+          id: exitBtn
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          size: Theme.webappButtonH
+          glyphSize: Theme.fs(14)
+          glyph: String.fromCodePoint(0xf0156) // md-close
+          onClicked: WebAppState.close()
         }
       }
 
