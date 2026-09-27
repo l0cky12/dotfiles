@@ -570,4 +570,59 @@ mapfile -t prompts < <(grep -o -- '-p [A-Za-z]*' "$test_root/rofi.log")
 [[ ${prompts[*]} == '-p Menu -p Menu -p Sub' ]] ||
   fail "custom text did not redraw, or a nested pick opened the wrong view: ${prompts[*]}"
 
+# A second press of the toggle closes the menu - rofi included. Killing only
+# the lmenu process used to orphan rofi, which then held rofi's single-instance
+# lock so the key did nothing until that stray window was dismissed by hand.
+hold_rofi="$test_root/hold-rofi"
+cat >"$hold_rofi" <<'FAKE'
+#!/usr/bin/env bash
+printf '%s\n' "$$" >"$HOLD_PID"
+cat >/dev/null
+exec sleep 30
+FAKE
+chmod +x "$hold_rofi"
+
+toggle() {
+  HOLD_PID="$test_root/hold.pid" \
+  XDG_STATE_HOME="$test_root/toggle-state" ROFI="$hold_rofi" \
+  LMENU_MENU="$menu" LMENU_EXTENSIONS=/nonexistent LMENU_PARSER="$parser" \
+    "$cli" toggle "$@"
+}
+
+rm -f -- "$test_root/hold.pid"
+toggle >/dev/null 2>&1 &
+first=$!
+for _ in $(seq 50); do [[ -s $test_root/hold.pid ]] && break; sleep 0.1; done
+[[ -s $test_root/hold.pid ]] || fail 'the toggle never opened rofi'
+held=$(<"$test_root/hold.pid")
+kill -0 "$held" 2>/dev/null || fail 'the stand-in rofi is not running'
+
+toggle >/dev/null 2>&1 || fail 'the second toggle failed'
+for _ in $(seq 20); do kill -0 "$held" 2>/dev/null || break; sleep 0.1; done
+if kill -0 "$held" 2>/dev/null; then
+  kill "$held" 2>/dev/null || true
+  fail 'closing the menu left rofi running'
+fi
+wait "$first" 2>/dev/null || true
+[[ ! -e $test_root/toggle-state/lmenu/instance.pid ]] || fail 'closing left the pid file behind'
+[[ ! -e $test_root/toggle-state/lmenu/route ]] || fail 'closing left the route file behind'
+
+# A stale pid file naming a live process that is not lmenu is ignored, not
+# killed: the toggle opens the menu instead of "closing" a stranger.
+sleep 30 &
+stranger=$!
+mkdir -p "$test_root/toggle-state/lmenu"
+printf '%s' "$stranger" >"$test_root/toggle-state/lmenu/instance.pid"
+printf '' >"$test_root/toggle-state/lmenu/route"
+rm -f -- "$test_root/hold.pid"
+toggle >/dev/null 2>&1 &
+second=$!
+for _ in $(seq 50); do [[ -s $test_root/hold.pid ]] && break; sleep 0.1; done
+kill -0 "$stranger" 2>/dev/null || fail 'a stale pid file got an unrelated process killed'
+[[ -s $test_root/hold.pid ]] || fail 'a stale pid file stopped the menu from opening'
+toggle >/dev/null 2>&1 || true
+wait "$second" 2>/dev/null || true
+kill "$stranger" 2>/dev/null || true
+printf 'ok: toggling closes rofi with the menu, and a stale pid is left alone\n'
+
 printf 'ok\n'

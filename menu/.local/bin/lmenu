@@ -62,13 +62,31 @@ running_pid() {
   pid=$(<"$pid_file")
   [[ $pid =~ ^[0-9]+$ ]] || return 1
   kill -0 "$pid" 2>/dev/null || return 1
+  # The pid file outlives a crash or a reboot, and the number can be handed to
+  # an unrelated process by then. Only an lmenu process is ours to close.
+  [[ $(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null) == *lmenu* ]] || return 1
   printf '%s' "$pid"
 }
 
+# Every process below a pid, parents before children.
+descendants() {
+  local child
+  for child in $(pgrep -P "$1" 2>/dev/null); do
+    printf '%s\n' "$child"
+    descendants "$child"
+  done
+}
+
+# rofi runs in a command substitution below the lmenu process, so killing lmenu
+# alone orphans it: the menu stays on screen, a selection goes nowhere, and it
+# keeps rofi's single-instance lock, so every later open fails with "Rofi
+# already running". The tree is collected before any signal is sent, because a
+# dying parent hands its children to init and pgrep -P would lose them.
 close_menu() {
-  local pid
+  local pid procs
   if pid=$(running_pid); then
-    kill "$pid" 2>/dev/null || true
+    mapfile -t procs < <(descendants "$pid")
+    kill "$pid" "${procs[@]}" 2>/dev/null || true
   fi
   rm -f -- "$pid_file" "$route_file" "$view_file"
 }
