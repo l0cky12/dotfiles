@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Install, remove and launch managed web apps.
+"""Install, edit, remove and launch managed web apps.
 
     webapp list [--json]
     webapp get <id>
     webapp discover-icon <url> [--id ID]
     webapp install --name NAME --url URL [--icon PATH] [--id ID]
+    webapp edit <id> [--name NAME] [--url URL] [--icon PATH | --reset-icon]
     webapp remove <id>
     webapp launch <id>
     webapp doctor
@@ -265,20 +266,118 @@ def cmd_install(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_remove(args: argparse.Namespace) -> int:
-    app = wl.load_app(args.id)
-
-    # Second ownership check, independent of the metadata directory: the launcher
-    # must carry our marker with this id. A .desktop file that does not is not
-    # ours to delete, however the metadata got edited.
+def assert_owned_launcher(app: wl.WebApp, verb: str) -> None:
+    """Second ownership check, independent of the metadata directory: the
+    launcher must carry our marker with this id. A .desktop file that does not
+    is not ours to rewrite or delete, however the metadata got edited."""
     desktop = Path(app.desktop_file)
     if desktop.is_file():
         text = desktop.read_text(errors="replace")
         if f"{wl.MARKER_ID_KEY}={app.id}" not in text:
             raise wl.WebAppError(
                 f"{desktop} is not marked as web app {app.id!r} -- refusing to "
-                "delete it. Remove the metadata by hand if this is intentional."
+                f"{verb} it. Fix the metadata by hand if this is intentional."
             )
+
+
+def cmd_edit(args: argparse.Namespace) -> int:
+    """Change an installed app's name, URL or icon in place.
+
+    The id never changes, so the launcher filename, the metadata filename and
+    any window rule written against the app all stay valid. Staged like install:
+    nothing moves until the new launcher has validated.
+    """
+    app = wl.load_app(args.id)
+    assert_owned_launcher(app, "rewrite")
+    desktop = wl.assert_managed(Path(app.desktop_file), wl.DESKTOP_DIR)
+
+    name = wl.validate_name(args.name) if args.name is not None else app.name
+    url = wl.normalise_url(args.url) if args.url is not None else wl.normalise_url(app.url)
+    changed: list[str] = []
+    if name != app.name:
+        changed.append("name")
+    if url != app.url:
+        changed.append("url")
+
+    old_icon = app.icon
+    stage = Path(tempfile.mkdtemp(prefix="webapp-stage.", dir=wl.RUNTIME_DIR))
+    try:
+        # ── icon: explicit file, rediscovery, or a letter tile that follows the
+        #    name. Otherwise the current icon is kept as it is. ─────────────────
+        staged_icon: Path | None = None
+        icon_source = app.icon_source
+        if args.icon:
+            src = Path(args.icon).expanduser()
+            if not src.is_file():
+                raise wl.WebAppError(f"icon not found: {src}")
+            staged_icon = wl.normalise_icon(src, stage / app.id)
+            icon_source = "user"
+        elif args.reset_icon:
+            found = wl.discover_icon(url, stage, app.id)
+            if found is not None:
+                staged_icon = wl.normalise_icon(found[0], stage / app.id)
+                icon_source = "discovered"
+        # A generated tile shows the first letter of the name, so it is redrawn
+        # when the name changes -- and it is the fallback for a reset that found
+        # nothing.
+        if staged_icon is None and (
+            args.reset_icon or ("name" in changed and app.icon_source == "generated")
+        ):
+            try:
+                staged_icon = wl.generate_icon(stage / app.id, name)
+                icon_source = "generated"
+            except wl.WebAppError as exc:
+                print(YELLOW(f"warning: {exc}"), file=sys.stderr)
+
+        final_icon = wl.ICONS_DIR / staged_icon.name if staged_icon else None
+        if final_icon is not None:
+            changed.append("icon")
+
+        app.name = name
+        app.url = url
+        app.wm_class = wl.derived_wm_class(url, wl.find_browser())
+        if final_icon is not None:
+            app.icon = str(final_icon)
+            app.icon_source = icon_source
+
+        staged_meta = stage / f"{app.id}.toml"
+        staged_meta.write_text(app.to_toml())
+        staged_desktop = stage / desktop.name
+        staged_desktop.write_text(desktop_entry(app))
+        validate_desktop(staged_desktop)
+
+        # Same order as install: icon, metadata, then the launcher last.
+        if staged_icon and final_icon:
+            wl.atomic_copy(staged_icon, final_icon)
+        wl.atomic_write(wl.APPS_DIR / f"{app.id}.toml", staged_meta.read_text())
+        wl.atomic_write(desktop, staged_desktop.read_text(), mode=0o644)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+
+    # A replacement in a different format (a PNG over an old unconverted ICO)
+    # lands under a new name; the old file is ours and now unreferenced.
+    if final_icon is not None and old_icon and Path(old_icon) != final_icon:
+        try:
+            stale = wl.assert_managed(Path(old_icon), wl.ICONS_DIR)
+            if stale.is_file():
+                stale.unlink()
+        except wl.WebAppError as exc:
+            print(YELLOW(f"warning: {exc}"), file=sys.stderr)
+
+    refresh_desktop_database()
+
+    if args.json:
+        json.dump({"ok": True, "changed": changed, **app.to_dict()}, sys.stdout)
+        sys.stdout.write("\n")
+    else:
+        what = ", ".join(changed) if changed else "nothing changed"
+        print(f"{GREEN('updated')} {BOLD(app.name)} {DIM('(' + what + ')')}")
+    return 0
+
+
+def cmd_remove(args: argparse.Namespace) -> int:
+    app = wl.load_app(args.id)
+    assert_owned_launcher(app, "delete")
 
     removed: list[str] = []
     # Every path is re-checked against the managed directories before unlinking,
@@ -429,6 +528,17 @@ def main(argv: list[str] | None = None) -> int:
                    help="skip icon discovery and the generated fallback")
     p.add_argument("--json", action="store_true")
     p.set_defaults(func=cmd_install)
+
+    p = sub.add_parser("edit")
+    p.add_argument("id")
+    p.add_argument("--name")
+    p.add_argument("--url")
+    icon = p.add_mutually_exclusive_group()
+    icon.add_argument("--icon", help="replace the icon with this local image")
+    icon.add_argument("--reset-icon", action="store_true",
+                      help="look the icon up again from the URL, else a letter tile")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(func=cmd_edit)
 
     p = sub.add_parser("remove")
     p.add_argument("id")

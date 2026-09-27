@@ -698,12 +698,18 @@ touch these:
 The metadata file is the ownership marker: an app is removable by this tool only
 if it is listed there, so an unrelated `.desktop` file can never be deleted.
 
+Each row in the manager has an edit (pencil) button that reopens the form with
+the app's name, URL and icon. Saving keeps the same id, so the launcher and any
+window rule written against it keep working.
+
 ### CLI
 
 ```bash
 webapp list                 # installed web apps
 webapp install --name "YouTube" --url https://youtube.com/
 webapp install --name "Local" --url localhost:8080/app --icon ~/pic.png
+webapp edit youtube --name "YT" --url https://youtube.com/feed
+webapp edit youtube --icon ~/pic.png   # or --reset-icon to find it again
 webapp remove youtube
 webapp doctor               # browser, tooling and orphan check
 webapp launch youtube       # what the .desktop file runs

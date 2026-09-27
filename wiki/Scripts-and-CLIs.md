@@ -245,6 +245,8 @@ Honours `HYPR_WALLPAPER_DIR`, `HYPR_WALLPAPER_RUNTIME_DIR`, and
 webapp list
 webapp install --name "YouTube" --url https://youtube.com/
 webapp install --name "Local" --url localhost:8080/app --icon ~/pic.png
+webapp edit youtube --name "YT" --url https://youtube.com/feed
+webapp edit youtube --icon ~/pic.png
 webapp remove youtube
 webapp doctor
 webapp launch youtube
