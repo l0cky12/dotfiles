@@ -86,7 +86,7 @@ DEFAULT_APPS_DRY_RUN=1 ~/.config/lmenu/default-apps set agent codex
 | editor | installed editors from a fixed list; GUI editors get their wait flag | `EDITOR` and `VISUAL` in `~/.config/default-apps/editor.zsh`, sourced by `.zshrc` |
 | terminal | desktop entries in `TerminalEmulator` | `~/.config/xdg-terminals.list`, read by `xdg-terminal-exec` |
 | file manager | desktop entries in `FileManager` | `inode/directory` in `mimeapps.list` |
-| coding agent | `ai-agent` names whose executable is on `PATH` | `default_agent` in `~/.config/ai-agent/config` |
+| coding agent | `ai-agent` names whose executable is on `PATH`, plus installed web apps as `webapp:<id>` | `default_agent` in `~/.config/ai-agent/config` |
 
 Desktop entries that are hidden, `Terminal=true`, or point at a missing program
 are skipped. Files are rewritten in place, so a Stow symlink such as
@@ -335,7 +335,9 @@ Worth knowing:
 ## AI launcher
 
 `ai-agent` preserves the caller's working directory and launches Claude Code,
-Codex, OpenCode, or T3 Code. Selection precedence: `--agent`, then
+Codex, OpenCode, T3 Code, or an installed web app. A web app is selected as
+`webapp:<id>`, using the id from `webapp list`, and runs through
+`webapp-launch <id>`; it takes no agent arguments. Selection precedence: `--agent`, then
 `AI_AGENT_DEFAULT`, then the config file at `AI_AGENT_CONFIG` (default
 `~/.config/ai-agent/config`, which sets `default_agent=t3code`).
 
@@ -350,12 +352,13 @@ ai                                 # the configured default
 ai-claude / ai-codex / ai-opencode / ai-t3code
 ai-agent --agent claude
 ai-agent --agent codex -- --help
+ai-agent --agent webapp:chatgpt    # a web app, by its id
 ```
 
 The aliases are only defined when their names are otherwise unused.
 
 Setup > Defaults > Coding agent in lmenu switches the default among the
-installed agents. `SUPER+I` opens the configured default. T3 Code is pinned to workspace 4 by its
+installed agents and web apps. `SUPER+I` opens the configured default. T3 Code is pinned to workspace 4 by its
 `t3code` window class, and autostarts there.
 
 ## Windows VM

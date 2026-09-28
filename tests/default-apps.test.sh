@@ -191,6 +191,35 @@ helper set agent claude
 [[ $(<"$repo/ai-config") == $'# Supported values: claude, codex, opencode, t3code\ndefault_agent=claude' ]] ||
   fail "agent config is wrong: $(<"$repo/ai-config")"
 
+# Web apps: offered once webapp-launch is installed, as webapp:<id>, sorted by
+# name. Metadata that does not parse, lacks a name, or whose id is not a slug
+# matching its file name is skipped.
+webapps="$test_root/share/webapps/apps"
+mkdir -p "$webapps"
+printf 'id = "chatgpt"\nname = "ChatGPT"\nurl = "https://chatgpt.com/"\n' >"$webapps/chatgpt.toml"
+printf 'id = "claude-ai"\nname = "Claude"\nurl = "https://claude.ai/"\n' >"$webapps/claude-ai.toml"
+printf 'id = "other"\nname = "Mismatch"\n' >"$webapps/mismatch.toml"
+printf 'id = "Bad_Id"\nname = "Bad"\n' >"$webapps/Bad_Id.toml"
+printf 'id = "noname"\n' >"$webapps/noname.toml"
+printf 'not toml [\n' >"$webapps/broken.toml"
+[[ $(helper list agent) == $'claude\tClaude Code\t1\ncodex\tCodex\t0' ]] ||
+  fail 'web apps were offered without webapp-launch on PATH'
+printf '#!/bin/sh\n' >"$bin/webapp-launch"
+chmod +x "$bin/webapp-launch"
+[[ $(helper list agent) == $'claude\tClaude Code\t1\ncodex\tCodex\t0\nwebapp:chatgpt\tChatGPT (web app)\t0\nwebapp:claude-ai\tClaude (web app)\t0' ]] ||
+  fail "agent list with web apps is wrong: $(helper list agent)"
+helper set agent webapp:chatgpt
+grep -Fxq 'default_agent=webapp:chatgpt' "$repo/ai-config" || fail 'web app agent was not written'
+[[ $(grep -c '^default_agent=' "$repo/ai-config") == 1 ]] || fail 'web app agent duplicated default_agent'
+helper list agent | grep -Fxq $'webapp:chatgpt\tChatGPT (web app)\t1' || fail 'web app agent is not ticked'
+for refused in webapp:other webapp:missing 'webapp:../x'; do
+  if helper set agent "$refused" 2>/dev/null; then
+    fail "an uninstalled web app agent was accepted: $refused"
+  fi
+done
+grep -Fxq 'default_agent=webapp:chatgpt' "$repo/ai-config" || fail 'a refused web app changed the config'
+helper set agent claude
+
 # The lmenu providers render the helper's rows, tick the current one, and
 # resolve a row to a quoted `set` command.
 cat >"$test_root/menu.jsonc" <<'JSON'
@@ -204,6 +233,11 @@ grep -Pq '\tCodex\t\td\.agent#codex\t' <<<"$rows" || fail 'the provider did not 
 [[ $(run LMENU_MENU="$test_root/menu.jsonc" LMENU_EXTENSIONS=/nonexistent \
   "$python" "$parser" resolve d.agent 'd.agent#codex') == "leaf	$helper set agent codex" ]] ||
   fail 'the provider row does not resolve to the helper'
+grep -Pq '\tChatGPT \(web app\)\t\td\.agent#webapp:chatgpt\t' <<<"$rows" ||
+  fail 'the provider did not list the web app agent'
+[[ $(run LMENU_MENU="$test_root/menu.jsonc" LMENU_EXTENSIONS=/nonexistent \
+  "$python" "$parser" resolve d.agent 'd.agent#webapp:chatgpt') == "leaf	$helper set agent webapp:chatgpt" ]] ||
+  fail 'the web app agent row does not resolve to the helper'
 
 # Desktop-specific defaults must agree with the menu and web-app launcher.
 printf '[Default Applications]\nx-scheme-handler/https=firefox.desktop\n' >"$config/hyprland-mimeapps.list"
