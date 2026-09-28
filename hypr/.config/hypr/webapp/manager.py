@@ -22,7 +22,6 @@ half-installed app behind.
 
 from __future__ import annotations
 
-import argparse
 import configparser
 import json
 import os
@@ -510,7 +509,27 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     return 1 if problems else 0
 
 
+def run(func, args) -> int:
+    try:
+        return func(args)
+    except wl.WebAppError as exc:
+        print(f"{RED('error')}: {exc}", file=sys.stderr)
+        return 1
+
+
 def main(argv: list[str] | None = None) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+
+    # Every menu click on a web app lands here as `launch <id>`, so that one
+    # shape skips argparse: importing it and building the nine subcommand
+    # parsers costs more than the launch itself. Anything else, including
+    # `launch --print-command` and `launch -h`, takes the full parser below.
+    if len(argv) == 2 and argv[0] == "launch" and not argv[1].startswith("-"):
+        from types import SimpleNamespace
+        return run(cmd_launch, SimpleNamespace(id=argv[1], print_command=False))
+
+    import argparse
+
     ap = argparse.ArgumentParser(prog="webapp", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -562,11 +581,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("doctor").set_defaults(func=cmd_doctor)
 
     args = ap.parse_args(argv)
-    try:
-        return args.func(args)
-    except wl.WebAppError as exc:
-        print(f"{RED('error')}: {exc}", file=sys.stderr)
-        return 1
+    return run(args.func, args)
 
 
 if __name__ == "__main__":

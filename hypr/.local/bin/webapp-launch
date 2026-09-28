@@ -29,9 +29,13 @@ if [ ! -f "$MANAGER" ]; then
   exit 1
 fi
 
+# -I -S: the manager is stdlib-only, so skip site-packages setup and ignore
+# PYTHON* variables. That is ~20 ms off every launch; the manager adds its own
+# directory to sys.path, which -I would otherwise drop.
+#
 # On failure surface it where a user launching from a menu will actually see it:
 # a .desktop launcher has no terminal to print to.
-if ! err="$(python3 "$MANAGER" launch "$1" 2>&1)"; then
+if ! err="$(python3 -I -S "$MANAGER" launch "$1" 2>&1)"; then
   command -v notify-send >/dev/null 2>&1 \
     && notify-send -a "Web Apps" -u critical -h boolean:swaync-bypass-dnd:true \
          "Could not launch $1" "${err:-unknown error}" \

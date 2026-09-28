@@ -26,4 +26,5 @@ if [ ! -f "$MANAGER" ]; then
   exit 1
 fi
 
-exec python3 "$MANAGER" "$@"
+# -I -S as in webapp-launch: stdlib only, so no site-packages setup.
+exec python3 -I -S "$MANAGER" "$@"
