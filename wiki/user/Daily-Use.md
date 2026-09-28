@@ -139,7 +139,5 @@ copy instead, so shell interrupts keep working.
   terminal's current directory.
 - **Share a file across devices**: `Super+Ctrl+S` opens LocalSend
   (AirDrop-style sharing over the local network).
-- **Reminders**: `Super+Ctrl+R` sets a countdown reminder, backed by systemd
-  user timers (`menu/.local/bin/lmenu-reminder`).
 - **Volume / brightness**: your keyboard's media keys work; on a desktop with
   no media keys use the audio panel (`Super+Ctrl+A`).

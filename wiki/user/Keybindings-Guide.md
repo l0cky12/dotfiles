@@ -145,7 +145,7 @@ emergencies, and it asks nothing first. Use it deliberately or not at all.
 | `Super+Alt+,` | Trigger the newest notification's default action. | Reply to a message without finding the window. |
 | `Super+Shift+Alt+,` | Reopen notification history. | "What was that notification?" |
 
-## Modes, reminders, and screensaver
+## Modes and screensaver
 
 | Keys | What it does | When would I use this |
 |---|---|---|
@@ -157,9 +157,6 @@ emergencies, and it asks nothing first. Use it deliberately or not at all.
 | `Super+Shift+Backspace` | Toggle gaps and borders everywhere. | A denser or airier layout, one keypress. |
 | `Super+Ctrl+Escape` | Start the ASCII screensaver now. | Fun on an idle screen. |
 | `Super+Ctrl+Shift+Escape` | Toggle the automatic screensaver. | Turn it off before a presentation. |
-| `Super+Ctrl+R` | Set a reminder. | "In 20 minutes, move the laundry." |
-| `Super+Ctrl+Alt+R` | List pending reminders. | Checking what you promised yourself. |
-| `Super+Ctrl+Shift+R` | Clear all reminders. | Fresh start. |
 
 ## Appearance
 

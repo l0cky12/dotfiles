@@ -74,11 +74,6 @@ exec(mod .. " + SHIFT + ALT + comma", "notification history", "$HOME/.local/bin/
 package_exec(mod .. " + D", "toggle do not disturb", "modes", "desktop-mode toggle do-not-disturb")
 package_exec(mod .. " + ALT + M", "desktop modes", "modes", "desktop-mode menu")
 package_exec(mod .. " + SHIFT + I", "stay awake", "modes", "desktop-mode toggle stay-awake")
--- Countdown reminders. Backed by transient systemd user timers, so they
--- outlive the launching process and are cancelled by systemd.
-exec(mod .. " + CTRL + R", "set a reminder", "$HOME/.local/bin/lmenu-reminder set")
-exec(mod .. " + CTRL + ALT + R", "show reminders", "$HOME/.local/bin/lmenu-reminder list")
-exec(mod .. " + CTRL + SHIFT + R", "clear all reminders", "$HOME/.local/bin/lmenu-reminder clear")
 exec(mod .. " + CTRL + O", "toggle menu (night light, DND, stay awake, etc)", cfg.scripts_dir .. "/toggles-menu.sh")
 package_exec(mod .. " + CTRL + Escape", "start ASCII screensaver", "screensaver", "ascii-screensaver force")
 package_exec(mod .. " + CTRL + SHIFT + Escape", "toggle automatic ASCII screensaver", "screensaver", "toggle-screensaver")

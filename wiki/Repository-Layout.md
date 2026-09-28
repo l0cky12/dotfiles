@@ -14,7 +14,7 @@ nothing in the live session reaches it.
 | `kitty` | `~/.config/kitty` | active | Terminal config plus the generated theme include |
 | `rofi` | `~/.config/rofi` | active | Comet Glass launcher layout, power-menu and calculator layouts, generated palette |
 | `cliphist` | `~/.config/cliphist` | active | Clipboard-history limit (200 text/image entries) |
-| `menu` | `~/.config/lmenu`, `~/.local/bin` | active | `lmenu`, a data-driven Rofi menu over a 206-entry JSONC tree, plus `lmenu-reminder` and `lmenu-toggle-ratio` |
+| `menu` | `~/.config/lmenu`, `~/.local/bin` | active | `lmenu`, a data-driven Rofi menu over a 206-entry JSONC tree, plus `lmenu-toggle-ratio` |
 | `modes` | `~/.config/desktop-mode`, `~/.local/bin` | active | `desktop-mode`: night light, DND, stay-awake, screensaver-auto, and the expiry daemon |
 | `screensaver` | `~/.config/ascii-screensaver`, `~/.config/branding`, `~/.local/bin` | active | `ttfx` ASCII renderer, per-monitor launcher, branding tools, lock handoff |
 | `systemd` | `~/.config/systemd/user` | active, opt-in | `hypr-monitor-watch.service` |

@@ -59,7 +59,7 @@ PRIORITY = (
     r"^move to (next|previous) workspace$", r"^universal (copy|cut|paste)$",
     r"^clipboard history$", r"^calculator$", r"^transcode media$",
     r"^share with LocalSend$", r"^activity \(btop", r"^network speed test$",
-    r"^(set a reminder|show reminders|clear all reminders)$", r"^disks$",
+    r"^disks$",
     r"^eject removable drives$", r"^obsidian$", r"^voice dictation$",
     r"^hermes$", r"^web app manager$",
     r"^install current site as a web app$", r"^coding agent$",

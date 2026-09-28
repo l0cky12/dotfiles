@@ -68,7 +68,7 @@ def main() -> None:
         r"^move workspace to .* monitor$", r"resize|expand window|shrink window",
         r"^workspace [0-9]+$", r"^move to workspace",
         r"^move silently to workspace", r"^(next|previous|former) workspace$",
-        r"reminder", r"Windows VM|Gaming VM", r"^Zoom (in|out)$|^Reset zoom$",
+        r"Windows VM|Gaming VM", r"^Zoom (in|out)$|^Reset zoom$",
     )
     for family in required_families:
         matches = [description for description in descriptions

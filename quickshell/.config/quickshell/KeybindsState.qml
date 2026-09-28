@@ -78,7 +78,6 @@ Singleton {
     { rank: 33, re: /^share with LocalSend$/i },
     { rank: 34, re: /^activity \(btop/i },
     { rank: 35, re: /^network speed test$/i },
-    { rank: 36, re: /^(set a reminder|show reminders|clear all reminders)$/i },
     { rank: 37, re: /^disks$/i },
     { rank: 38, re: /^eject removable drives$/i },
     { rank: 39, re: /^obsidian$/i },

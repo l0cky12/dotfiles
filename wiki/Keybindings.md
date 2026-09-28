@@ -129,7 +129,7 @@ seconds, so a `notificationctl dnd-toggle` call made on the side is reverted.
 All of these dispatch to `scripts/capture/capture.sh`. See
 [Scripts and CLIs](Scripts-and-CLIs.md#capture-suite).
 
-## Appearance, modes, reminders
+## Appearance and modes
 
 | Keys | Action |
 | --- | --- |
@@ -143,12 +143,6 @@ All of these dispatch to `scripts/capture/capture.sh`. See
 | `SUPER+SHIFT+Backspace` | toggle gaps and borders everywhere |
 | `SUPER+CTRL+Escape` | launch the ASCII screensaver now |
 | `SUPER+CTRL+SHIFT+Escape` | toggle automatic screensaver launch |
-| `SUPER+CTRL+R` | set a reminder |
-| `SUPER+CTRL+ALT+R` | list pending reminders |
-| `SUPER+CTRL+SHIFT+R` | clear all reminders |
-
-Reminders are transient systemd user timers, so they outlive the launching
-process and systemd cancels them.
 
 ## Workspaces
 

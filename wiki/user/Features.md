@@ -78,7 +78,7 @@ stable command-line facade; all policy lives in the QML service.
 
 `Super+Shift+A` opens **lmenu** — the hub menu. Its tree is one declarative
 file, `menu/.config/lmenu/menu.jsonc`: Apps, Development, Learn, Trigger
-(capture, share, reminders), Toggle (night light, DND, bar, touchpad…), Style,
+(capture, share), Toggle (night light, DND, bar, touchpad…), Style,
 Setup, Install, Remove, Update, About, System. Rows can hide themselves when
 their command is unavailable (a `when` guard), so the menu reflects your
 machine. You can extend it from
@@ -93,7 +93,7 @@ Hyprland's session PATH picks up (`conf/keybindings.lua` also prepends it at
 login). Highlights:
 
 - `theme` — apply and inspect themes.
-- `lmenu` — the menu itself; `lmenu-reminder` — countdown reminders.
+- `lmenu` — the menu itself.
 - `desktop-mode` — stay-awake / do-not-disturb state machine.
 - `screensaver-lock`, `ascii-screensaver`, `toggle-screensaver` — the lock and
   screensaver pair.

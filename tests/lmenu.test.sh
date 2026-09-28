@@ -372,15 +372,14 @@ grep -q '›' "$test_root/toggle-suffix.out" &&
 # The Trigger section keeps the requested order and its promoted rows.
 mapfile -t trigger_order < <(sed -E 's/^[^ ]*  //; s/ +[›✓]$//' "$test_root/trigger.out")
 [[ ${trigger_order[0]} == Emoji ]] || fail 'Emoji is not the first Trigger row'
-[[ ${trigger_order[1]} == Reminder ]] || fail 'Reminder is not the second Trigger row'
-[[ ${trigger_order[2]} == Capture ]] || fail 'Capture is not the third Trigger row'
-[[ ${trigger_order[3]} == Transcode ]] || fail 'Transcode is not the fourth Trigger row'
-[[ ${trigger_order[4]} == Share ]] || fail 'Share is not the fifth Trigger row'
-[[ ${trigger_order[5]} == Toggle ]] || fail 'Toggle is not the sixth Trigger row'
-[[ ${trigger_order[6]} == "Speed Test" ]] || fail 'Speed Test is not the seventh Trigger row'
+[[ ${trigger_order[1]} == Capture ]] || fail 'Capture is not the second Trigger row'
+[[ ${trigger_order[2]} == Transcode ]] || fail 'Transcode is not the third Trigger row'
+[[ ${trigger_order[3]} == Share ]] || fail 'Share is not the fourth Trigger row'
+[[ ${trigger_order[4]} == Toggle ]] || fail 'Toggle is not the fifth Trigger row'
+[[ ${trigger_order[5]} == "Speed Test" ]] || fail 'Speed Test is not the sixth Trigger row'
 grep -Fq '"action": "quickshell ipc call network speedTest"' "$menu" ||
   fail 'Speed Test does not launch the Quickshell speed-test overlay'
-[[ ${trigger_order[7]} == "Disk Speed Test" ]] || fail 'Disk Speed Test is not the eighth Trigger row'
+[[ ${trigger_order[6]} == "Disk Speed Test" ]] || fail 'Disk Speed Test is not the seventh Trigger row'
 grep -Fq '"action": "quickshell ipc call disk speedTest"' "$menu" ||
   fail 'Disk Speed Test does not launch the Quickshell disk overlay'
 
