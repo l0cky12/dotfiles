@@ -463,7 +463,6 @@ Scope {
           moduleSpacing: Theme.fs(2 * panel.barScale)
 
           AppLauncher { barScale: panel.barScale }
-          AgentIcon { barScale: panel.barScale }
           WindowsVmIcon { barScale: panel.barScale }
           BluetoothIcon { screenName: panel.modelData.name; barScale: panel.barScale }
           NetworkIcon { screenName: panel.modelData.name; barScale: panel.barScale }
