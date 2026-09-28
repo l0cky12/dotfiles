@@ -330,7 +330,7 @@ config that points at the regreet greeter. See
 | `screensaver/.local/bin/screensaver-branding` | text, image, and reset logo workflows with forced preview |
 | `screensaver/.local/bin/transcode-ascii` | ImageMagick PBM to Unicode braille/block converter |
 | `screensaver/.local/bin/screensaver-lock` | stop renderers and screensaver terminals before Hyprlock |
-| `hypr/.local/bin/webapp` | create/remove browser-style web application launchers |
+| `hypr/.local/bin/webapp` | create/edit/remove browser-style web application launchers |
 | `hypr/.local/bin/webapp-launch` | launch a stored web app with the configured browser profile/options |
 
 The Quickshell notification service owns state; the helper does not implement a
