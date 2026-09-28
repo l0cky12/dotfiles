@@ -105,15 +105,26 @@ class DesktopModeTests(unittest.TestCase):
         self.assertTrue(item["desired"])
         self.assertEqual(item["error"], "fixture failure")
 
-    def test_stopped_hyprsunset_is_off_not_an_error(self) -> None:
+    def test_shader_status_and_external_changes(self) -> None:
+        calls = []
         def runner(argv, **_kwargs):
-            return subprocess.CompletedProcess(argv, 1, "", "")  # pgrep: no match
+            calls.append(argv)
+            return subprocess.CompletedProcess(argv, 0, "night-light: off\n", "")
         controller = Controller(self.config, self.store, runner)
-        with mock.patch("desktop_mode.shutil.which", return_value="/usr/bin/fixture"):
-            item = controller.status_one("night-light")
+        item = controller.status_one("night-light")
         self.assertTrue(item["available"])
         self.assertFalse(item["observed"])
         self.assertIsNone(item["error"])
+        controller.set("night-light", True, "15m")
+        self.assertIn([*self.config.night_light_command, "on"], calls)
+        calls.clear()
+        controller.reconcile()
+        self.assertNotIn([*self.config.night_light_command, "on"], calls)
+        self.assertFalse(controller.status_one("night-light")["desired"])
+        self.store.update(lambda value: value["modes"]["night-light"].update(
+            expires_at=time.time() - 1))
+        controller.expire()
+        self.assertIn([*self.config.night_light_command, "off"], calls)
 
     def test_probed_mode_error_clears_when_backend_recovers(self) -> None:
         def runner(argv, **_kwargs):

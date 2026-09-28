@@ -29,7 +29,7 @@ for g in "${groups[@]}"; do [[ -f "$ROOT/setup/manifests/$g.txt" ]] || { say "ER
 backup(){ local f=$1; [[ -e $f || -L $f ]] || return 0; local b="${f}.bak.${STAMP}"; run cp -a -- "$f" "$b"; say "Backup: $b"; }
 pkgs=(); for g in "${groups[@]}"; do while read -r p; do [[ -z $p || $p == \#* ]] || pkgs+=("$p"); done < "$ROOT/setup/manifests/$g.txt"; done
 run pacman -Syu --needed "${pkgs[@]}"
-stow_packages=(hypr hyprlock kitty waybar rofi wofi swaync fastfetch zsh xdg)
+stow_packages=(hypr hyprlock kitty quickshell menu modes screensaver cliphist dots systemd rofi wofi swaync fastfetch zsh xdg)
 if command -v stow >/dev/null; then
   for d in "${stow_packages[@]}"; do
     [[ -d $ROOT/$d ]] || continue
@@ -58,7 +58,8 @@ if [[ ${groups[*]} == *optional* ]]; then say 'Optional group selected'; fi
 if command -v yay >/dev/null; then :; else
   say 'yay not found; bootstrap is explicit and non-root.'
   if confirm 'Build yay from Arch User Repository using makepkg?'; then
-    if ((DRY_RUN)); then say 'DRY-RUN: would clone and build yay as target user'; else tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT; run git clone https://aur.archlinux.org/yay.git "$tmp/yay"; run chown -R "$USER_NAME":"$(id -gn "$USER_NAME")" "$tmp/yay"; run runuser -u "$USER_NAME" -- bash -c "cd '$tmp/yay' && makepkg -si --needed"; fi
+    # shellcheck disable=SC2016 # $1 is expanded by the target user's shell.
+    if ((DRY_RUN)); then say 'DRY-RUN: would clone and build yay as target user'; else tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT; run git clone https://aur.archlinux.org/yay.git "$tmp/yay"; run chown -R "$USER_NAME":"$(id -gn "$USER_NAME")" "$tmp"; run runuser -u "$USER_NAME" -- bash -c 'cd -- "$1" && makepkg -si --needed' bash "$tmp/yay"; fi
   else say 'WARN: yay bootstrap declined'; fi
 fi
 if ((HARDEN_SSH)); then
@@ -67,18 +68,33 @@ fi
 if ((CONFIG_UFW)); then
   if confirm 'Configure UFW (deny incoming, allow outgoing, SSH port, TCP 53317)?'; then backup /etc/ufw/user.rules; backup /etc/ufw/user6.rules; run ufw default deny incoming; run ufw default allow outgoing; port=$(sshd -T 2>/dev/null | awk '/^port /{print $2; exit}'); run ufw allow "${port:-22}/tcp"; run ufw allow 53317/tcp; run ufw --force enable; fi
 fi
-if ((CONFIG_DOCKER)) && confirm 'Apply Docker forwarding policy (DOCKER-USER allows established, denies other forwarding)?'; then run iptables -I DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT; run iptables -A DOCKER-USER -j DROP; fi
+if ((CONFIG_DOCKER)) && confirm 'Apply Docker forwarding policy (DOCKER-USER allows established, denies other forwarding)?'; then
+  # Replace our two rules at the head: Docker's terminal RETURN makes an
+  # appended DROP unreachable. Repeated setup must not accumulate rules.
+  while iptables -C DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null; do
+    run iptables -D DOCKER-USER -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    ((DRY_RUN)) && break
+  done
+  while iptables -C DOCKER-USER -j DROP 2>/dev/null; do
+    run iptables -D DOCKER-USER -j DROP
+    ((DRY_RUN)) && break
+  done
+  run iptables -I DOCKER-USER 1 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+  run iptables -I DOCKER-USER 2 -j DROP
+fi
 GRUB_FILE=${GRUB_FILE:-/etc/default/grub}
 if ((CONFIG_IOMMU)) && [[ -f $GRUB_FILE ]]; then
-  gpu_info=$(if [[ -n ${GPU_INFO_CMD:-} ]]; then eval "$GPU_INFO_CMD"; elif command -v lspci >/dev/null; then lspci -nn; else true; fi)
-  vendors=$(printf '%s\n' "$gpu_info" | awk 'BEGIN{IGNORECASE=1} /VGA compatible controller|3D controller|Display controller/ {if ($0 ~ /AMD|ATI/) a=1; if ($0 ~ /Intel/) i=1; if ($0 ~ /NVIDIA/) n=1} END{if(a) print "amd"; if(i) print "intel"; if(n) print "nvidia"}')
-  [[ $(wc -l <<<"$vendors") -eq 1 ]] || { say 'WARN: GPU vendor is ambiguous or unsupported; IOMMU skipped safely'; vendors=; }
-  if [[ $vendors == amd || $vendors == intel ]]; then
-    param=$([[ $vendors == amd ]] && printf 'amd_iommu=pt' || printf 'intel_iommu=on iommu=pt')
+  vendor=$(awk -F ': *' '/^vendor_id[[:space:]]*:/ {print $2}' "${CPU_INFO_FILE:-/proc/cpuinfo}" | sort -u)
+  if [[ $vendor == AuthenticAMD || $vendor == GenuineIntel ]]; then
+    param=iommu=pt
+    [[ $vendor != GenuineIntel ]] || param='intel_iommu=on iommu=pt'
     old=$(< "$GRUB_FILE")
     new=$(GRUB_TEXT="$old" PARAM="$param" python3 -c 'import os,re; s=os.environ["GRUB_TEXT"]; q=os.environ["PARAM"]; m=re.search(r"^GRUB_CMDLINE_LINUX_DEFAULT=\"([^\"]*)\"",s,re.M); assert m; opts=m.group(1).split(); opts += [x for x in q.split() if x not in opts]; print(s[:m.start(1)]+" ".join(opts)+s[m.end(1):],end="")')
-    diff=$(diff -u <(printf '%s\n' "$old") <(printf '%s\n' "$new") || true); [[ -n $diff ]] && printf '%s\n' "$diff" || say 'GRUB already contains requested parameters; no change.'
-    if [[ -n $diff ]] && confirm 'Apply the exact GRUB diff above and regenerate GRUB config?'; then backup "$GRUB_FILE"; if ((DRY_RUN)); then say "DRY-RUN: would write $GRUB_FILE"; else printf '%s' "$new" > "$GRUB_FILE"; fi; run grub-mkconfig -o /boot/grub/grub.cfg; fi
+    diff=$(diff -u <(printf '%s\n' "$old") <(printf '%s\n' "$new") || true)
+    if [[ -n $diff ]]; then printf '%s\n' "$diff"; else say 'GRUB already contains requested parameters; no change.'; fi
+    if [[ -n $diff ]] && confirm 'Apply the exact GRUB diff above and regenerate GRUB config?'; then backup "$GRUB_FILE"; if ((DRY_RUN)); then say "DRY-RUN: would write $GRUB_FILE"; else printf '%s\n' "$new" > "$GRUB_FILE"; fi; run grub-mkconfig -o /boot/grub/grub.cfg; fi
+  else
+    say 'WARN: CPU vendor is ambiguous or unsupported; IOMMU skipped safely'
   fi
 elif ((CONFIG_IOMMU)); then say 'WARN: /etc/default/grub absent; IOMMU skipped'; fi
 say "Completed (no reboot). Log: $LOG_FILE"

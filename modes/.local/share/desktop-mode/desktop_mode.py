@@ -54,6 +54,9 @@ class Config:
         default_factory=lambda: (_local_bin("notificationctl"),))
     screensaver_command: tuple[str, ...] = field(
         default_factory=lambda: (_local_bin("ascii-screensaver"),))
+    night_light_command: tuple[str, ...] = field(default_factory=lambda: (
+        str(Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+            / "hypr/scripts/night-light.sh"),))
 
 
 def config_path() -> Path:
@@ -134,6 +137,7 @@ def load_config(path: Path | None = None) -> Config:
         reconcile_seconds=float(interval),
         notification_command=_argv(raw.get("notification_command", [_local_bin("notificationctl")]), "notification_command"),
         screensaver_command=_argv(raw.get("screensaver_command", [_local_bin("ascii-screensaver")]), "screensaver_command"),
+        night_light_command=_argv(raw.get("night_light_command", list(Config().night_light_command)), "night_light_command"),
     )
 
 
@@ -251,18 +255,10 @@ class Controller:
             return subprocess.CompletedProcess(argv, 127, "", str(error))
 
     def _night_status(self) -> tuple[bool, bool, str | None]:
-        if not shutil.which("hyprctl") or not shutil.which("hyprsunset"):
-            return False, False, "hyprctl or hyprsunset is unavailable"
-        running = self._command(["pgrep", "-x", "hyprsunset"])
-        if running.returncode:
-            # Enabling starts hyprsunset, so an absent daemon is simply "off".
-            return True, False, None
-        result = self._command(["hyprctl", "hyprsunset", "temperature"])
-        digits = "".join(char for char in result.stdout if char.isdigit())
-        if result.returncode or not digits:
-            return True, False, result.stderr.strip() or "hyprsunset temperature is unavailable"
-        threshold = (self.config.warm_temperature + self.config.normal_temperature) // 2
-        return True, int(digits) <= threshold, None
+        result = self._command([*self.config.night_light_command, "status"])
+        available = result.returncode == 0
+        return available, result.stdout.startswith("night-light: on"), (
+            None if available else result.stderr.strip() or "night light unavailable")
 
     def _dnd_status(self) -> tuple[bool, bool, str | None]:
         result = self._command([*self.config.notification_command, "status", "--json"])
@@ -292,7 +288,7 @@ class Controller:
             item = state["modes"][name]
             available, observed, error = True, bool(item["desired"]), item["error"]
         item = state["modes"].get(name, {})
-        desired = observed if name == "screensaver-auto" else bool(item.get("desired", observed))
+        desired = observed if name in ("screensaver-auto", "night-light") else bool(item.get("desired", observed))
         return {"name": name, "desired": desired, "observed": observed, "available": available,
                 "expires_at": item.get("expires_at"), "error": error}
 
@@ -306,18 +302,7 @@ class Controller:
 
     def _set_backend(self, name: str, enabled: bool) -> None:
         if name == "night-light":
-            if not shutil.which("hyprctl") or not shutil.which("hyprsunset"):
-                raise ModeError("night light unavailable: hyprctl or hyprsunset is missing")
-            if enabled and self._command(["pgrep", "-x", "hyprsunset"]).returncode:
-                started = self._command(["setsid", "-f", "hyprsunset"])
-                if started.returncode:
-                    raise ModeError(started.stderr.strip() or "hyprsunset could not be started")
-                for _ in range(20):
-                    if self._command(["pgrep", "-x", "hyprsunset"]).returncode == 0:
-                        break
-                    time.sleep(0.1)
-            command = ["hyprctl", "hyprsunset", "temperature",
-                       str(self.config.warm_temperature if enabled else self.config.normal_temperature)]
+            command = [*self.config.night_light_command, "on" if enabled else "off"]
         elif name == "do-not-disturb":
             command = [*self.config.notification_command, "dnd-on" if enabled else "dnd-off"]
         elif name == "screensaver-auto":
@@ -365,7 +350,9 @@ class Controller:
     def reconcile(self) -> None:
         """Restore owned transient backends after a daemon/service restart."""
         state = self.store.read()
-        for name in ("night-light", "do-not-disturb"):
+        # The shader persists its state and is also controlled by keybinds and
+        # the schedule. Reapplying our last request would undo those changes.
+        for name in ("do-not-disturb",):
             item = state["modes"][name]
             current = self.status_one(name, state)
             error = current["error"]

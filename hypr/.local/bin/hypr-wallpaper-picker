@@ -62,7 +62,8 @@ search_wallhaven() {
     }
 
     notify "Searching Wallhaven for: $query (page $page)"
-    if ! curl -fsSLG "https://wallhaven.cc/api/v1/search" \
+    if ! curl -fsSLG --proto '=https' --proto-redir '=https' \
+        --connect-timeout 5 --max-time 30 "https://wallhaven.cc/api/v1/search" \
         --header "Cache-Control: no-cache" \
         --data-urlencode "q=$query" \
         --data-urlencode "page=$page" \
@@ -79,6 +80,11 @@ search_wallhaven() {
     fi
 
     if ! jq -e '.data | type == "array"' "$response_tmp" >/dev/null || \
+        ! jq -e 'all(.data[];
+          (.id | type == "string" and test("^[a-zA-Z0-9]+$")) and
+          (.thumbs.large | type == "string" and startswith("https://")) and
+          (.path | type == "string" and startswith("https://")))' \
+            "$response_tmp" >/dev/null || \
         ! jq -e '.meta.current_page | type == "number" and . >= 1 and floor == .' \
             "$response_tmp" >/dev/null || \
         ! jq -e '.meta.last_page | type == "number" and . >= 1 and floor == .' \
@@ -92,7 +98,8 @@ search_wallhaven() {
 
     while IFS=$'\t' read -r id thumbnail; do
         [[ -n "$id" ]] || continue
-        if curl -fsSL --retry 2 -o "$preview_tmp/$id.jpg" "$thumbnail" && \
+        if curl -fsSL --proto '=https' --proto-redir '=https' \
+            --connect-timeout 5 --max-time 30 --retry 2 -o "$preview_tmp/$id.jpg" "$thumbnail" && \
             [[ -s "$preview_tmp/$id.jpg" ]]; then
             downloaded+=("$id")
         else
@@ -179,7 +186,8 @@ download_wallhaven() {
         fi
         notify "Downloading wallhaven-$id"
         rm -f -- "$partial"
-        if ! curl -fsSL --retry 2 -o "$partial" "$url" || \
+        if ! curl -fsSL --proto '=https' --proto-redir '=https' \
+            --connect-timeout 5 --max-time 30 --retry 2 -o "$partial" "$url" || \
             [[ ! -s "$partial" ]] || ! magick identify "$partial" >/dev/null 2>&1; then
             rm -f -- "$partial"
             notify "Wallpaper download failed"
