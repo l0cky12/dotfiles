@@ -15,6 +15,14 @@ application → Quickshell NotificationServer → NotificationService
 SwayNC is a retained rollback backend. Its autostart line is commented out, and
 no notification data is shared between the two.
 
+The `systemd` package also masks `swaync.service` with an empty unit file, which
+systemd treats the same as a link to `/dev/null`.
+Without the mask, the swaync package's D-Bus activation file starts SwayNC as soon
+as any program sends a notification before Quickshell has registered, which
+happens at every login. SwayNC then keeps `org.freedesktop.Notifications`, and
+Quickshell only logs `Could not register notification server`. Popups keep
+appearing, but they bypass Quickshell's DND and history.
+
 ## Surfaces
 
 The full-screen layer-shell surfaces use the **overlay** layer, request no
@@ -151,7 +159,8 @@ node quickshell/.config/quickshell/notifications/tests/notification_logic.test.j
 
 ## Rolling back to SwayNC
 
-Stop Quickshell, start `swaync.service`, and restore the two former comma
-bindings to `~/.config/hypr/scripts/dnd.sh`. The SwayNC package and its theme
-template are still in the repository. Bindings that call `notificationctl` will
-not reach SwayNC as written.
+Remove the mask (`rm ~/.config/systemd/user/swaync.service`, then
+`systemctl --user daemon-reload`), stop Quickshell, start `swaync.service`, and
+restore the two former comma bindings to `~/.config/hypr/scripts/dnd.sh`. The
+SwayNC package and its theme template are still in the repository. Bindings
+that call `notificationctl` will not reach SwayNC as written.
