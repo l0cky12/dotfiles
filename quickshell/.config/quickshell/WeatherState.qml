@@ -11,10 +11,23 @@ import QtQuick
 Singleton {
   id: root
 
-  // Location comes from weather.json next to this file; Chicago defaults.
+  // Location: the one saved from the night-light panel (Super+Shift+N) wins,
+  // since it is the user's own; weather.json next to this file is the default,
+  // and Chicago the last resort.
   property real latitude: 41.8781
   property real longitude: -87.6298
   property string timezone: "America/Chicago"
+  property bool savedLocation: false
+
+  function applyLocation(c) {
+    if (!c || !isFinite(c.latitude) || !isFinite(c.longitude))
+      return false
+    root.latitude = c.latitude
+    root.longitude = c.longitude
+    if (typeof c.timezone === "string" && c.timezone !== "") root.timezone = c.timezone
+    root.refresh()
+    return true
+  }
 
   FileView {
     path: Qt.resolvedUrl("weather.json")
@@ -22,12 +35,30 @@ Singleton {
     printErrors: false
     onFileChanged: reload()
     onLoaded: {
+      if (root.savedLocation)
+        return
       try {
-        const c = JSON.parse(text())
-        if (isFinite(c.latitude)) root.latitude = c.latitude
-        if (isFinite(c.longitude)) root.longitude = c.longitude
-        if (typeof c.timezone === "string" && c.timezone !== "") root.timezone = c.timezone
-        root.refresh()
+        root.applyLocation(JSON.parse(text()))
+      } catch (e) {}
+    }
+  }
+
+  FileView {
+    path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state")
+          + "/night-light/schedule.json"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: {
+      try {
+        const loc = JSON.parse(text()).location
+        const same = loc && loc.latitude === root.latitude && loc.longitude === root.longitude
+        // The panel rewrites this file on every click; only a new location
+        // is worth a weather request.
+        if (same)
+          root.savedLocation = true
+        else if (root.applyLocation(loc))
+          root.savedLocation = true
       } catch (e) {}
     }
   }

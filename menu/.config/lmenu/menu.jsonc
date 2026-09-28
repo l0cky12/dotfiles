@@ -328,9 +328,15 @@
     "id": "trigger.toggle.nightlight",
     "icon": "󰖔",
     "label": "Night light",
-    "when": "command -v hyprsunset >/dev/null",
     "checked": "~/.config/hypr/scripts/toggles-menu.sh status | jq -e '.nightlight == \"on\"' >/dev/null",
     "action": "~/.config/hypr/scripts/toggles-menu.sh nightlight"
+  },
+  {
+    "id": "trigger.toggle.nightlight-schedule",
+    "icon": "󰔛",
+    "label": "Night light schedule…",
+    "description": "Turn the night light on and off by time or at sunset",
+    "action": "quickshell ipc call nightlight toggle"
   },
   {
     "id": "trigger.toggle.bar",

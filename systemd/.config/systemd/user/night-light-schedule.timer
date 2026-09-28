@@ -1,0 +1,14 @@
+[Unit]
+Description=Check the night-light schedule every minute
+
+# Started from Hyprland's autostart rather than enabled, so it runs only while
+# a session (and its imported HYPRLAND_INSTANCE_SIGNATURE) exists. The script
+# is edge-triggered, so running every minute never undoes a manual toggle, and
+# the first run after suspend catches up on any switch that was missed.
+[Timer]
+OnActiveSec=0
+OnCalendar=minutely
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
