@@ -8,13 +8,14 @@ import QtQuick
 //
 // This is a front-end only. Every filesystem and network operation lives in the
 // `webapp` backend; the shell just collects a name and a URL, shows what the
-// backend reports, and asks it to install or remove. Nothing here builds a shell
-// command string -- each Process takes an argument array, so a name or URL can
-// never be reinterpreted as syntax.
+// backend reports, and asks it to install, edit or remove. Nothing here builds a
+// shell command string -- each Process takes an argument array, so a name or URL
+// can never be reinterpreted as syntax.
 //
 //   webapp list --json          -> apps[]        (the model)
 //   webapp discover-icon <url>  -> icon preview   (async, never blocks the UI)
 //   webapp install ...          -> creates metadata + icon + .desktop
+//   webapp edit <id> ...        -> rewrites them in place, same id
 //   webapp remove <id>          -> removes exactly those three
 Singleton {
   id: root
@@ -90,22 +91,48 @@ Singleton {
     }
   }
 
-  // --- install form -----------------------------------------------------------
+  // --- install / edit form ----------------------------------------------------
   // Kept on the singleton so a half-filled form survives closing the overlay.
+  // One form serves both: editingId is empty for an install and holds the app
+  // being changed otherwise.
 
   property string formName: ""
   property string formUrl: ""
   property string iconPath: ""      // staged icon the backend found or the user picked
-  property string iconState: ""     // "", "searching", "found", "none", "chosen"
+  // "", "searching", "found", "none", "chosen", or "current" -- the icon an
+  // app being edited already has.
+  property string iconState: ""
+  property string editingId: ""
+  property int iconGeneration: 0
+
+  function invalidateIcon() {
+    root.iconGeneration++
+    iconDebounce.stop()
+    iconProc.running = false
+  }
   property bool installing: false
   property string formError: ""
 
   function resetForm() {
+    root.invalidateIcon()
     root.formName = ""
     root.formUrl = ""
     root.iconPath = ""
     root.iconState = ""
     root.formError = ""
+    root.editingId = ""
+  }
+
+  // Loads an installed app into the form. Its icon counts as picked, so editing
+  // the URL does not silently replace it; "Auto" looks one up again.
+  function startEdit(app) {
+    root.invalidateIcon()
+    root.formName = app.name
+    root.formUrl = app.url
+    root.iconPath = app.icon || ""
+    root.iconState = "current"
+    root.formError = ""
+    root.editingId = app.id
   }
 
   // Mirrors the backend's rules closely enough to gate the Install button
@@ -149,9 +176,10 @@ Singleton {
     // to a single icon lookup instead of two.
     if (text === root.formUrl)
       return
+    root.invalidateIcon()
     root.formUrl = text
     root.formError = ""
-    if (root.iconState !== "chosen") {
+    if (root.iconState !== "chosen" && root.iconState !== "current") {
       root.iconPath = ""
       root.iconState = ""
       if (root.urlValid)
@@ -165,15 +193,17 @@ Singleton {
     if (!root.urlValid)
       return
     root.iconState = "searching"
+    iconProc.generation = root.iconGeneration
     iconProc.command = ["python3", root.manager, "discover-icon", root.formUrl.trim()]
     iconProc.running = true
   }
 
   Process {
     id: iconProc
+    property int generation: -1
     stdout: StdioCollector {
       onTextChanged: {
-        if (text.trim() === "")
+        if (text.trim() === "" || iconProc.generation !== root.iconGeneration)
           return
         try {
           const d = JSON.parse(text)
@@ -197,7 +227,7 @@ Singleton {
     }
     stderr: StdioCollector {}
     onExited: function (code) {
-      if (code !== 0 && root.iconState === "searching")
+      if (iconProc.generation === root.iconGeneration && code !== 0 && root.iconState === "searching")
         root.iconState = "none"
     }
   }
@@ -257,6 +287,7 @@ Singleton {
   // -- discover-icon reports the backend's own host-derived suggestion and
   // iconProc fills it in, so that rule stays in one place.
   function prefillUrl(url) {
+    root.invalidateIcon()
     const clean = String(url || "").trim()
     root.formUrl = clean
     root.formError = ""
@@ -270,17 +301,34 @@ Singleton {
   function chooseIcon(path) {
     if (!path)
       return
+    root.invalidateIcon()
     root.iconPath = path
     root.iconState = "chosen"
   }
 
-  // --- install ----------------------------------------------------------------
+  // --- install / save ---------------------------------------------------------
 
   function install() {
     if (!root.canInstall)
       return
     root.installing = true
     root.formError = ""
+    if (root.editingId !== "") {
+      // An unchanged icon is left alone. A preview the form found or was given
+      // is passed on; a lookup that found nothing, or has not finished, asks the
+      // backend to try again and fall back to a letter tile.
+      const edit = ["python3", root.manager, "edit", root.editingId,
+                    "--name", root.formName.trim(),
+                    "--url", root.formUrl.trim(), "--json"]
+      if ((root.iconState === "found" || root.iconState === "chosen")
+          && root.iconPath !== "")
+        edit.push("--icon", root.iconPath)
+      else if (root.iconState !== "current")
+        edit.push("--reset-icon")
+      installProc.command = edit
+      installProc.running = true
+      return
+    }
     // An argument array: the name and URL are separate argv entries, so quoting
     // and metacharacters are a non-issue.
     const cmd = ["python3", root.manager, "install",
@@ -292,6 +340,7 @@ Singleton {
     installProc.running = true
   }
 
+  // Raised after a successful install or edit.
   signal installed(string name)
 
   Process {
@@ -303,7 +352,8 @@ Singleton {
       if (code !== 0) {
         // Surfaced in the form, not swallowed: the backend's message is the
         // actionable part (duplicate id, bad URL, unwritable directory).
-        root.formError = installErr.text.trim() || "install failed"
+        root.formError = installErr.text.trim()
+          || (root.editingId !== "" ? "save failed" : "install failed")
         console.warn("WebAppState: install failed:", root.formError)
         return
       }
@@ -375,5 +425,6 @@ Singleton {
   readonly property string glyphWeb: String.fromCodePoint(0xf0ac7)
   readonly property string glyphAdd: String.fromCodePoint(0xf0415)
   readonly property string glyphDelete: String.fromCodePoint(0xf01b4)
+  readonly property string glyphEdit: String.fromCodePoint(0xf03eb)
   readonly property string glyphBack: String.fromCodePoint(0xf004d)
 }
