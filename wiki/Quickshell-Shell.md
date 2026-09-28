@@ -63,8 +63,12 @@ design, and a theme setting rounding to 4 would flatten it back into a slab.
 the bar, so it does not share a capsule with the icon a mis-aimed click would
 otherwise be one pixel away from.
 
-**Left** — `WorkspacesModule` has fixed cells for workspaces 1–10. Clicking one
-switches to it.
+**Left** — `WorkspacesModule` has fixed cells for workspaces 1–10. A cell is
+shown only while its workspace is focused or has at least one window; empty
+workspaces are hidden. Until Hyprland reports a focused workspace, all ten are
+shown. Icons take their colour from the theme's text roles, and the bundled
+SVG icons are repainted with that colour so they read on light themes. Clicking
+a cell switches to it.
 
 **Centre** — the clock is the anchor. The indicator row grows left, so changing
 it does not nudge the time. The clock opens the calendar.

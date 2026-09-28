@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Hyprland
 
 Row {
@@ -38,6 +39,22 @@ Row {
       radius: root.s(5)
       readonly property bool isFocused: Hyprland.focusedWorkspace !== null
                                          && Hyprland.focusedWorkspace.id === modelData.id
+      // A workspace is in use when Hyprland reports at least one window on it.
+      readonly property bool isOccupied: {
+        const all = Hyprland.workspaces ? Hyprland.workspaces.values : []
+        for (let i = 0; i < all.length; i++) {
+          if (all[i].id === modelData.id)
+            return all[i].toplevels ? all[i].toplevels.values.length > 0 : false
+        }
+        return false
+      }
+      // Empty workspaces are hidden; the Row closes the gap they leave. Until
+      // Hyprland has reported a focused workspace (startup, or no IPC) nothing
+      // is known, so every slot stays visible rather than collapsing the island.
+      visible: isFocused || isOccupied || Hyprland.focusedWorkspace === null
+      // Theme roles rather than fixed colours, so the icons read on light
+      // themes as well as dark ones.
+      readonly property color iconColor: isFocused ? Theme.onAccent : Theme.text
       color: isFocused ? Theme.accent : "transparent"
 
       Text {
@@ -46,7 +63,20 @@ Row {
         text: modelData.glyph !== undefined ? modelData.glyph : ""
         font.family: Theme.glyphFamily
         font.pixelSize: root.s(15)
-        color: cell.isFocused ? Theme.bgDeep : Theme.textDim
+        color: cell.iconColor
+      }
+
+      // The bundled SVGs are single-colour with a fixed light fill, which
+      // disappears on a light bar. Read each one once and repaint its fill with
+      // the same theme colour the glyphs use.
+      FileView {
+        id: svgFile
+        path: modelData.svg !== undefined
+              ? Qt.resolvedUrl(modelData.svg).toString().replace(/^file:\/\//, "")
+              : ""
+        printErrors: false
+        property string svgText: ""
+        onLoaded: svgText = text()
       }
 
       Image {
@@ -54,9 +84,12 @@ Row {
         anchors.centerIn: parent
         width: root.s(15)
         height: root.s(15)
-        source: modelData.svg !== undefined ? modelData.svg : ""
+        sourceSize: Qt.size(width, height)
+        source: svgFile.svgText === "" ? ""
+                : "data:image/svg+xml;utf8," + encodeURIComponent(
+                    svgFile.svgText.replace(/fill="#[0-9a-fA-F]{3,8}"/g,
+                                            'fill="' + cell.iconColor + '"'))
         smooth: true
-        opacity: cell.isFocused ? 1 : Theme.opacityInactive
       }
 
       MouseArea {
