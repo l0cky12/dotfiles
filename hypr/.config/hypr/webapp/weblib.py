@@ -22,7 +22,6 @@ import subprocess
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
@@ -484,8 +483,9 @@ def accent_colour(default: str = "#7aa2f7") -> str:
 # tool rather than a server-side fetcher. The protections that matter here are
 # the scheme restriction and keeping URL data away from any shell.
 
-import urllib.error  # noqa: E402
-import urllib.request  # noqa: E402
+# urllib.request and html.parser are imported inside the functions below, not at
+# the top. Together they cost ~100 ms at startup, and only icon discovery needs
+# them -- `launch`, which runs on every menu click, never touches the network.
 
 FETCH_TIMEOUT = 6
 MAX_REDIRECTS = 3
@@ -508,6 +508,8 @@ _SIGNATURES: tuple[tuple[str, "callable"], ...] = (
 def _opener() -> urllib.request.OpenerDirector:
     """An opener that can only speak HTTP(S). Omitting FileHandler/FTPHandler is
     what makes a redirect to file:// impossible rather than merely unlikely."""
+    import urllib.request
+
     class BoundedRedirect(urllib.request.HTTPRedirectHandler):
         max_redirections = MAX_REDIRECTS
 
@@ -525,6 +527,9 @@ def _opener() -> urllib.request.OpenerDirector:
 
 def _fetch(url: str, limit: int) -> bytes:
     """Fetch at most `limit` bytes. Raises WebAppError with a short reason."""
+    import urllib.error
+    import urllib.request
+
     if urlsplit(url).scheme not in ALLOWED_SCHEMES:
         raise WebAppError(f"refusing to fetch non-HTTP URL {url!r}")
     req = urllib.request.Request(url, headers={
@@ -557,64 +562,72 @@ def _fetch(url: str, limit: int) -> bytes:
         raise WebAppError(f"could not fetch {url}: {type(exc).__name__}") from None
 
 
-class _IconLinkParser(HTMLParser):
-    """Collects declared icons from a page head.
+def _icon_link_candidates(html: str) -> list[tuple[int, str]]:
+    """(score, href) for every icon a page head declares."""
+    from html.parser import HTMLParser
 
-    A real parser rather than a regex: attribute order, quoting style and
-    self-closing syntax all vary, and a regex over hostile HTML is how you end up
-    following something that was never a link tag.
-    """
+    class _IconLinkParser(HTMLParser):
+        """Collects declared icons from a page head.
 
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.candidates: list[tuple[int, str]] = []  # (score, href)
-        self._in_head = True
+        A real parser rather than a regex: attribute order, quoting style and
+        self-closing syntax all vary, and a regex over hostile HTML is how you end up
+        following something that was never a link tag.
+        """
 
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag == "body":
-            self._in_head = False
-            return
-        a = {k.lower(): (v or "") for k, v in attrs}
+        def __init__(self) -> None:
+            super().__init__(convert_charrefs=True)
+            self.candidates: list[tuple[int, str]] = []  # (score, href)
+            self._in_head = True
 
-        if tag == "link":
-            rels = a.get("rel", "").lower().split()
-            if not any(r in ("icon", "shortcut", "apple-touch-icon",
-                             "apple-touch-icon-precomposed", "mask-icon")
-                       for r in rels):
+        def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+            if tag == "body":
+                self._in_head = False
                 return
-            href = a.get("href", "").strip()
-            if not href:
-                return
-            # Prefer big, and prefer apple-touch-icon: it is required to be a
-            # square PNG with no transparency, which is exactly what a launcher
-            # icon wants. A declared "sizes" wins when it is larger.
-            score = 0
-            if "apple-touch-icon" in rels or "apple-touch-icon-precomposed" in rels:
-                score = 180
-            sizes = a.get("sizes", "").lower()
-            m = re.search(r"(\d+)\s*x\s*(\d+)", sizes)
-            if m:
-                score = max(score, min(int(m.group(1)), 1024))
-            elif href.lower().endswith(".svg"):
-                # Deliberately ranked below any declared size. An SVG favicon is
-                # frequently a bare monochrome glyph -- ChatGPT's even switches
-                # fill via prefers-color-scheme, which renderers outside a
-                # browser ignore, producing a black-on-transparent icon that
-                # vanishes on a dark panel. A sized raster is the better launcher
-                # icon whenever the site offers one.
-                score = max(score, 64)
-            elif score == 0:
-                score = 32                # an undeclared favicon is usually small
-            self.candidates.append((score, href))
+            a = {k.lower(): (v or "") for k, v in attrs}
 
-        elif tag == "meta":
-            prop = (a.get("property") or a.get("name") or "").lower()
-            if prop in ("og:image", "twitter:image"):
-                content = a.get("content", "").strip()
-                if content:
-                    # Social images are big but usually banners, not icons, so
-                    # they rank below any declared icon.
-                    self.candidates.append((16, content))
+            if tag == "link":
+                rels = a.get("rel", "").lower().split()
+                if not any(r in ("icon", "shortcut", "apple-touch-icon",
+                                 "apple-touch-icon-precomposed", "mask-icon")
+                           for r in rels):
+                    return
+                href = a.get("href", "").strip()
+                if not href:
+                    return
+                # Prefer big, and prefer apple-touch-icon: it is required to be a
+                # square PNG with no transparency, which is exactly what a launcher
+                # icon wants. A declared "sizes" wins when it is larger.
+                score = 0
+                if "apple-touch-icon" in rels or "apple-touch-icon-precomposed" in rels:
+                    score = 180
+                sizes = a.get("sizes", "").lower()
+                m = re.search(r"(\d+)\s*x\s*(\d+)", sizes)
+                if m:
+                    score = max(score, min(int(m.group(1)), 1024))
+                elif href.lower().endswith(".svg"):
+                    # Deliberately ranked below any declared size. An SVG favicon is
+                    # frequently a bare monochrome glyph -- ChatGPT's even switches
+                    # fill via prefers-color-scheme, which renderers outside a
+                    # browser ignore, producing a black-on-transparent icon that
+                    # vanishes on a dark panel. A sized raster is the better launcher
+                    # icon whenever the site offers one.
+                    score = max(score, 64)
+                elif score == 0:
+                    score = 32                # an undeclared favicon is usually small
+                self.candidates.append((score, href))
+
+            elif tag == "meta":
+                prop = (a.get("property") or a.get("name") or "").lower()
+                if prop in ("og:image", "twitter:image"):
+                    content = a.get("content", "").strip()
+                    if content:
+                        # Social images are big but usually banners, not icons, so
+                        # they rank below any declared icon.
+                        self.candidates.append((16, content))
+
+    parser = _IconLinkParser()
+    parser.feed(html)
+    return parser.candidates
 
 
 def discover_icon(url: str, dest_dir: Path, stem: str) -> tuple[Path, str] | None:
@@ -629,9 +642,7 @@ def discover_icon(url: str, dest_dir: Path, stem: str) -> tuple[Path, str] | Non
 
     try:
         html = _fetch(url, MAX_HTML_BYTES)
-        parser = _IconLinkParser()
-        parser.feed(html.decode("utf-8", "replace"))
-        for score, href in parser.candidates:
+        for score, href in _icon_link_candidates(html.decode("utf-8", "replace")):
             try:
                 absolute = urljoin(url, href)
             except Exception:
