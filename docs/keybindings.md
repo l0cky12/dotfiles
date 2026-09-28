@@ -11,7 +11,7 @@ opened with `SUPER+K`.
 
 | Keys | Action | Command / behavior |
 | --- | --- | --- |
-| `SUPER+Return` | terminal | `kitty` |
+| `SUPER+Return` | terminal | `kitty`, via `run-or-install` |
 | `SUPER+SHIFT+Return` | drop-down terminal | `Dropterminal.sh kitty` |
 | `SUPER+Q` | close active window | `killactive` |
 | `CTRL+ALT+Delete` | close all windows | close every address returned by `hyprctl clients` |
@@ -34,18 +34,18 @@ opened with `SUPER+K`.
 | `SUPER+A` | application launcher | installed desktop applications; `Tab` cycles launcher modes |
 | `SUPER+SHIFT+A` | quick search | windows, apps, commands, reboot, and shutdown; `Tab` cycles modes |
 | `SUPER+ALT+A` | web-app manager | Quickshell web-app panel |
-| `SUPER+W` | browser | `helium-browser` |
+| `SUPER+W` | browser | `helium-browser`, via `run-or-install` |
 | `SUPER+ALT+W` | Windows VM | start/connect through `windows-vm launch` |
 | `SUPER+CTRL+ALT+W` | stop Windows VM | graceful stop through `windows-vm stop` |
 | `SUPER+SHIFT+ALT+W` | private browser window | XDG default browser's declared private action |
-| `SUPER+S` | Spotify | `spotify` |
-| `SUPER+O` | Obsidian | `obsidian` |
+| `SUPER+S` | Spotify | `spotify`, via `run-or-install` |
+| `SUPER+O` | Obsidian | `obsidian`, via `run-or-install` |
 | `SUPER+R` | voice dictation | `voice-dictation toggle`, which resolves the microphone and then calls `hyprvoice toggle` |
-| `SUPER+SHIFT+H` | Hermes | `hermes` |
+| `SUPER+SHIFT+H` | Hermes | `hermes`, via `run-or-install` |
 | `SUPER+E` | Files | `nautilus` through `file_manager` |
 | `SUPER+SHIFT+E` | Files | same as `SUPER+E` |
 | `SUPER+SHIFT+ALT+F` | Files at terminal directory | `files-here.sh` |
-| `SUPER+SHIFT+D` | Disks | `gnome-disks` through `disks` |
+| `SUPER+SHIFT+D` | Disks | `gnome-disks` through `disks`, via `run-or-install` |
 | `SUPER+U` | eject removable drives | `eject-drive.sh` picker; confirms, unmounts, and powers off the drive |
 | `SUPER+CTRL+I` | network status panel | Quickshell IPC |
 | `SUPER+CTRL+W` | network panel | Quickshell NetworkManager controls: Wi-Fi, DNS, IPv4 overrides, and Wi-Fi QR sharing |

@@ -21,8 +21,14 @@ local function package_exec(keys, description, package, command, flags)
         cfg.scripts_dir .. "/run-if-deployed.sh " .. package .. " " .. command, flags)
 end
 
+-- Programs launched by name. Routed through run-or-install so a missing program
+-- offers to install itself instead of making the keybinding do nothing.
+local function app_exec(keys, description, command, flags)
+    exec(keys, description, cfg.scripts_dir .. "/run-or-install " .. command, flags)
+end
+
 -- Core desktop and helper commands.
-exec(mod .. " + Return", "terminal", cfg.terminal)
+app_exec(mod .. " + Return", "terminal", cfg.terminal)
 exec(mod .. " + SHIFT + Return", "drop-down terminal", cfg.scripts_dir .. "/Dropterminal.sh kitty")
 bind(mod .. " + Q", "close window", hl.dsp.window.close())
 exec("CTRL + ALT + Delete", "close all windows", cfg.scripts_dir .. "/close-all-windows.sh")
@@ -45,7 +51,7 @@ exec(mod .. " + ALT + V", "toggle audio visualizer", "quickshell ipc call visual
 exec(mod .. " + SHIFT + C", "calculator", cfg.scripts_dir .. "/calculator.sh")
 exec(mod .. " + CTRL + Q", "calculator", cfg.scripts_dir .. "/calculator.sh")
 exec(mod .. " + CTRL + period", "transcode media", cfg.scripts_dir .. "/transcode-menu.sh")
-exec(mod .. " + CTRL + S", "share with LocalSend", "localsend")
+app_exec(mod .. " + CTRL + S", "share with LocalSend", "localsend")
 exec(mod .. " + CTRL + T", "activity (btop, floating)", cfg.scripts_dir .. "/btop-float.sh")
 exec(mod .. " + CTRL + SHIFT + G", "play temporary dotfiles history", cfg.scripts_dir .. "/gource-dotfiles.sh")
 exec(mod .. " + ALT + T", "network speed test", "quickshell ipc call network speedTest")
@@ -131,10 +137,10 @@ bind(mod .. " + SHIFT + F", "fullscreen (true)", hl.dsp.window.fullscreen({ mode
 bind(mod .. " + CTRL + F", "maximize (keep bar)", hl.dsp.window.fullscreen({ mode = "maximized" }))
 
 -- Programs.
-exec(mod .. " + E", "files", cfg.file_manager)
-exec(mod .. " + SHIFT + E", "files", cfg.file_manager)
+app_exec(mod .. " + E", "files", cfg.file_manager)
+app_exec(mod .. " + SHIFT + E", "files", cfg.file_manager)
 exec(mod .. " + SHIFT + ALT + F", "files here (terminal cwd)", cfg.scripts_dir .. "/files-here.sh")
-exec(mod .. " + SHIFT + D", "disks", cfg.disks)
+app_exec(mod .. " + SHIFT + D", "disks", cfg.disks)
 exec(mod .. " + U", "eject removable drives", cfg.scripts_dir .. "/eject-drive.sh")
 exec(mod .. " + A", "application launcher", cfg.scripts_dir .. "/quick-search.sh drun")
 -- A global shortcut rather than exec: Quickshell keeps lmenu resident, and the
@@ -146,16 +152,16 @@ exec(mod .. " + ALT + A", "web app manager", "quickshell ipc call webapps toggle
 -- recovers the URL from the window's Wayland class and opens the install form
 -- with it. A plain browser tab has no URL in its class, so the form opens empty.
 exec(mod .. " + Space", "install current site as a web app", "$HOME/.local/bin/webapp-current")
-exec(mod .. " + W", "browser", "helium-browser")
+app_exec(mod .. " + W", "browser", "helium-browser")
 exec(mod .. " + ALT + W", "Windows VM", "$HOME/.local/bin/windows-vm launch")
 exec(mod .. " + CTRL + ALT + W", "stop Windows VM", "$HOME/.local/bin/windows-vm stop")
 exec(mod .. " + SHIFT + ALT + W", "default browser private window", cfg.scripts_dir .. "/default-browser-private")
-exec(mod .. " + S", "spotify", "spotify")
-exec(mod .. " + O", "obsidian", "obsidian")
+app_exec(mod .. " + S", "spotify", "spotify")
+app_exec(mod .. " + O", "obsidian", "obsidian")
 exec(mod .. " + R", "voice dictation", cfg.scripts_dir .. "/voice-dictation toggle")
 bind(mod .. " + F", "toggle window floating / tiling", hl.dsp.window.float({ action = "toggle" }))
 exec(mod .. " + SHIFT + L", "cycle window layout", window_layout .. " cycle")
-exec(mod .. " + SHIFT + H", "hermes", "hermes")
+app_exec(mod .. " + SHIFT + H", "hermes", "hermes")
 exec(mod .. " + SHIFT + W", "wallpaper picker", "~/.local/bin/hypr-wallpaper-picker")
 
 -- Workspace focus.

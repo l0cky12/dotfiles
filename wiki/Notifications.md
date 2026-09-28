@@ -49,6 +49,10 @@ The bindings contain no notification logic — they call `notificationctl`, or
 `desktop-mode` for DND. The `desktop-mode` daemon re-applies its DND state every
 few seconds, so `notificationctl dnd-*` changes made outside it do not stick.
 
+Pressing a binding for a program that is not installed sends a notification
+from `run-or-install` with **Install** and **Dismiss** action buttons. See
+[Scripts and CLIs](Scripts-and-CLIs.md#missing-programs).
+
 ```bash
 notificationctl dismiss-one
 notificationctl dismiss-all
