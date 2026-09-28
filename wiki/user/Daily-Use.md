@@ -41,16 +41,17 @@ service that manages your connections.
 ## Share your Wi-Fi as a QR code
 
 While connected to Wi-Fi, open the network panel (`Super+Ctrl+I`) and press
-the **Share Wi-Fi** button. A QR code appears — a phone scans it and joins the
-same network without you ever reading out the password. On `main`, the code
-shows inside the network panel itself; the centred fullscreen version of this
-overlay is pending in PR #21's branch (`fix/centered-wifi-qr-overlay`, file
-`WifiQrOverlay.qml`) and is not on main yet.
+the **Share Wi-Fi** button. A QR code opens in a window in the middle of the
+screen (`WifiQrOverlay.qml`). A phone scans it and joins the same network
+without you ever reading out the password. Press `Escape`, click outside the
+card, or press **Back** to close it.
 
 The same action is available in lmenu under **Trigger → Share → Share Wi-Fi as
-a QR code**, which calls `~/.config/hypr/scripts/network-control qr`. That
-script writes the QR to a file and deliberately never prints the password to
-the screen.
+a QR code**, which runs `quickshell ipc call network shareWifi` and opens the
+same window on the focused monitor. If the code can't be made, for example
+because NetworkManager refused to hand over the password, you get a
+notification instead. Behind both, `~/.config/hypr/scripts/network-control qr`
+writes the QR to a private runtime file and never prints the password.
 
 - Requires `qrencode` installed and an active wireless connection (the menu
   row hides itself otherwise).

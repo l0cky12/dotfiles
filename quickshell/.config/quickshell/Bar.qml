@@ -35,6 +35,11 @@ Scope {
     function speedTest(): void {
       NetworkState.runSpeedTest(bar.focusedScreen())
     }
+    // The lmenu "Share Wi-Fi as a QR code" rows: opens WifiQrOverlay on the
+    // focused monitor without going through the network panel.
+    function shareWifi(): void {
+      NetworkState.showWifiQr(bar.focusedScreen())
+    }
   }
 
   IpcHandler {

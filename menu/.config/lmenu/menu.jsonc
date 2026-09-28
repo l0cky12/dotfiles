@@ -292,7 +292,7 @@
     "icon": "󰖩",
     "label": "Share Wi-Fi as a QR code",
     "when": "command -v qrencode >/dev/null && nmcli -t -f TYPE connection show --active | grep -q wireless",
-    "action": "~/.config/hypr/scripts/network-control qr"
+    "action": "quickshell ipc call network shareWifi"
   },
 
   {
@@ -670,7 +670,7 @@
     "icon": "󰐲",
     "label": "Share Wi-Fi as a QR code",
     "when": "command -v qrencode >/dev/null && nmcli -t -f TYPE connection show --active | grep -q wireless",
-    "action": "~/.config/hypr/scripts/network-control qr"
+    "action": "quickshell ipc call network shareWifi"
   },
 
   {
