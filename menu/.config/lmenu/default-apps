@@ -1,0 +1,465 @@
+#!/usr/bin/env python3
+"""default-apps - list and set the default browser, terminal, file manager,
+editor and coding agent, offering only what is installed.
+
+    default-apps list KIND        print "<id>\\t<label>\\t<1|0>" per installed
+                                  candidate; 1 marks the current default
+    default-apps set KIND ID      make ID the default for KIND
+
+KIND is browser, terminal, file-manager, editor or agent.
+
+Where each choice is recorded:
+
+    browser       text/html and the http(s)/about/unknown schemes in
+                  $XDG_CONFIG_HOME/mimeapps.list
+    file-manager  inode/directory in the same file
+    terminal      $XDG_CONFIG_HOME/xdg-terminals.list, read by xdg-terminal-exec
+    editor        EDITOR and VISUAL in $XDG_CONFIG_HOME/default-apps/editor.zsh,
+                  which ~/.zshrc sources, so new shells pick it up
+    agent         default_agent in $AI_AGENT_CONFIG or
+                  $XDG_CONFIG_HOME/ai-agent/config, read by ai-agent
+
+Files are rewritten in place: a Stow symlink stays a symlink and its target in
+the repository takes the change. Nothing is reloaded.
+
+Environment:
+    DEFAULT_APPS_DRY_RUN=1     print what would be written, write nothing
+    DEFAULT_APPS_NO_NOTIFY=1   skip the desktop notification after a change
+"""
+
+from __future__ import annotations
+
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+PROGRAM = "default-apps"
+
+CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
+MIMEAPPS = CONFIG_HOME / "mimeapps.list"
+TERMINALS_LIST = CONFIG_HOME / "xdg-terminals.list"
+EDITOR_FILE = CONFIG_HOME / "default-apps" / "editor.zsh"
+AGENT_CONFIG = Path(
+    os.environ.get("AI_AGENT_CONFIG") or CONFIG_HOME / "ai-agent" / "config"
+)
+
+DEFAULTS_SECTION = "[Default Applications]"
+
+# The handlers xdg-settings sets for a web browser. The first one decides
+# which browser is reported as current.
+BROWSER_TYPES = (
+    "x-scheme-handler/https",
+    "x-scheme-handler/http",
+    "text/html",
+    "x-scheme-handler/about",
+    "x-scheme-handler/unknown",
+)
+FILE_MANAGER_TYPES = ("inode/directory",)
+
+# Terminal and GUI editors worth offering as $EDITOR, in menu order:
+# (id, label, executables to look for, arguments). A GUI editor needs its
+# wait flag, or `git commit` returns before the file is saved.
+EDITORS = (
+    ("nvim", "Neovim", ("nvim",), ()),
+    ("vim", "Vim", ("vim",), ()),
+    ("helix", "Helix", ("helix", "hx"), ()),
+    ("kakoune", "Kakoune", ("kak",), ()),
+    ("micro", "micro", ("micro",), ()),
+    ("nano", "nano", ("nano",), ()),
+    ("emacs", "Emacs (terminal)", ("emacs",), ("-nw",)),
+    ("code", "Visual Studio Code", ("code",), ("--wait",)),
+    ("code-oss", "Code - OSS", ("code-oss",), ("--wait",)),
+    ("zed", "Zed", ("zeditor", "zed"), ("--wait",)),
+    ("sublime", "Sublime Text", ("subl",), ("--wait",)),
+)
+
+# Mirrors the agent table in ai/.local/bin/ai-agent: (name, label, executable).
+AGENTS = (
+    ("claude", "Claude Code", "teamclaude"),
+    ("codex", "Codex", "codex"),
+    ("opencode", "OpenCode", "opencode"),
+    ("t3code", "T3 Code", "t3code"),
+)
+
+KINDS = ("browser", "terminal", "file-manager", "editor", "agent")
+
+
+class DefaultAppsError(Exception):
+    """A problem worth telling the user about, without a traceback."""
+
+
+# --------------------------------------------------------------------------
+# Desktop entries
+
+
+def application_dirs() -> list[Path]:
+    home = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local/share")
+    raw = os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
+    return [Path(part) / "applications" for part in [home, *raw.split(":")] if part]
+
+
+def read_desktop(path: Path) -> dict[str, str] | None:
+    fields: dict[str, str] = {}
+    in_main = False
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("["):
+            in_main = line == "[Desktop Entry]"
+            continue
+        if in_main and "=" in line:
+            key, _, value = line.partition("=")
+            fields.setdefault(key.strip(), value.strip())
+    return fields
+
+
+def split_list(value: str) -> set[str]:
+    return {part for part in value.split(";") if part}
+
+
+def runnable(fields: dict[str, str]) -> bool:
+    """A desktop file outlives an uninstalled package, so check the program it
+    names is really there. TryExec says so directly; otherwise the first word
+    of Exec, stepping over an `env VAR=value` prefix."""
+    program = fields.get("TryExec", "")
+    if not program:
+        try:
+            words = shlex.split(fields.get("Exec", ""))
+        except ValueError:
+            return False
+        if words and words[0] == "env":
+            words = [word for word in words[1:] if "=" not in word]
+        program = words[0] if words else ""
+    return bool(program) and shutil.which(program) is not None
+
+
+def desktop_entries() -> dict[str, dict[str, str]]:
+    """Every visible, runnable application, keyed by desktop id. The first
+    directory to provide an id wins, as it does for XDG lookups."""
+    found: dict[str, dict[str, str]] = {}
+    seen: set[str] = set()
+    for directory in application_dirs():
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.glob("*.desktop")):
+            if path.name in seen:
+                continue
+            seen.add(path.name)
+            fields = read_desktop(path)
+            if not fields or fields.get("Type", "Application") != "Application":
+                continue
+            if fields.get("Hidden", "").lower() == "true":
+                continue
+            if fields.get("NoDisplay", "").lower() == "true":
+                continue
+            # Terminal=true entries cannot be opened by xdg-open under Hyprland.
+            if fields.get("Terminal", "").lower() == "true":
+                continue
+            if not fields.get("Name") or not runnable(fields):
+                continue
+            found[path.name] = fields
+    return found
+
+
+def desktop_candidates(category: str, mime_types: tuple[str, ...] = ()) -> list[tuple[str, str]]:
+    rows = []
+    for desktop_id, fields in desktop_entries().items():
+        if category not in split_list(fields.get("Categories", "")):
+            continue
+        if mime_types and not split_list(fields.get("MimeType", "")) & set(mime_types):
+            continue
+        rows.append((desktop_id, fields["Name"]))
+    return sorted(rows, key=lambda row: row[1].lower())
+
+
+# --------------------------------------------------------------------------
+# Writing
+
+
+def write_text(path: Path, text: str) -> None:
+    """Replace a file's contents atomically. A symlink is resolved first, so
+    the link survives and its target takes the new contents."""
+    target = path.resolve() if path.is_symlink() else path
+    if os.environ.get("DEFAULT_APPS_DRY_RUN"):
+        print(f"dry-run: would write {target}")
+        sys.stdout.write(text)
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    mode = target.stat().st_mode & 0o7777 if target.exists() else 0o644
+    fd, temp = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.chmod(temp, mode)
+        os.replace(temp, target)
+    except BaseException:
+        Path(temp).unlink(missing_ok=True)
+        raise
+
+
+def read_lines(path: Path) -> list[str]:
+    try:
+        return path.read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return []
+
+
+# --------------------------------------------------------------------------
+# mimeapps.list
+
+
+def mime_default(mime_type: str) -> str:
+    in_defaults = False
+    for line in read_lines(MIMEAPPS):
+        stripped = line.strip()
+        if stripped.startswith("["):
+            in_defaults = stripped == DEFAULTS_SECTION
+            continue
+        key, sep, value = stripped.partition("=")
+        if in_defaults and sep and key.strip() == mime_type:
+            return next(iter(part for part in value.split(";") if part), "")
+    return ""
+
+
+def set_mime_defaults(mime_types: tuple[str, ...], desktop_id: str) -> None:
+    """Point each type at desktop_id inside [Default Applications], keeping
+    every comment, other entry and section where it was."""
+    lines = read_lines(MIMEAPPS)
+    wanted = {mime_type: f"{mime_type}={desktop_id}" for mime_type in mime_types}
+    written: set[str] = set()
+    output: list[str] = []
+    in_defaults = False
+    section_end = None  # index in output just past the section's last entry
+    last_written = None  # index in output just past the last type set here
+
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("["):
+            in_defaults = stripped == DEFAULTS_SECTION
+            output.append(line)
+            if in_defaults:
+                section_end = len(output)
+            continue
+        key = stripped.partition("=")[0].strip() if "=" in stripped else ""
+        if in_defaults and key in wanted:
+            if key not in written:
+                output.append(wanted[key])
+                written.add(key)
+                last_written = len(output)
+            # A repeated key is dropped: the first one wins anyway.
+        else:
+            output.append(line)
+        if in_defaults and stripped and not stripped.startswith("#"):
+            section_end = len(output)
+
+    # New types join the ones already set, so a group stays together.
+    missing = [wanted[mime_type] for mime_type in mime_types if mime_type not in written]
+    if missing:
+        if section_end is None:
+            if output and output[-1].strip():
+                output.append("")
+            output.append(DEFAULTS_SECTION)
+            section_end = len(output)
+        at = last_written if last_written is not None else section_end
+        output[at:at] = missing
+
+    write_text(MIMEAPPS, "\n".join(output) + "\n")
+
+
+# --------------------------------------------------------------------------
+# Kinds
+
+
+def browser_rows() -> list[tuple[str, str]]:
+    return desktop_candidates("WebBrowser", ("x-scheme-handler/https", "x-scheme-handler/http"))
+
+
+def file_manager_rows() -> list[tuple[str, str]]:
+    return desktop_candidates("FileManager")
+
+
+def terminal_rows() -> list[tuple[str, str]]:
+    return desktop_candidates("TerminalEmulator")
+
+
+def terminal_list_path() -> Path:
+    """xdg-terminal-exec prefers a desktop-specific list, so a choice written
+    to the generic one would be ignored while that file exists."""
+    for desktop in os.environ.get("XDG_CURRENT_DESKTOP", "").split(":"):
+        if desktop:
+            specific = CONFIG_HOME / f"{desktop.lower()}-xdg-terminals.list"
+            if specific.exists():
+                return specific
+    return TERMINALS_LIST
+
+
+def current_terminal() -> str:
+    for line in read_lines(terminal_list_path()):
+        entry = line.strip()
+        if entry and not entry.startswith("#"):
+            return entry.split(":", 1)[0]
+    return ""
+
+
+def set_terminal(desktop_id: str) -> None:
+    """Put desktop_id first and keep the rest of the list as fallbacks."""
+    path = terminal_list_path()
+    kept = [line for line in read_lines(path)
+            if line.strip().split(":", 1)[0] != desktop_id]
+    comments = []
+    while kept and (not kept[0].strip() or kept[0].lstrip().startswith("#")):
+        comments.append(kept.pop(0))
+    write_text(path, "\n".join([*comments, desktop_id, *kept]) + "\n")
+
+
+def editor_rows() -> list[tuple[str, str, str]]:
+    """(id, label, command) for each installed editor. Two names for one
+    program, like code and code-oss, are offered once."""
+    rows = []
+    seen: set[str] = set()
+    for editor_id, label, programs, arguments in EDITORS:
+        for program in programs:
+            path = shutil.which(program)
+            if not path:
+                continue
+            real = os.path.realpath(path)
+            if real not in seen:
+                seen.add(real)
+                rows.append((editor_id, label, shlex.join([program, *arguments])))
+            break
+    return rows
+
+
+def current_editor() -> str:
+    """The program EDITOR names, without its arguments."""
+    for line in read_lines(EDITOR_FILE):
+        name, sep, value = line.strip().removeprefix("export ").partition("=")
+        if sep and name == "EDITOR":
+            try:
+                # One shell word holding the command, then the command's words.
+                words = shlex.split(" ".join(shlex.split(value)))
+            except ValueError:
+                return ""
+            return words[0] if words else ""
+    return ""
+
+
+def set_editor(command: str) -> None:
+    quoted = shlex.quote(command)
+    write_text(EDITOR_FILE, (
+        "# Written by ~/.config/lmenu/default-apps (Setup > Defaults > Editor).\n"
+        "# Sourced by ~/.zshrc; open a new shell to pick up a change.\n"
+        f"export EDITOR={quoted}\n"
+        f"export VISUAL={quoted}\n"
+    ))
+
+
+def agent_rows() -> list[tuple[str, str]]:
+    return [(name, label) for name, label, program in AGENTS if shutil.which(program)]
+
+
+def current_agent() -> str:
+    for line in read_lines(AGENT_CONFIG):
+        if line.startswith("default_agent="):
+            return line.partition("=")[2].strip()
+    return ""
+
+
+def set_agent(name: str) -> None:
+    """Replace the default_agent line, keeping comments. ai-agent rejects a
+    duplicate key, so any later copies go."""
+    output: list[str] = []
+    replaced = False
+    for line in read_lines(AGENT_CONFIG):
+        if line.startswith("default_agent="):
+            if not replaced:
+                output.append(f"default_agent={name}")
+                replaced = True
+            continue
+        output.append(line)
+    if not replaced:
+        output.append(f"default_agent={name}")
+    write_text(AGENT_CONFIG, "\n".join(output) + "\n")
+
+
+def candidates(kind: str) -> list[tuple[str, str, bool]]:
+    """(id, label, is current) for every installed choice of a kind."""
+    if kind == "browser":
+        current = mime_default(BROWSER_TYPES[0])
+        return [(i, label, i == current) for i, label in browser_rows()]
+    if kind == "file-manager":
+        current = mime_default(FILE_MANAGER_TYPES[0])
+        return [(i, label, i == current) for i, label in file_manager_rows()]
+    if kind == "terminal":
+        current = current_terminal()
+        return [(i, label, i == current) for i, label in terminal_rows()]
+    if kind == "editor":
+        current = current_editor()
+        return [(i, label, shlex.split(command)[0] == current)
+                for i, label, command in editor_rows()]
+    if kind == "agent":
+        current = current_agent()
+        return [(i, label, i == current) for i, label in agent_rows()]
+    raise DefaultAppsError(f"unknown kind {kind!r} (expected: {', '.join(KINDS)})")
+
+
+def apply(kind: str, choice: str) -> str:
+    """Make choice the default for kind and return its label."""
+    offered = {row[0]: row[1] for row in candidates(kind)}
+    if choice not in offered:
+        raise DefaultAppsError(f"{choice!r} is not an installed {kind}")
+    if kind == "browser":
+        set_mime_defaults(BROWSER_TYPES, choice)
+    elif kind == "file-manager":
+        set_mime_defaults(FILE_MANAGER_TYPES, choice)
+    elif kind == "terminal":
+        set_terminal(choice)
+    elif kind == "editor":
+        set_editor(next(command for i, _, command in editor_rows() if i == choice))
+    elif kind == "agent":
+        set_agent(choice)
+    return offered[choice]
+
+
+def notify(summary: str, body: str) -> None:
+    if os.environ.get("DEFAULT_APPS_DRY_RUN") or os.environ.get("DEFAULT_APPS_NO_NOTIFY"):
+        return
+    if shutil.which("notify-send"):
+        subprocess.run(["notify-send", "-a", "Defaults", summary, body], check=False)
+
+
+def usage() -> int:
+    print(f"usage: {PROGRAM} list KIND | set KIND ID   (KIND: {', '.join(KINDS)})",
+          file=sys.stderr)
+    return 2
+
+
+def main(argv: list[str]) -> int:
+    try:
+        if len(argv) == 2 and argv[0] == "list":
+            for choice, label, current in candidates(argv[1]):
+                print(f"{choice}\t{label}\t{1 if current else 0}")
+            return 0
+        if len(argv) == 3 and argv[0] == "set":
+            try:
+                label = apply(argv[1], argv[2])
+            except (DefaultAppsError, OSError) as error:
+                notify("Default not changed", str(error))
+                raise
+            notify(f"Default {argv[1].replace('-', ' ')}", f"{label} is now the default.")
+            return 0
+    except (DefaultAppsError, OSError) as error:
+        print(f"{PROGRAM}: {error}", file=sys.stderr)
+        return 1
+    return usage()
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

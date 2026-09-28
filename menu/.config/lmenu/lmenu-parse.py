@@ -42,10 +42,20 @@ CHECK = "✓"
 CHEVRON = "\u203a"  # marks a row that opens another view
 CRUMB_SEP = " / "  # joins the menu names above a nested search row
 
+# Setup > Defaults providers, each naming a kind the default-apps helper beside
+# this file knows how to list and set.
+DEFAULT_APP_PROVIDERS = {
+    "default-browser": "browser",
+    "default-terminal": "terminal",
+    "default-file-manager": "file-manager",
+    "default-editor": "editor",
+    "default-agent": "agent",
+}
+
 # Generated lists short and cheap enough to search from a parent menu.  Apps,
 # fonts and timezones run to hundreds of rows, so they stay searchable only
 # inside their own view.
-SEARCHABLE_PROVIDERS = {"themes"}
+SEARCHABLE_PROVIDERS = {"themes", *DEFAULT_APP_PROVIDERS}
 
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
 DEFAULT_MENU = Path(
@@ -239,6 +249,8 @@ def provider_rows(name: str) -> list[dict]:
         return themes_provider()
     if name == "timezones":
         return timezones_provider()
+    if name in DEFAULT_APP_PROVIDERS:
+        return default_apps_provider(DEFAULT_APP_PROVIDERS[name])
     warn(f"unknown provider {name!r}")
     return []
 
@@ -373,6 +385,28 @@ def timezones_provider() -> list[dict]:
             "label": zone,
             "checked_now": zone == active,
             "action": f"sudo timedatectl set-timezone {shlex.quote(zone)}",
+        })
+    return rows
+
+
+def default_apps_provider(kind: str) -> list[dict]:
+    """Installed choices for one default, ticking the current one.  The
+    helper's path is taken unresolved so actions name the Stow path, not the
+    repository checkout behind it."""
+    helper = os.path.join(os.path.dirname(os.path.abspath(__file__)), "default-apps")
+    rows = []
+    for line in run_lines([helper, "list", kind]):
+        fields = line.split("\t")
+        if len(fields) != 3 or not fields[0]:
+            continue
+        choice, label, current = fields
+        rows.append({
+            "key": choice,
+            "icon": "",
+            "label": label,
+            "checked_now": current == "1",
+            "search": choice,
+            "action": " ".join(shlex.quote(part) for part in (helper, "set", kind, choice)),
         })
     return rows
 

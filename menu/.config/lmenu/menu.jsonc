@@ -635,30 +635,54 @@
     "action": "quickshell ipc call network shareWifi"
   },
 
+  // Each default lists only what is installed and ticks the current choice.
+  // The default-apps helper beside lmenu-parse.py records it; see its header.
   {
     "id": "setup.defaults",
     "icon": "󰓾",
     "label": "Defaults",
-    "title": "Default applications"
+    "title": "Default applications",
+    "aliases": ["default apps", "default applications"]
   },
   {
     "id": "setup.defaults.browser",
     "icon": "󰖟",
     "label": "Browser",
-    "action": "kitty -e ${EDITOR:-nvim} ~/.config/mimeapps.list"
+    "title": "Default browser",
+    "provider": "default-browser",
+    "aliases": ["default browser"]
   },
   {
     "id": "setup.defaults.editor",
     "icon": "󰏫",
     "label": "Editor",
-    "action": "kitty -e ${EDITOR:-nvim} ~/.zshrc"
+    "title": "Default editor ($EDITOR)",
+    "provider": "default-editor",
+    "aliases": ["default editor"]
   },
   {
     "id": "setup.defaults.terminal",
     "icon": "󰄛",
     "label": "Terminal",
-    "when": "[[ -f ~/.config/hypr/conf/var.conf ]]",
-    "action": "kitty -e ${EDITOR:-nvim} ~/.config/hypr/conf/var.conf"
+    "title": "Default terminal",
+    "provider": "default-terminal",
+    "aliases": ["default terminal"]
+  },
+  {
+    "id": "setup.defaults.file-manager",
+    "icon": "󰉋",
+    "label": "File manager",
+    "title": "Default file manager",
+    "provider": "default-file-manager",
+    "aliases": ["default file manager"]
+  },
+  {
+    "id": "setup.defaults.agent",
+    "icon": "󰚩",
+    "label": "Coding agent",
+    "title": "Default coding agent",
+    "provider": "default-agent",
+    "aliases": ["default coding agent", "default agent"]
   },
   {
     "id": "setup.defaults.mime",
@@ -666,13 +690,6 @@
     "label": "File associations",
     "when": "[[ -f ~/.config/mimeapps.list ]]",
     "action": "kitty -e ${EDITOR:-nvim} ~/.config/mimeapps.list"
-  },
-  {
-    "id": "setup.defaults.agent",
-    "icon": "󰚩",
-    "label": "Coding agent",
-    "when": "[[ -f ~/.config/ai-agent/config ]]",
-    "action": "kitty -e ${EDITOR:-nvim} ~/.config/ai-agent/config"
   },
 
   {

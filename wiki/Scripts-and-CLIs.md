@@ -68,6 +68,32 @@ Top-level routes:
 `lmenu` falls back to the repo-relative parser path when the config is not
 stowed yet, so it works before the first `stow`.
 
+### Default applications
+
+Setup > Defaults picks the default browser, editor, terminal, file manager, and
+coding agent. Each submenu lists only what is installed and ticks the current
+choice. The helper behind it lives beside the parser, so it is not on `PATH`:
+
+```bash
+~/.config/lmenu/default-apps list browser        # id, label, 1 for the current one
+~/.config/lmenu/default-apps set browser firefox.desktop
+DEFAULT_APPS_DRY_RUN=1 ~/.config/lmenu/default-apps set agent codex
+```
+
+| Default | Offered | Recorded in |
+| --- | --- | --- |
+| browser | desktop entries in `WebBrowser` that handle `https` | `text/html` and the `http`, `https`, `about`, `unknown` handlers in `mimeapps.list` |
+| editor | installed editors from a fixed list; GUI editors get their wait flag | `EDITOR` and `VISUAL` in `~/.config/default-apps/editor.zsh`, sourced by `.zshrc` |
+| terminal | desktop entries in `TerminalEmulator` | `~/.config/xdg-terminals.list`, read by `xdg-terminal-exec` |
+| file manager | desktop entries in `FileManager` | `inode/directory` in `mimeapps.list` |
+| coding agent | `ai-agent` names whose executable is on `PATH` | `default_agent` in `~/.config/ai-agent/config` |
+
+Desktop entries that are hidden, `Terminal=true`, or point at a missing program
+are skipped. Files are rewritten in place, so a Stow symlink such as
+`mimeapps.list` keeps pointing into the repository and the change shows up in
+`git diff`. Keybindings are not changed: `SUPER+Return` and `SUPER+E` still run
+the commands in `hypr/.config/hypr/conf/variables.lua`.
+
 ## Hyprland helpers
 
 Under `hypr/.config/hypr/scripts/`.
@@ -289,7 +315,8 @@ ai-agent --agent codex -- --help
 
 The aliases are only defined when their names are otherwise unused.
 
-`SUPER+I` opens the configured default. T3 Code is pinned to workspace 4 by its
+Setup > Defaults > Coding agent in lmenu switches the default among the
+installed agents. `SUPER+I` opens the configured default. T3 Code is pinned to workspace 4 by its
 `t3code` window class, and autostarts there.
 
 ## Windows VM

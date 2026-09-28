@@ -28,6 +28,7 @@ of the deployed files get overwritten by generators anyway.
 | mode temperatures, durations, panel presets | `modes/.config/desktop-mode/config.toml` |
 | the screensaver logo | `screensaver-branding text` / `image`, or `screensaver/.config/branding/screensaver.txt` |
 | wallpaper search directory | `HYPR_WALLPAPER_DIR`, or the picker default |
+| default browser, editor, terminal, file manager, coding agent | Setup > Defaults in lmenu |
 | default applications per MIME type | `xdg/.config/mimeapps.list` |
 | clipboard history size | `cliphist/.config/cliphist/config` |
 | which AI CLI `SUPER+I` opens | `ai/.config/ai-agent/config` |

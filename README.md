@@ -322,6 +322,9 @@ default_agent=t3code
 ```
 
 Selection priority is `--agent`, then `AI_AGENT_DEFAULT`, then the config file.
+Setup > Defaults > Coding agent in lmenu rewrites that file, offering only the
+agents that are installed. The same menu sets the default browser, editor,
+terminal, and file manager.
 Invalid names and unavailable executables fail clearly; the launcher never
 silently switches to another agent.
 
