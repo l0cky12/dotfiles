@@ -721,14 +721,28 @@
   {
     "id": "setup.security.yubikey.setup",
     "icon": "󰢬",
-    "label": "Set up first key",
+    "label": "Set up first key (PIN)",
     "when": "command -v yubikey-auth >/dev/null",
-    "action": "kitty --hold -e yubikey-auth setup --enroll-fingerprint"
+    "action": "kitty --hold -e yubikey-auth setup --mode pin"
   },
   {
     "id": "setup.security.yubikey.add",
     "icon": "󰐕",
-    "label": "Add another key",
+    "label": "Add another key (PIN)",
+    "when": "command -v yubikey-auth >/dev/null",
+    "action": "kitty --hold -e yubikey-auth add --mode pin"
+  },
+  {
+    "id": "setup.security.yubikey.setup-bio",
+    "icon": "󰢬",
+    "label": "Set up first key (Bio fingerprint)",
+    "when": "command -v yubikey-auth >/dev/null",
+    "action": "kitty --hold -e yubikey-auth setup --enroll-fingerprint"
+  },
+  {
+    "id": "setup.security.yubikey.add-bio",
+    "icon": "󰐕",
+    "label": "Add another key (Bio fingerprint)",
     "when": "command -v yubikey-auth >/dev/null",
     "action": "kitty --hold -e yubikey-auth add --enroll-fingerprint"
   },

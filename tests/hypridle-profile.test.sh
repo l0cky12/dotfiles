@@ -5,7 +5,13 @@ repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 profile="$repo_root/hypr/.config/hypr/scripts/hypridle-profile"
 source_config="$repo_root/hypr/.config/hypr/hypridle.conf"
 test_root=$(mktemp -d -t hypridle-profile-test.XXXXXX)
-trap 'rm -rf -- "$test_root"' EXIT
+cleanup() {
+  if [[ -x $test_root/bin/pkill-fixture ]]; then
+    "$test_root/bin/pkill-fixture" >/dev/null 2>&1 || true
+  fi
+  rm -rf -- "$test_root"
+}
+trap cleanup EXIT
 
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
@@ -14,14 +20,46 @@ fail() {
 
 mkdir -p "$test_root/bin" "$test_root/state" "$test_root/runtime"
 cat > "$test_root/bin/pkill-fixture" <<'SH'
-#!/usr/bin/env bash
-printf 'pkill %s\n' "$*" >> "$HYPRIDLE_PROFILE_CALLS"
+#!/usr/bin/env python3
+import os, signal, sys
+from pathlib import Path
+with open(os.environ["HYPRIDLE_PROFILE_CALLS"], "a") as log:
+    log.write("pkill " + " ".join(sys.argv[1:]) + "\n")
+pidfile = Path(os.environ["FIXTURE_PID"])
+try:
+    os.kill(int(pidfile.read_text()), signal.SIGTERM)
+except (FileNotFoundError, ProcessLookupError):
+    sys.exit(1)
 SH
-cat > "$test_root/bin/setsid-fixture" <<'SH'
-#!/usr/bin/env bash
-printf 'setsid %s\n' "$*" >> "$HYPRIDLE_PROFILE_CALLS"
+cat > "$test_root/bin/pgrep-fixture" <<'SH'
+#!/usr/bin/env python3
+import os, sys
+from pathlib import Path
+try:
+    os.kill(int(Path(os.environ["FIXTURE_PID"]).read_text()), 0)
+except (FileNotFoundError, ProcessLookupError):
+    sys.exit(1)
 SH
 cat > "$test_root/bin/hypridle-fixture" <<'SH'
+#!/usr/bin/env python3
+import os, re, signal, sys, time
+from pathlib import Path
+config = Path(sys.argv[2]).read_text()
+timeout = re.search(r"timeout = (\d+)", config)[1]
+with open(os.environ["HYPRIDLE_PROFILE_CALLS"], "a") as log:
+    log.write("start " + timeout + "\n")
+if os.environ.get("FAIL_TIMEOUT") == timeout:
+    sys.exit(17)
+pidfile = Path(os.environ["FIXTURE_PID"])
+pidfile.write_text(str(os.getpid()))
+def stop(*_):
+    pidfile.unlink(missing_ok=True)
+    sys.exit(0)
+signal.signal(signal.SIGTERM, stop)
+while True:
+    time.sleep(.05)
+SH
+cat > "$test_root/bin/hypridle-once" <<'SH'
 #!/usr/bin/env bash
 printf 'hypridle %s\n' "$*" >> "$HYPRIDLE_PROFILE_CALLS"
 SH
@@ -31,7 +69,10 @@ export HYPRIDLE_PROFILE_STATE_FILE="$test_root/state/idle-profile"
 export HYPRIDLE_PROFILE_SOURCE_CONFIG="$source_config"
 export HYPRIDLE_PROFILE_RUNTIME_DIR="$test_root/runtime"
 export HYPRIDLE_PROFILE_PKILL="$test_root/bin/pkill-fixture"
-export HYPRIDLE_PROFILE_SETSID="$test_root/bin/setsid-fixture"
+export HYPRIDLE_PROFILE_PGREP="$test_root/bin/pgrep-fixture"
+export HYPRIDLE_PROFILE_SETSID=setsid
+export HYPRIDLE_PROFILE_NOTIFY=true
+export FIXTURE_PID="$test_root/pid"
 export HYPRIDLE_PROFILE_HYPRIDLE="$test_root/bin/hypridle-fixture"
 export HYPRIDLE_PROFILE_CALLS="$test_root/calls.log"
 
@@ -69,13 +110,28 @@ fi
 
 $profile set quick > "$test_root/set.out"
 [[ $(<"$HYPRIDLE_PROFILE_STATE_FILE") == quick ]] || fail 'set did not persist the profile'
-grep -Fxq 'pkill -x hypridle' "$HYPRIDLE_PROFILE_CALLS" || fail 'set did not stop old Hypridle'
-grep -Fq 'setsid -f -- ' "$HYPRIDLE_PROFILE_CALLS" || fail 'set did not launch the profile daemon'
+grep -Eq "^pkill .*hypridle$" "$HYPRIDLE_PROFILE_CALLS" || fail 'set did not stop old Hypridle'
+for _ in {1..50}; do
+  [[ -e $FIXTURE_PID ]] && break
+  sleep .02
+done
+grep -Fxq 'start 60'  "$HYPRIDLE_PROFILE_CALLS" || fail 'set did not launch the selected config'
+
+# A replacement that exits at startup must not claim success or change state.
+if FAIL_TIMEOUT=300 $profile set relaxed > "$test_root/failed.out" 2>&1; then
+  fail 'failed replacement was reported as success'
+fi
+[[ $(<"$HYPRIDLE_PROFILE_STATE_FILE") == quick ]] || fail 'failed replacement changed the saved profile'
+grep -Eq '^[[:space:]]*timeout = 60$' "$test_root/runtime/hypridle.conf" \
+  || fail 'failed replacement did not restore the runtime config'
+"$HYPRIDLE_PROFILE_PGREP" || fail 'failed replacement left no running daemon'
+grep -Fq 'restored' "$test_root/failed.out" || fail 'rollback was not explained'
+[[ $(grep -c '^start 60$' "$HYPRIDLE_PROFILE_CALLS") == 2 ]] || fail 'previous profile was not restarted'
 grep -Eq '^[[:space:]]*timeout = 60$' "$test_root/runtime/hypridle.conf" \
   || fail 'set did not render the selected runtime config'
 
 : > "$HYPRIDLE_PROFILE_CALLS"
-$profile daemon
+HYPRIDLE_PROFILE_HYPRIDLE="$test_root/bin/hypridle-once" $profile daemon
 grep -Fxq "hypridle --config $test_root/runtime/hypridle.conf" "$HYPRIDLE_PROFILE_CALLS" \
   || fail 'daemon did not start Hypridle with the runtime config'
 

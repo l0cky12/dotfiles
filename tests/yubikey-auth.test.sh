@@ -17,7 +17,7 @@ cat > "$test_root/bin/fido2-token" <<'SH'
 #!/usr/bin/env bash
 case "${1:-}" in
   -L)
-    printf '/dev/hidraw-test: vendor=0x1050, product=0x0402 (Yubico YubiKey FIDO)\n'
+    printf '/dev/hidraw-test: vendor=0x1050, product=%s (Yubico YubiKey FIDO)\n' "${FIDO_FIXTURE_PRODUCT:-0x0402}"
     if [[ ${FIDO_FIXTURE_MULTIPLE:-0} == 1 ]]; then
       printf '/dev/hidraw-other: vendor=0x1050, product=0x0407 (Yubico YubiKey OTP+FIDO)\n'
     fi
@@ -78,6 +78,29 @@ export YUBIKEY_AUTH_PAMU2FCFG="$test_root/bin/pamu2fcfg"
 export YUBIKEY_AUTH_SUDO="$test_root/bin/sudo-fixture"
 export FIDO_FIXTURE_CALLS="$test_root/fido.calls"
 export PAMU_FIXTURE_CALLS="$test_root/pamu.calls"
+
+# Exercise the commands actually offered by the menu, without a terminal or
+# token mutation. Both setup and add must have PIN and Bio enrollment paths.
+python3 - "$repo_root/menu/.config/lmenu/menu.jsonc" "$auth" <<'PY'
+import os
+import re
+import shlex
+import subprocess
+import sys
+from pathlib import Path
+
+actions = re.findall(r'"action": "kitty --hold -e yubikey-auth ([^"]+)"',
+                     Path(sys.argv[1]).read_text())
+for action in ("setup", "add"):
+    offered = [shlex.split(args) for args in actions if args.startswith(action)]
+    for product, mode in (("0x0407", "pin"), ("0x0402", "bio")):
+        results = [subprocess.run([sys.argv[2], *args, "--dry-run"],
+                   env=os.environ | {"FIDO_FIXTURE_PRODUCT": product},
+                   capture_output=True, text=True) for args in offered]
+        assert any(r.returncode == 0 and f"mode: {mode}" in r.stdout
+                   and (mode != "bio" or "would enroll: fingerprint" in r.stdout)
+                   for r in results), f"menu cannot {action} a {mode} key"
+PY
 
 printf 'invalid terminal bytes\033[0m\n' > "$test_root/etc/u2f_mappings"
 printf 'old sudo pam\n' > "$test_root/etc/pam.d/sudo"

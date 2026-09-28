@@ -35,6 +35,19 @@ def main() -> int:
     assert required, "active layout does not consume generated lock variables"
 
     template = TEMPLATE.read_text()
+    menu = (ROOT / "menu/.config/lmenu/menu.jsonc").read_text()
+    offered = set(re.findall(r"screensaver-lock layout set ([a-z0-9]+)", menu))
+    wrapper = (ROOT / "hypr/.config/hypr/hyprlock.conf").read_text()
+    builtins = {"$USER", "$HOME", "$TIME", "$FAIL", "$ATTEMPTS"}
+    for name in offered:
+        path = LAYOUT.with_name("hyprlock.conf" if name == "default" else f"{name}.conf")
+        content = "\n".join(line for line in path.read_text().splitlines()
+                            if not line.lstrip().startswith("#"))
+        references = set(re.findall(r"\$[A-Za-z_][A-Za-z_0-9]*", content))
+        definitions = variable_definitions(template + "\n" + wrapper + "\n" + content)
+        assert not (references - definitions - builtins), (
+            f"{name}: undefined variables: {sorted(references - definitions - builtins)}"
+        )
     themes = tl.load_all(THEMES)
     assert themes, "no themes found"
 

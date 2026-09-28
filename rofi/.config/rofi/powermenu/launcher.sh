@@ -5,6 +5,11 @@ MENU_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly MENU_DIR
 readonly THEME="${POWER_MENU_THEME:-$MENU_DIR/layout.rasi}"
 readonly LOCK_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprlock.conf"
+lock_command=(hyprlock --config "$LOCK_CONFIG")
+lock_wrapper=${POWER_MENU_LOCK_COMMAND:-$HOME/.local/bin/screensaver-lock}
+if [[ -x $lock_wrapper ]]; then
+  lock_command=("$lock_wrapper")
+fi
 
 usage() {
   cat <<'EOF'
@@ -25,12 +30,12 @@ print_command() {
 ensure_locked() {
   if (( DRY_RUN )); then
     print_command pgrep -x hyprlock
-    print_command hyprlock --config "$LOCK_CONFIG" '&'
+    print_command "${lock_command[@]}" '&'
     return
   fi
 
   if ! pgrep -x hyprlock >/dev/null 2>&1; then
-    hyprlock --config "$LOCK_CONFIG" &
+    "${lock_command[@]}" &
   fi
 }
 
@@ -40,9 +45,9 @@ run_action() {
   case "$action" in
     lock)
       if (( DRY_RUN )); then
-        print_command hyprlock --config "$LOCK_CONFIG"
+        print_command "${lock_command[@]}"
       elif ! pgrep -x hyprlock >/dev/null 2>&1; then
-        exec hyprlock --config "$LOCK_CONFIG"
+        exec "${lock_command[@]}"
       fi
       ;;
     logout)

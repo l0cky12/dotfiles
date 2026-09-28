@@ -140,6 +140,25 @@ grep -Fq 'omarchy' "$test_root/system.out" &&
 # Security settings are menus, not editors. YubiKey actions keep their terminal
 # open, lock layouts report their selected state, and idle profiles are routed
 # through the host-local profile controller.
+(
+export HOME="$test_root/security-home"
+mkdir -p "$HOME/.config/hypr/scripts" "$HOME/.local/bin" "$test_root/security-bin"
+# Use only explicitly supplied commands when evaluating the security guards.
+for cmd in bash python3 grep jq; do
+  ln -s "$(command -v "$cmd")" "$test_root/security-bin/$cmd"
+done
+export PATH="$test_root/security-bin"
+LMENU_MENU="$menu" LMENU_EXTENSIONS=/nonexistent python3 "$parser" --dry-run setup.security \
+  >"$test_root/security-missing.out"
+if grep -Eq 'Lock screen|Idle settings' "$test_root/security-missing.out"; then
+  fail 'undeployed security helpers were offered'
+fi
+for helper in "$HOME/.config/hypr/scripts/hypridle-profile" \
+  "$HOME/.local/bin/screensaver-lock" "$test_root/security-bin/yubikey-auth" \
+  "$test_root/security-bin/pacman" "$test_root/security-bin/sudo"; do
+  printf '#!/bin/bash\nexit 0\n' >"$helper"
+  /usr/bin/chmod +x "$helper"
+done
 LMENU_MENU="$menu" LMENU_EXTENSIONS=/nonexistent python3 "$parser" --dry-run setup.security \
   >"$test_root/security.out"
 for section in YubiKey 'Lock screen' 'Idle settings'; do
@@ -157,6 +176,10 @@ grep -Fq 'yubikey-auth setup --enroll-fingerprint' "$test_root/yubikey-menu.out"
   fail 'the YubiKey menu cannot set up the first key'
 grep -Fq 'yubikey-auth add --enroll-fingerprint' "$test_root/yubikey-menu.out" ||
   fail 'the YubiKey menu cannot add another key'
+for action in setup add; do
+  grep -Fq "yubikey-auth $action --mode pin" "$test_root/yubikey-menu.out" ||
+    fail "the YubiKey menu cannot $action a PIN key"
+done
 grep -Fq 'pam-u2f libfido2' "$test_root/yubikey-menu.out" ||
   fail 'the YubiKey menu does not offer the PAM-U2F prerequisites'
 grep -Fq 'libpam-yubico' "$menu" &&
@@ -181,6 +204,7 @@ for profile in Quick Balanced Relaxed 'Never suspend'; do
   grep -Fq "$profile" "$test_root/idle-menu.out" ||
     fail "the Idle profile menu is missing $profile"
 done
+)
 
 # No action anywhere in the shipped menu may call an omarchy script.
 grep -Fq 'omarchy-' "$menu" && fail 'the shipped menu still references omarchy scripts'
