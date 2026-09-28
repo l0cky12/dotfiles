@@ -90,6 +90,9 @@ PanelWindow {
 
         Image {
           source: NetworkState.qrResult ? "file://" + NetworkState.qrResult.path : ""
+          // network-control overwrites the same wifi.svg every time, so a
+          // cached pixmap would keep showing the previous network's code.
+          cache: false
           width: Theme.fs(280)
           height: Theme.fs(280)
           fillMode: Image.PreserveAspectFit

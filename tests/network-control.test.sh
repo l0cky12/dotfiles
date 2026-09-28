@@ -135,6 +135,15 @@ jq -e '.ssid == "Cafe;Net"' "$test_root/wired-first-qr.json" >/dev/null \
   || fail 'panel bypasses theme or credential boundaries'
 grep -Fq 'NetworkState.applyManual' "$panel" || fail 'manual IPv4 control is not wired to the state'
 grep -Fq 'NetworkState.shareWifi' "$panel" || fail 'Wi-Fi QR action is not wired to the state'
+grep -Fq 'NetworkState.showWifiQr(bar.focusedScreen())' "$repo_root/quickshell/.config/quickshell/Bar.qml" \
+  || fail 'network shareWifi IPC does not open the Wi-Fi QR overlay on the focused screen'
+[[ $(grep -Fc '"action": "quickshell ipc call network shareWifi"' "$repo_root/menu/.config/lmenu/menu.jsonc") -eq 2 ]] \
+  || fail 'lmenu Wi-Fi QR rows do not open the overlay'
+! grep -Fq 'network-control qr"' "$repo_root/menu/.config/lmenu/menu.jsonc" \
+  || fail 'an lmenu row still runs network-control qr, which only prints JSON'
+grep -Fq 'cache: false' "$repo_root/quickshell/.config/quickshell/WifiQrOverlay.qml" \
+  || fail 'Wi-Fi QR overlay caches the overwritten wifi.svg'
+grep -Fq 'qrNotifyProc.running = true' "$state" || fail 'Wi-Fi QR failures from lmenu are not notified'
 grep -Fq 'NetworkState.runSpeedTest(panel.ownerScreen)' "$panel" || fail 'speed test is not wired to its screen'
 grep -Fq 'command: [root.speedTest, "--stream-json"]' "$state" || fail 'speed test does not launch the streaming CLI'
 grep -Fq 'SpeedTestOverlay {' "$repo_root/quickshell/.config/quickshell/Bar.qml" || fail 'speed-test overlay is not mounted'

@@ -41,6 +41,8 @@ Singleton {
   property string ipv4Method: ""
   property var wifiNetworks: []
   property var qrResult: null
+  // Set when the QR was requested without the panel open; see showWifiQr.
+  property bool qrNotify: false
 
   readonly property string backend: Quickshell.env("NETWORK_CONTROL") ||
     Quickshell.env("HOME") + "/.config/hypr/scripts/network-control"
@@ -111,6 +113,20 @@ Singleton {
   }
   function shareWifi() {
     if (qrLoading || connType !== "wifi") return
+    qrNotify = false
+    startQr()
+  }
+  // lmenu and scripts, via the network IPC target in Bar.qml. There is no
+  // panel on screen to carry lastError, so a failure becomes a notification,
+  // and the connType guard is left to the backend: status may not have
+  // polled yet, and its "Connect to Wi-Fi" error is the one worth showing.
+  function showWifiQr(screenName) {
+    if (qrLoading || screenName === "") return
+    overlayScreen = screenName
+    qrNotify = true
+    startQr()
+  }
+  function startQr() {
     qrLoading = true; qrResult = null; lastError = ""; qrProc.command = [backend, "qr"]; qrProc.running = true
   }
   function speedTestLabel() {
@@ -197,10 +213,19 @@ Singleton {
       root.qrLoading = false
       if (code !== 0) {
         root.lastError = root.backendError(qrErr.text) || "Could not create a Wi-Fi QR code."
-        return
+      } else {
+        try { root.qrResult = JSON.parse(qrOut.text) } catch (error) { root.lastError = "Wi-Fi QR creation returned invalid data." }
       }
-      try { root.qrResult = JSON.parse(qrOut.text) } catch (error) { root.lastError = "Wi-Fi QR creation returned invalid data." }
+      if (root.qrResult === null && root.qrNotify) {
+        qrNotifyProc.command = ["notify-send", "-a", "Network", "Share Wi-Fi", root.lastError]
+        qrNotifyProc.running = true
+      }
     }
+  }
+  Process {
+    id: qrNotifyProc
+    stdout: StdioCollector {}
+    stderr: StdioCollector {}
   }
   Process {
     id: speedTestProc
