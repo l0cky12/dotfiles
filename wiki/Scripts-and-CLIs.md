@@ -91,8 +91,11 @@ DEFAULT_APPS_DRY_RUN=1 ~/.config/lmenu/default-apps set agent codex
 Desktop entries that are hidden, `Terminal=true`, or point at a missing program
 are skipped. Files are rewritten in place, so a Stow symlink such as
 `mimeapps.list` keeps pointing into the repository and the change shows up in
-`git diff`. Keybindings are not changed: `SUPER+Return` and `SUPER+E` still run
-the commands in `hypr/.config/hypr/conf/variables.lua`.
+`git diff`. Every change reloads Hyprland (skipped outside a Hyprland session, in
+a dry run, or with `DEFAULT_APPS_NO_RELOAD=1`). `SUPER+E` follows the file
+manager: `conf/variables.lua` reads the `inode/directory` handler from
+`mimeapps.list` at load and runs it through `gtk-launch`, falling back to
+`nautilus`. `SUPER+Return` still runs `kitty`.
 
 ### Reminders
 

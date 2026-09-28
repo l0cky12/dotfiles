@@ -52,7 +52,7 @@ Hyprlock service, and ordinary core utilities (`bash`, `sh`, `realpath`, `flock`
 | `helium-browser` | `SUPER+W`, browser autostart |
 | `brave` | browser extensions |
 | XDG default browser (currently Helium via `helium.desktop`) | `SUPER+SHIFT+ALT+W` private-window launcher |
-| `nautilus` | `SUPER+E`, file-manager helpers |
+| `nautilus` | `SUPER+E` fallback, file-manager helpers |
 | `gnome-disks` | `SUPER+SHIFT+D` |
 | `spotify` | `SUPER+S`, autostart/workspace rule |
 | `obsidian` | `SUPER+O`, autostart/workspace rule |
