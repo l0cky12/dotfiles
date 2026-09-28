@@ -18,7 +18,10 @@ Scope {
   // what its own binding says, which would make both visibility assertions
   // below depend on startup ordering rather than on hasBattery.
   Item { id: iconHost; visible: true; BatteryIcon { id: batteryIcon } }
-  BatteryPanelContent { id: batteryPanel; width: Theme.fs(320) }
+  // Stands in for the PowerProfiles singleton so the harness never switches
+  // the machine's real profile.
+  QtObject { id: fakeProfiles; property int profile: PowerProfile.Balanced; property bool hasPerformanceProfile: true }
+  BatteryPanelContent { id: batteryPanel; width: Theme.fs(320); profiles: fakeProfiles }
   function check(name, condition) { if (condition) console.log("ok   " + name); else { console.log("FAIL " + name); ++smoke.failures } }
   function checkStateNames() {
     check("unknown state maps correctly", state.stateName(UPowerDeviceState.Unknown) === "unknown")
@@ -57,6 +60,12 @@ Scope {
     check("whole hours omit the minutes", batteryPanel.formatDuration(7200) === "2 h")
     check("sub-hour estimates omit the hours", batteryPanel.formatDuration(1500) === "25 min")
     check("tiles split the panel width", batteryPanel.tileWidth > 0 && batteryPanel.tileWidth < batteryPanel.width / 2)
+    check("all three power profiles are offered", batteryPanel.profileOptions.length === 3 && batteryPanel.profileOptions[0].profile === PowerProfile.PowerSaver && batteryPanel.profileOptions[2].profile === PowerProfile.Performance)
+    check("profile segments split the panel width", batteryPanel.profileWidth > 0 && batteryPanel.profileWidth < batteryPanel.width / 3)
+    batteryPanel.setProfile(PowerProfile.PowerSaver); check("choosing a profile switches it", fakeProfiles.profile === PowerProfile.PowerSaver)
+    batteryPanel.setProfile(PowerProfile.Performance); check("performance can be chosen when offered", fakeProfiles.profile === PowerProfile.Performance)
+    fakeProfiles.hasPerformanceProfile = false; check("performance is hidden without a driver for it", batteryPanel.profileOptions.length === 2 && batteryPanel.profileOptions[1].profile === PowerProfile.Balanced)
+    fakeProfiles.hasPerformanceProfile = true; fakeProfiles.profile = PowerProfile.Balanced
     readyDevice.percentage = 0.42; Qt.callLater(continueWidget)
   }
   function continueWidget() {

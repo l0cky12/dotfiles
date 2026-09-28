@@ -86,8 +86,12 @@ icon's former hover tooltip. It reports the charge percentage, the supply line,
 and two figures taken straight from UPower: `POWER` is the instantaneous rate in
 watts, labelled `coming out` or `going in`; `CHARGE` is stored energy in watt
 hours against `energyCapacity`, which is UPower's `energy-full` rather than its
-design capacity. Layout and formatting live in `BatteryPanelContent.qml` so the
-smoke harness can assert on them without a `PopupWindow`.
+design capacity. Below them, `POWER PROFILE` switches power-profiles-daemon
+between Saver, Balanced and Performance through Quickshell's `PowerProfiles`
+binding, so a change made with `SUPER+SHIFT+B` or `powerprofilesctl` shows up
+here too. Performance is hidden when the daemon has no driver for it. Layout
+and formatting live in `BatteryPanelContent.qml` so the smoke harness can assert
+on them without a `PopupWindow`.
 
 `POWER` measures flow through the battery, not what the machine consumes. On AC
 the charger carries the load directly, so a full or charge-limited battery
