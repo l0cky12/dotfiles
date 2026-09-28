@@ -69,6 +69,7 @@ python3 -m unittest tests.test_theme_generator
 | `yubikey-auth.test.sh` | the guarded PAM helper |
 | `dots-deploy.test.sh` | changed-package deployment, manual-package safeguards, system-file safety, and deployment-state handling |
 | `eject-drive.test.sh` | drive ejection, with `--fixture` implying `--dry-run` |
+| `disk-speedtest.test.sh` | disk discovery and eligibility from an lsblk fixture, a tiny real benchmark in a scratch directory, the udisksctl mount round trip, and SIGTERM cleanup |
 | `docker-dev-env.test.sh` | the development stack |
 | `hypr-wallpaper-picker.test.sh` | index, search, apply |
 | `calculator.test.sh`, `emoji-picker.test.sh`, `quick-search.test.sh`, `power-menu.test.sh`, `power-profile.test.sh`, `night-light.test.sh`, `transcode.test.sh`, `window-width.test.sh`, `close-all-windows.test.sh`, `default-browser-private.test.sh` | the remaining helpers |

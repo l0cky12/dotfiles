@@ -398,6 +398,14 @@
     "action": "quickshell ipc call network speedTest"
   },
   {
+    "id": "trigger.diskspeed",
+    "icon": "󰋊",
+    "label": "Disk Speed Test",
+    "aliases": ["disk benchmark", "drive speed", "ssd speed"],
+    "when": "command -v python3 >/dev/null",
+    "action": "quickshell ipc call disk speedTest"
+  },
+  {
     "id": "trigger.calculator",
     "icon": "󰃬",
     "label": "Calculator",

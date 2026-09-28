@@ -81,6 +81,15 @@ package, and `ip` from `iproute2`.
 paru -S --needed curl jq gawk iproute2
 ```
 
+### Disk speed test
+
+`disk-speedtest` requires Python 3 and `lsblk` from `util-linux`. Testing an
+unmounted drive mounts it through `udisksctl` from `udisks2`.
+
+```bash
+paru -S --needed python util-linux udisks2
+```
+
 ### Capture
 
 | Command | Feature |

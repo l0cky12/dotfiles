@@ -12,6 +12,7 @@ bindings call by absolute path.
 | `notificationctl` | `hypr` | dismiss, DND, invoke, history, status |
 | `webapp`, `webapp-launch` | `hypr` | create, remove, and run web-app launchers |
 | `transcode` | `hypr` | image and video conversion backend |
+| `disk-speedtest` | `hypr` | disk write, read, and random 4K benchmark behind the lmenu Disk Speed Test overlay |
 | `toggle` | `hypr` | facade for the toggles menu |
 | `hypr-wallpaper-picker` | `hypr` | wallpaper panel and its index/search/apply backend |
 | `lmenu`, `lmenu-reminder`, `lmenu-toggle-ratio` | `menu` | the Quickshell menu, Rofi fallback, and countdown reminders |
@@ -59,7 +60,7 @@ Top-level routes:
 | `apps` | installed applications |
 | `development` | Docker dev environments: MySQL, PostgreSQL, MariaDB, Redis, info, stop-all |
 | `learn` | keybindings, Hyprland, Arch, Neovim, Bash |
-| `trigger` | emoji, reminders, capture, transcode, share, toggles, speed test, calculator, clipboard, hardware |
+| `trigger` | emoji, reminders, capture, transcode, share, toggles, speed test, disk speed test, calculator, clipboard, hardware |
 | `style` | theme, background, font, gaps, transparency, Hyprland settings, bar position/toggle/transparency |
 | `system` | lock, logout, suspend, hibernate, reboot, shutdown, screensaver, screensaver branding |
 | `install`, `remove`, `update`, `setup`, `about` | package and system management entries |

@@ -1,0 +1,631 @@
+#!/usr/bin/env python3
+"""Measure a disk's sequential write, sequential read, and random 4K read speed.
+
+The test writes a temporary file on a mounted filesystem, so it never touches
+the raw block device and never needs root. The file is marked NOCOW before its
+first byte is written, which on btrfs turns off compression and checksums for
+that one file so direct I/O really bypasses the page cache. Filesystems that
+refuse direct I/O fall back to buffered I/O and the result says so.
+
+--stream-json prints one JSON object per second for the Quickshell overlay.
+--fixture reads an lsblk-style JSON file instead of probing real disks and
+implies --dry-run, so the fixture path can never mount or write anything.
+"""
+
+import argparse
+import array
+import errno
+import fcntl
+import itertools
+import json
+import mmap
+import os
+import random
+import re
+import signal
+import struct
+import subprocess
+import sys
+import threading
+import time
+
+PHASE_SECONDS = 8.0
+MAX_BYTES = 1024 ** 3
+MIN_BYTES = 256 * 1024 ** 2
+SEQ_BLOCK = 1024 ** 2
+SEQ_WORKERS = 8
+RANDOM_BLOCK = 4096
+
+LSBLK_COLUMNS = "NAME,PATH,TYPE,SIZE,RM,RO,TRAN,MODEL,LABEL,FSTYPE,MOUNTPOINTS,FSAVAIL"
+# Whole-disk nodes that are not storage a person would benchmark.
+SKIP_DISKS = re.compile(r"^(zram|ram|loop|nbd)\d|boot\d+$|rpmb$")
+# Filesystem signatures that hold no directly mountable filesystem.
+CONTAINERS = {"swap", "crypto_LUKS", "LVM2_member", "linux_raid_member",
+              "zfs_member", "bcache", "BitLocker"}
+READ_ONLY_FILESYSTEMS = {"iso9660", "udf", "squashfs", "erofs"}
+# EFI system partitions are mounted writable but are never a test target.
+BOOT_MOUNTS = ("/boot", "/efi")
+
+LONG_SIZE = struct.calcsize("l")
+FS_IOC_GETFLAGS = (2 << 30) | (LONG_SIZE << 16) | (ord("f") << 8) | 1
+FS_IOC_SETFLAGS = (1 << 30) | (LONG_SIZE << 16) | (ord("f") << 8) | 2
+FS_NOCOW_FL = 0x00800000
+
+
+class Failure(Exception):
+    """A user-facing error: printed once and the script exits 1."""
+
+
+class Interrupted(Exception):
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def raise_interrupted(signum, _frame):
+    # Only the first signal interrupts; cleanup must not be cut short by more.
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    raise Interrupted(128 + signum)
+
+
+def flag(value):
+    # lsblk emits booleans on util-linux >= 2.38 and "1"/"0" on older builds.
+    return value is True or value == 1 or value == "1"
+
+
+def number(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def format_bytes(count):
+    for unit, scale in (("GiB", 1024 ** 3), ("MiB", 1024 ** 2)):
+        if count >= scale:
+            return f"{count / scale:.1f} {unit}"
+    return f"{count} B"
+
+
+def under(path, mountpoint):
+    return path == mountpoint or path.startswith(mountpoint.rstrip("/") + "/")
+
+
+def cache_dir():
+    base = os.environ.get("XDG_CACHE_HOME") or os.path.join(os.path.expanduser("~"), ".cache")
+    return os.path.join(base, "disk-speedtest")
+
+
+def writable(path):
+    # The cache directory may not exist yet; its nearest existing ancestor
+    # decides whether it can be created.
+    while not os.path.exists(path):
+        parent = os.path.dirname(path)
+        if parent == path:
+            return False
+        path = parent
+    return os.access(path, os.W_OK)
+
+
+def walk(node, encrypted=False):
+    encrypted = encrypted or node.get("type") == "crypt"
+    yield node, encrypted
+    for child in node.get("children") or []:
+        yield from walk(child, encrypted)
+
+
+def mountpoints(node):
+    return [mp for mp in node.get("mountpoints") or []
+            if mp and mp.startswith("/")]
+
+
+def read_lsblk(fixture):
+    if fixture:
+        try:
+            with open(fixture, encoding="utf-8") as handle:
+                return json.load(handle)
+        except (OSError, ValueError) as error:
+            raise Failure(f"fixture is not readable lsblk JSON: {fixture}") from error
+    try:
+        output = subprocess.run(
+            ["lsblk", "-J", "-b", "-o", LSBLK_COLUMNS],
+            check=True, capture_output=True, text=True).stdout
+        return json.loads(output)
+    except FileNotFoundError as error:
+        raise Failure("lsblk is required") from error
+    except (subprocess.CalledProcessError, ValueError) as error:
+        raise Failure("lsblk did not return a disk list") from error
+
+
+def describe(device, cache_mount, cache):
+    """Turn one top-level lsblk disk into a picker entry."""
+    nodes = list(walk(device))
+    mounted = [(node, mp, encrypted) for node, encrypted in nodes
+               for mp in mountpoints(node)]
+    removable = flag(device.get("rm")) or device.get("tran") == "usb"
+    entry = {
+        "name": device.get("name", ""),
+        "path": device.get("path") or "/dev/" + device.get("name", ""),
+        "model": (device.get("model") or device.get("label") or device.get("name") or "").strip(),
+        "size": number(device.get("size")),
+        "transport": device.get("tran") or "",
+        "removable": removable,
+        "system": any(mp == "/" for _, mp, _ in mounted),
+        "state": "unavailable",
+        "reason": "",
+        "mountpoint": "",
+        "fstype": "",
+        "encrypted": False,
+        "free": 0,
+        "target": "",
+        "mountDevice": "",
+    }
+
+    def use(node, mp, encrypted, target):
+        entry.update(state="ready", mountpoint=mp, fstype=node.get("fstype") or "",
+                     encrypted=encrypted, free=number(node.get("fsavail")), target=target)
+
+    # The disk holding the cache directory is tested there, so the system disk
+    # never needs a writable / and never gets a file in the root subvolume.
+    home = [(node, mp, enc) for node, mp, enc in mounted if mp == cache_mount]
+    if home and writable(cache):
+        use(*home[0], cache)
+        return entry
+
+    candidates = []
+    blocked = ""
+    for node, mp, encrypted in mounted:
+        if any(under(mp, boot) for boot in BOOT_MOUNTS):
+            continue
+        if flag(node.get("ro")) or node.get("fstype") in READ_ONLY_FILESYSTEMS:
+            blocked = blocked or "read-only"
+        elif not os.access(mp, os.W_OK):
+            blocked = blocked or "not writable"
+        else:
+            candidates.append((number(node.get("fsavail")), node, mp, encrypted))
+    if candidates:
+        _, node, mp, encrypted = max(candidates, key=lambda item: item[0])
+        use(node, mp, encrypted, os.path.join(mp, ".disk-speedtest"))
+        return entry
+
+    unmounted = [node for node, _ in nodes
+                 if node.get("fstype") and not mountpoints(node)
+                 and not node.get("children")
+                 and node.get("fstype") not in CONTAINERS | READ_ONLY_FILESYSTEMS
+                 and not flag(node.get("ro"))]
+    if unmounted:
+        target = max(unmounted, key=lambda node: number(node.get("size")))
+        entry.update(state="mountable", reason="not mounted",
+                     fstype=target.get("fstype") or "",
+                     mountDevice=target.get("path") or "/dev/" + target.get("name", ""))
+        return entry
+
+    locked = any(node.get("fstype") == "crypto_LUKS" and not node.get("children")
+                 for node, _ in nodes)
+    if blocked:
+        entry["reason"] = blocked
+    elif locked:
+        entry["reason"] = "encrypted and locked"
+    elif mounted:
+        entry["reason"] = "no test location"
+    else:
+        entry["reason"] = "no filesystem"
+    return entry
+
+
+def discover(fixture):
+    data = read_lsblk(fixture)
+    devices = [device for device in data.get("blockdevices") or []
+               if device.get("type") == "disk"
+               and not SKIP_DISKS.search(device.get("name", ""))
+               and number(device.get("size")) > 0]
+    cache = cache_dir()
+    cache_real = os.path.realpath(cache)
+    cache_mount = ""
+    for device in devices:
+        for node, _ in walk(device):
+            for mp in mountpoints(node):
+                if under(cache_real, mp) and len(mp) > len(cache_mount):
+                    cache_mount = mp
+    disks = [describe(device, cache_mount, cache) for device in devices]
+    disks.sort(key=lambda disk: (not disk["system"], disk["removable"], disk["name"]))
+    usable = [disk for disk in disks if disk["state"] != "unavailable"]
+    default = next((disk["name"] for disk in usable if disk["system"]),
+                   usable[0]["name"] if usable else "")
+    return {"disks": disks, "default": default}
+
+
+def filesystem_type(path):
+    path = os.path.realpath(path)
+    best, fstype = "", ""
+    try:
+        with open("/proc/self/mountinfo", encoding="utf-8") as handle:
+            lines = handle.read().splitlines()
+    except OSError:
+        return ""
+    for line in lines:
+        left, _, right = line.partition(" - ")
+        fields = left.split()
+        if len(fields) < 5 or not right:
+            continue
+        mountpoint = re.sub(r"\\([0-7]{3})", lambda m: chr(int(m.group(1), 8)), fields[4])
+        if under(path, mountpoint) and len(mountpoint) >= len(best):
+            best, fstype = mountpoint, right.split()[0]
+    return fstype
+
+
+def plan_size(free, max_bytes):
+    """Use half the free space when the disk is nearly full, within a floor."""
+    floor = min(MIN_BYTES, max_bytes)
+    size = min(max_bytes, free // 2) // SEQ_BLOCK * SEQ_BLOCK
+    if size < floor:
+        raise Failure(f"needs {format_bytes(2 * floor)} free, "
+                      f"{format_bytes(free)} available")
+    return size, size < max_bytes
+
+
+def set_nocow(fd):
+    flags = array.array("i", [0])
+    try:
+        fcntl.ioctl(fd, FS_IOC_GETFLAGS, flags, True)
+        flags[0] |= FS_NOCOW_FL
+        fcntl.ioctl(fd, FS_IOC_SETFLAGS, flags)
+        fcntl.ioctl(fd, FS_IOC_GETFLAGS, flags, True)
+    except OSError:
+        return False
+    return bool(flags[0] & FS_NOCOW_FL)
+
+
+def remove_stale(directory):
+    # A killed run cannot clean up after itself; remove files whose owner
+    # process no longer exists.
+    for name in os.listdir(directory):
+        match = re.fullmatch(r"run-(\d+)\.bin", name)
+        if not match:
+            continue
+        try:
+            os.kill(int(match.group(1)), 0)
+        except ProcessLookupError:
+            try:
+                os.unlink(os.path.join(directory, name))
+            except OSError:
+                pass
+        except PermissionError:
+            pass
+
+
+def aligned_buffer(size, fill):
+    # Anonymous mappings are page aligned, which O_DIRECT requires.
+    buffer = mmap.mmap(-1, size)
+    if fill:
+        buffer.write(os.urandom(size))
+    return buffer
+
+
+class TestFile:
+    def __init__(self, directory, max_bytes, want_direct):
+        self.directory = directory
+        self.path = ""
+        self.fd = -1
+        self.direct = False
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+        try:
+            remove_stale(directory)
+            stats = os.statvfs(directory)
+            self.size, self.reduced = plan_size(stats.f_bavail * stats.f_frsize, max_bytes)
+            path = os.path.join(directory, f"run-{os.getpid()}.bin")
+            self.fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)
+            self.path = path
+            nocow = set_nocow(self.fd)
+            # Without NOCOW, btrfs quietly serves "direct" I/O through the page
+            # cache, so only claim direct I/O when it cannot be faked.
+            if want_direct and (nocow or filesystem_type(directory) != "btrfs"):
+                self.direct = self.open_direct()
+        except BaseException:
+            self.close()
+            raise
+
+    def open_direct(self):
+        try:
+            fd = os.open(self.path, os.O_RDWR | os.O_DIRECT)
+        except OSError:
+            return False
+        probe = aligned_buffer(SEQ_BLOCK, True)
+        try:
+            os.pwrite(fd, probe, 0)
+        except OSError:
+            os.close(fd)
+            return False
+        finally:
+            probe.close()
+        os.close(self.fd)
+        self.fd = fd
+        return True
+
+    def close(self):
+        if self.fd >= 0:
+            os.close(self.fd)
+            self.fd = -1
+        if self.path:
+            try:
+                os.unlink(self.path)
+            except FileNotFoundError:
+                pass
+            self.path = ""
+        try:
+            os.rmdir(self.directory)
+        except OSError:
+            pass
+
+
+def run_phase(phase, test, extent, emit, seconds, write=False, random_io=False):
+    block = RANDOM_BLOCK if random_io else SEQ_BLOCK
+    workers = 1 if random_io else SEQ_WORKERS
+    blocks = max(1, extent // block)
+    fd, direct = test.fd, test.direct
+    stop = threading.Event()
+    moved = [0] * workers
+    ops = [0] * workers
+    errors = []
+    cursor = itertools.count()
+    buffers = [aligned_buffer(block, write) for _ in range(workers)]
+
+    if not direct and random_io:
+        os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_RANDOM)
+
+    def worker(index):
+        buffer = buffers[index]
+        rng = random.Random(time.time_ns() + index)
+        try:
+            while not stop.is_set():
+                if random_io:
+                    offset = rng.randrange(blocks) * block
+                else:
+                    offset = next(cursor) % blocks * block
+                if write:
+                    count = os.pwrite(fd, buffer, offset)
+                else:
+                    count = os.preadv(fd, [buffer], offset)
+                if count <= 0:
+                    raise OSError(errno.EIO, "short transfer")
+                moved[index] += count
+                ops[index] += 1
+                if not direct:
+                    # Buffered fallback: flush writes and drop read pages so
+                    # the page cache cannot answer on the disk's behalf.
+                    if write and ops[index] % 16 == 0:
+                        os.fdatasync(fd)
+                    elif not write:
+                        os.posix_fadvise(fd, offset, count, os.POSIX_FADV_DONTNEED)
+        except OSError as error:
+            errors.append(error)
+            stop.set()
+
+    threads = [threading.Thread(target=worker, args=(index,), daemon=True)
+               for index in range(workers)]
+    started = time.monotonic()
+    deadline = started + seconds
+    last_time, last_moved, last_ops = started, 0, 0
+    try:
+        for thread in threads:
+            thread.start()
+        tick = started
+        while not stop.is_set():
+            tick = min(tick + 1, deadline)
+            stop.wait(max(0.0, tick - time.monotonic()))
+            if errors:
+                break
+            now = time.monotonic()
+            total, count = sum(moved), sum(ops)
+            elapsed = max(now - last_time, 1e-6)
+            sample = {"phase": phase,
+                      "mbs": round((total - last_moved) / elapsed / 1e6, 1)}
+            if random_io:
+                done = count - last_ops
+                sample["iops"] = round(done / elapsed)
+                sample["latency_us"] = round(elapsed * 1e6 / done, 1) if done else 0
+            emit(sample)
+            last_time, last_moved, last_ops = now, total, count
+            if now >= deadline:
+                break
+    finally:
+        stop.set()
+        # Workers still hold the file descriptor; finish joining them even if
+        # a signal lands mid-join, then deliver it.
+        pending = None
+        for thread in threads:
+            while thread.is_alive():
+                try:
+                    thread.join()
+                except Interrupted as interrupted:
+                    pending = interrupted
+        for buffer in buffers:
+            buffer.close()
+        if pending is not None:
+            raise pending
+    if not errors and write:
+        # Count the drive's final flush, not just what it accepted into cache.
+        try:
+            os.fdatasync(fd)
+        except OSError as error:
+            errors.append(error)
+    if errors:
+        reason = errors[0].strerror or str(errors[0])
+        raise Failure(f"{phase} failed: {reason}")
+    elapsed = max(time.monotonic() - started, 1e-6)
+    return sum(moved), sum(ops), elapsed
+
+
+def benchmark(test, emit, seconds):
+    written, _, elapsed = run_phase("write", test, test.size, emit, seconds, write=True)
+    write_mbs = written / elapsed / 1e6
+    # Only the part the write phase reached holds real data; reading past it
+    # would hit holes, which btrfs answers from memory.
+    extent = min(test.size, os.fstat(test.fd).st_size) // SEQ_BLOCK * SEQ_BLOCK
+    if not test.direct:
+        os.fdatasync(test.fd)
+        os.posix_fadvise(test.fd, 0, 0, os.POSIX_FADV_DONTNEED)
+    read, _, elapsed = run_phase("read", test, extent, emit, seconds)
+    read_mbs = read / elapsed / 1e6
+    moved, ops, elapsed = run_phase("random", test, extent, emit, seconds, random_io=True)
+    return {
+        "write": round(write_mbs, 1),
+        "read": round(read_mbs, 1),
+        "random": round(moved / elapsed / 1e6, 1),
+        "iops": round(ops / elapsed),
+        "latency_us": round(elapsed * 1e6 / ops, 1) if ops else 0,
+    }
+
+
+def choose_disk(listing, name):
+    disks = listing["disks"]
+    if name:
+        name = name.removeprefix("/dev/")
+        disk = next((disk for disk in disks if disk["name"] == name), None)
+        if disk is None:
+            raise Failure(f"no disk named {name}")
+    else:
+        disk = next((disk for disk in disks if disk["name"] == listing["default"]), None)
+        if disk is None:
+            raise Failure("no disk can be tested")
+    if disk["state"] == "unavailable":
+        raise Failure(f"{disk['name']} cannot be tested: {disk['reason']}")
+    return disk
+
+
+def udisks(action, device):
+    try:
+        result = subprocess.run(
+            ["udisksctl", action, "--no-user-interaction", "-b", device],
+            capture_output=True, text=True)
+    except FileNotFoundError as error:
+        raise Failure(f"udisksctl is required to {action} {device}") from error
+    if result.returncode != 0:
+        message = (result.stderr or result.stdout).strip().splitlines()
+        raise Failure(f"could not {action} {device}: "
+                      f"{message[-1] if message else 'udisksctl failed'}")
+
+
+def parse_args(argv):
+    parser = argparse.ArgumentParser(
+        prog="disk-speedtest",
+        description="Measure sequential write/read and random 4K read speed of a disk.")
+    parser.add_argument("--list-json", action="store_true",
+                        help="print the disks that can be tested and exit")
+    parser.add_argument("--stream-json", action="store_true",
+                        help="print one JSON sample per second")
+    parser.add_argument("--disk", metavar="NAME",
+                        help="disk to test, such as nvme0n1 (default: the system disk)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="print the planned actions without mounting or writing")
+    parser.add_argument("--fixture", metavar="LSBLK_JSON",
+                        help="read disks from an lsblk JSON file; implies --dry-run")
+    parser.add_argument("--target-dir", metavar="DIR",
+                        help="test this directory instead of a discovered disk")
+    parser.add_argument("--seconds", type=float, default=PHASE_SECONDS,
+                        help=argparse.SUPPRESS)
+    parser.add_argument("--max-bytes", type=int, default=MAX_BYTES,
+                        help=argparse.SUPPRESS)
+    parser.add_argument("--buffered", action="store_true",
+                        help="skip direct I/O (results include the page cache)")
+    args = parser.parse_args(argv)
+    if args.fixture:
+        args.dry_run = True
+    if args.seconds <= 0 or args.max_bytes < RANDOM_BLOCK:
+        parser.error("--seconds and --max-bytes must be positive")
+    return args
+
+
+def main(argv):
+    args = parse_args(argv)
+    signal.signal(signal.SIGTERM, raise_interrupted)
+    signal.signal(signal.SIGINT, raise_interrupted)
+
+    def emit(record):
+        if args.stream_json:
+            print(json.dumps(record, separators=(",", ":")), flush=True)
+
+    if args.list_json:
+        print(json.dumps(discover(args.fixture), indent=2))
+        return 0
+
+    if args.target_dir:
+        directory = os.path.abspath(args.target_dir)
+        disk = {"name": "", "model": directory, "mountpoint": directory,
+                "fstype": filesystem_type(directory), "encrypted": False,
+                "removable": False, "system": False, "state": "ready",
+                "target": directory, "mountDevice": ""}
+    else:
+        disk = choose_disk(discover(args.fixture), args.disk)
+
+    if args.dry_run:
+        if disk["state"] == "mountable":
+            print(f"Would mount {disk['mountDevice']} with udisksctl")
+            print(f"Would test {disk['name']} in <mountpoint>/.disk-speedtest")
+            print(f"Would unmount {disk['mountDevice']} afterwards")
+        else:
+            print(f"Would test {disk['name'] or disk['target']} in {disk['target']}")
+        return 0
+
+    mounted = ""
+    test = None
+    try:
+        if disk["state"] == "mountable":
+            emit({"phase": "mount", "device": disk["mountDevice"]})
+            udisks("mount", disk["mountDevice"])
+            mounted = disk["mountDevice"]
+            disk = choose_disk(discover(None), disk["name"])
+            if disk["state"] != "ready":
+                raise Failure(f"{disk['name']} is not writable after mounting")
+        test = TestFile(disk["target"], args.max_bytes, not args.buffered)
+        emit({"phase": "start",
+              "disk": {key: disk[key] for key in
+                       ("name", "model", "mountpoint", "fstype", "encrypted",
+                        "removable", "system")},
+              "bytes": test.size, "reduced": test.reduced, "direct": test.direct})
+        result = benchmark(test, emit, args.seconds)
+    except Failure as error:
+        print(f"disk-speedtest: {error}", file=sys.stderr)
+        return 1
+    except Interrupted as interrupted:
+        return interrupted.code
+    except OSError as error:
+        print(f"disk-speedtest: {error.strerror or error}", file=sys.stderr)
+        return 1
+    finally:
+        # A signal during cleanup would leave the file or the mount behind.
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        if test is not None:
+            test.close()
+        if mounted:
+            try:
+                udisks("unmount", mounted)
+            except Failure as error:
+                print(f"disk-speedtest: {error}", file=sys.stderr)
+
+    if args.stream_json:
+        emit(dict(phase="complete", direct=test.direct, bytes=test.size, **result))
+    else:
+        details = ", ".join(part for part in (
+            disk["mountpoint"], disk["fstype"],
+            "encrypted" if disk["encrypted"] else "") if part)
+        io_mode = "direct I/O" if test.direct else "buffered I/O, cached numbers"
+        print(f"Disk: {disk['model']} ({details})")
+        print(f"Test file: {format_bytes(test.size)}, {io_mode}")
+        print(f"Write: {result['write']:.1f} MB/s")
+        print(f"Read: {result['read']:.1f} MB/s")
+        print(f"Random 4K read: {result['random']:.1f} MB/s "
+              f"({result['iops']} IOPS, {result['latency_us']:.0f} µs average)")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv[1:]))
+    except Failure as failure:
+        print(f"disk-speedtest: {failure}", file=sys.stderr)
+        sys.exit(1)
+    except Interrupted as interrupted:
+        sys.exit(interrupted.code)
