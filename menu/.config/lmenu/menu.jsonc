@@ -354,13 +354,6 @@
     "action": "~/.config/hypr/scripts/toggles-menu.sh touchpad"
   },
   {
-    "id": "trigger.toggle.battery",
-    "icon": "󰁹",
-    "label": "Battery percentage [UNRESOLVED]",
-    "when": "compgen -G '/sys/class/power_supply/BAT*' >/dev/null",
-    "action": "notify-send 'lmenu' 'TODO: the Quickshell bar exposes no battery-percentage IPC yet. Point trigger.toggle.battery at one from the extensions file.'"
-  },
-  {
     "id": "trigger.toggle.layout",
     "icon": "󰕬",
     "label": "Workspace layout (dwindle / master)",
