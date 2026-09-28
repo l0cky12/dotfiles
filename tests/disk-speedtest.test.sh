@@ -231,6 +231,8 @@ grep -Fq 'testProc.command = [backend, "--stream-json", "--disk", name]' "$qs/Di
   fail 'the overlay does not launch the streaming CLI'
 grep -Fq 'Keys.onEscapePressed: DiskState.close()' "$qs/DiskSpeedOverlay.qml" ||
   fail 'the disk overlay cannot close with Escape'
+grep -Fq '? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand' "$qs/DiskSpeedOverlay.qml" ||
+  fail 'the disk overlay keeps an exclusive keyboard grab while a test runs'
 grep -Fq 'SpeedTestGauge {' "$qs/DiskSpeedOverlay.qml" || fail 'the disk overlay does not reuse the speed-test gauge'
 ! sed '/^[[:space:]]*\/\//d' "$qs/DiskState.qml" "$qs/DiskSpeedOverlay.qml" |
   grep -nE '"#[0-9a-fA-F]{3,8}"|pkexec|sudo|sh", "-c' || fail 'disk QML bypasses the theme or privilege boundary'

@@ -20,7 +20,11 @@ PanelWindow {
 
   WlrLayershell.namespace: "hyprland-disk-speedtest"
   WlrLayershell.layer: WlrLayer.Overlay
-  WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+  // Grab the keyboard only while choosing a disk. Once a test starts the
+  // overlay takes focus on demand, so windows on other monitors stay usable;
+  // clicking the overlay gives it the keyboard back for Escape.
+  WlrLayershell.keyboardFocus: window.picking || DiskState.phase === "loading"
+    ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.OnDemand
 
   readonly property bool picking: DiskState.phase === "pick"
   readonly property bool testing: DiskState.diskName !== "" && !picking
