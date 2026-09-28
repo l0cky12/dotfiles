@@ -81,6 +81,12 @@ aur_helper() {
   fi
 }
 
+apt_updates() {
+  local output
+  output=$(LC_ALL=C apt list --upgradable 2>/dev/null) || return 1
+  awk -F/ '/^[^[:space:]]+\// { print $1 }' <<< "$output"
+}
+
 now_epoch() {
   printf '%(%s)T' -1
 }
@@ -126,15 +132,15 @@ serve_cached() {
 compute_count() {
   local helper repo_output aur_output='' repo aur
 
-  if ! repo_output=$(repo_updates); then
-    printf '{"error":"sync failed"}\n' >&2
-    return 1
-  fi
-  if helper=$(aur_helper); then
-    if ! aur_output=$(aur_updates "$helper"); then
-      printf '{"error":"AUR check rate limited"}\n' >&2
-      return 1
+  if command -v pacman >/dev/null 2>&1 || command -v checkupdates >/dev/null 2>&1; then
+    repo_output=$(repo_updates) || { printf '{"error":"sync failed"}\n' >&2; return 1; }
+    if helper=$(aur_helper); then
+      aur_output=$(aur_updates "$helper") || { printf '{"error":"AUR check rate limited"}\n' >&2; return 1; }
     fi
+  elif command -v apt >/dev/null 2>&1; then
+    repo_output=$(apt_updates) || { printf '{"error":"apt check failed"}\n' >&2; return 1; }
+  else
+    repo_output=''
   fi
   repo=$(count_lines "$repo_output")
   aur=$(count_lines "$aur_output")
@@ -163,26 +169,64 @@ print_count() {
   printf '%s\n' "$payload"
 }
 
+notify() {
+  command -v notify-send >/dev/null 2>&1 && notify-send "System Update" "$1"
+  printf '%s\n' "$1" >&2
+}
+
+terminal() {
+  local candidate
+
+  for candidate in "${TERMINAL:-}" kitty foot alacritty ghostty; do
+    [[ -n $candidate ]] || continue
+    command -v "$candidate" >/dev/null 2>&1 && { command -v "$candidate"; return 0; }
+  done
+  return 1
+}
+
+# The upgrade needs an interactive terminal so sudo and the AUR helper can
+# prompt, and the window is held open on a read so the log stays readable.
+# Exiting with the upgrade's status lets the widget tell "finished" from
+# "failed" instead of zeroing its count either way.
+# ponytail: relies on the terminal forwarding the child exit code; if one does
+# not, the widget just keeps its counts and flags them stale.
 run_update() {
-  local helper
+  local term manager helper='' update_status
 
-  if ! helper=$(aur_helper); then
-    command -v notify-send >/dev/null 2>&1 && notify-send "Arch Updates" "Install yay or paru to update."
-    return 0
+  if helper=$(aur_helper); then
+    manager=aur
+  elif command -v pacman >/dev/null 2>&1; then
+    manager=pacman
+  elif command -v apt >/dev/null 2>&1; then
+    manager=apt
+  else
+    notify "No package manager found (yay, paru, pacman, or apt)."
+    return 1
   fi
-  if ! command -v kitty >/dev/null 2>&1; then
-    command -v notify-send >/dev/null 2>&1 && notify-send "Arch Updates" "Kitty is not installed."
-    return 0
+  if ! term=$(terminal); then
+    notify "No terminal emulator found."
+    return 1
   fi
 
-  kitty --title "System Update" bash -lc '"$1" -Syyu; status=$?; printf "\nUpdate finished. Press Enter to close."; read -r; exit "$status"' _ "$helper"
-  # The upgrade just queried the AUR itself and invalidated the counts. Drop the
-  # stale payload but keep the attempt recent, so the next check waits out the
-  # TTL instead of querying again immediately.
+  "$term" --title "System Update" bash -lc '
+    case $1 in
+      aur) "$2" -Syu ;;
+      pacman) sudo pacman -Syu ;;
+      apt) sudo apt update && sudo apt full-upgrade ;;
+    esac
+    status=$?
+    printf "\n"
+    read -rp "Done. Press Enter to close. " _
+    exit $status
+  ' _ "$manager" "$helper"
+  update_status=$?
+  # The upgrade queried the repositories. Keep the attempt recent so a
+  # subsequent count cannot immediately repeat the request.
   if ((cache_ttl > 0)); then
     rm -f "$cache_payload" 2>/dev/null || true
     mark_attempt 1
   fi
+  return "$update_status"
 }
 
 case ${1:-count} in

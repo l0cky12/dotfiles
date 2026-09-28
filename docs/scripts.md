@@ -16,6 +16,7 @@ These scripts are below `hypr/.config/hypr/scripts/`.
 | `power-profile.sh` | `SUPER+SHIFT+B` | lists, reports, sets, cycles, or intelligently toggles `powerprofilesctl` profiles; the bound action opens a Rofi picker | `power-profiles-daemon`; optional Rofi and notifications |
 | `files-here.sh` | `SUPER+SHIFT+ALT+F` | discovers a focused terminal's current directory and opens Nautilus there | terminal APIs, `hyprctl`, Nautilus |
 | `night-light.sh` | `SUPER+CTRL+N` | toggles Hyprsunset between 1000 K and 6500 K; delegates to `desktop-mode` when installed and otherwise controls Hyprsunset directly | `hyprctl`, `hyprsunset`; optional `desktop-mode` |
+| `night-light-schedule.py` | `SUPER+SHIFT+N` panel; `night-light-schedule.timer` every minute | turns the night light on and off at set times or at local sunset/sunrise (offline sun calculation), with optional offsets; a manual toggle holds until the next scheduled change | `python3`, `night-light.sh`, systemd user timer; network only for Detect location |
 | `voice-dictation` | `SUPER+R`; `SUPER+SHIFT+A` → Voice dictation → Choose microphone… | resolves the dictation microphone, writes it into Hyprvoice's `[recording]` section only when it changed, then toggles Hyprvoice | `hyprvoice`, `pw-dump`, `wpctl`, `jq`, `python3`; optional Rofi and notifications |
 | `spotify-notify.sh` | autostart | watches Spotify metadata and sends track-change notifications | `playerctl`, `curl`, notification command |
 | `clipboard-store.sh` | `wl-paste --watch` | filters sensitive MIME/app metadata, then stores text/images in cliphist | `wl-paste`, `hyprctl`, `jq`, `cliphist` |
@@ -182,24 +183,88 @@ which entries had to be inferred.
 Zsh sessions export `SSH_AUTH_SOCK` to the matching `gpg-agent` socket.
 
 `security/.local/bin/yubikey-auth` manages the host-local PAM-U2F mapping and
-repository-owned sudo/Hyprlock templates without placing credentials in Git.
+repository-owned sudo/doas/Hyprlock templates without placing credentials in
+Git.
 
 | Command | Behavior |
 | --- | --- |
-| `yubikey-auth status` | reports tools, visible tokens, mapping presence, and deployed-template state |
-| `yubikey-auth setup --enroll-fingerprint` | enrolls a YubiKey Bio fingerprint, creates the first mapping, backs up `/etc` targets, and stages sudo before Hyprlock |
-| `yubikey-auth add --enroll-fingerprint` | appends another Bio credential to the existing user's single mapping line |
-| `yubikey-auth add --mode pin` | registers a non-biometric FIDO2 key with PIN verification |
-| `yubikey-auth setup\|add --dry-run` | detects and reports actions without changing the key, mapping, or PAM |
+| `yubikey-auth status` | reports tools, visible tokens, what each token can verify with, mapping presence, and deployed-template state |
+| `yubikey-auth setup` | creates the first mapping, backs up `/etc` targets, and deploys the sudo and doas stacks |
+| `yubikey-auth add` | appends another credential to the existing user's single mapping line |
+| `yubikey-auth remove` | after confirmation, backs up the mapping and revokes its last registered key; the key need not be plugged in |
+| `yubikey-auth setup --with-hyprlock` | also deploys the lock-screen stack, after the interactive `INSTALL HYPRLOCK` checkpoint |
+| `yubikey-auth setup\|add --mode pin` | requires the key's FIDO PIN at every authentication |
+| `yubikey-auth setup\|add --mode bio --enroll-fingerprint` | enrolls and requires a fingerprint on a key that has a sensor |
+| `yubikey-auth setup\|add\|remove --dry-run` | reports actions without changing the key, mapping, or PAM |
+
+The verification mode comes from what the key reports through
+`fido2-token -I`, not from its USB product ID: `product=0x0402` is the plain
+FIDO interface and is shared by keys with no fingerprint sensor, so keying off
+it sent sensorless hardware into Bio enrollment and `FIDO_ERR_INVALID_COMMAND`.
+`--mode auto` now picks `bio` only when the key reports `bioEnroll`, and
+`touch` otherwise. Asking for a mode the key cannot do fails with a message
+naming the hardware limit.
+
+Touch mode registers with neither `-V` nor `-N`, so a tap is the whole
+authentication. That proves the key is present, not who pressed it, which is
+why Hyprlock is opt-in: on the lock screen a touch-only credential means anyone
+at the machine can unlock it while the key is plugged in.
 
 Automatic detection fails closed when several YubiKeys are connected; select
 one explicitly with `--device`. Generated credentials are held in a mode-0700
 temporary directory, validated before installation, and removed on exit.
 
 `SUPER+SHIFT+A` > Setup > Security > YubiKey provides the same status, setup,
-add-key, dependency installation, and recovery-documentation paths. Commands
-that can report an incomplete setup use Kitty's hold mode so their output stays
-visible.
+add-key, remove-last-key, dependency installation, and recovery paths. Each
+entry reports a ✅ or ❌ line and then waits for Enter, so a failure stays
+readable instead of the window closing or leaving a bare shell. Removing the
+only credential deletes the mapping file and leaves the PAM password fallback
+in place; it does not change the key's PIN.
+
+## Fingerprint sign-in
+
+`security/.local/bin/fingerprint-auth` covers the *other* fingerprint: a sensor
+built into the host, such as the Goodix reader in a Framework 13 power button.
+It is unrelated to `yubikey-auth --enroll-fingerprint`, which enrolls onto a
+YubiKey Bio token and requires a key with its own sensor.
+
+| Command | Behavior |
+| --- | --- |
+| `fingerprint-auth status` | reports tools, USB reader, fprintd device, enrolled fingers, and Hyprlock wiring; never exits non-zero |
+| `fingerprint-auth setup` | detects the reader, installs `fprintd` if needed, enrolls `--finger` (default `right-index-finger`), enables Hyprlock fingerprint unlock, and deploys sudo/doas/greetd PAM templates |
+| `fingerprint-auth enroll --finger NAME` | adds one more finger to an already-configured host |
+| `fingerprint-auth verify` | tests an enrolled finger against the reader |
+| `fingerprint-auth delete` | removes every enrolled print for the user, leaving the Hyprlock config alone |
+| `fingerprint-auth setup --dry-run` | reports actions, including a pending `fprintd` install, without installing or touching prints or configuration |
+| `fingerprint-auth setup --no-hyprlock --no-pam` | enrolls only |
+
+Reader detection reads `/sys/bus/usb/devices` against a table of fingerprint
+vendor IDs rather than shelling out to `lsusb`, which is not installed by
+default and would turn "no reader" into "command not found". When `fprintd` is
+installed its view wins, because it knows which of those USB IDs libfprint can
+actually drive.
+
+Hyprlock uses its parallel fprintd client so the password field remains usable
+while a scan runs. `setup` also deploys fingerprint PAM templates for sudo,
+doas, and greetd, with a checkpoint after testing escalation and before greetd.
+Use `--no-pam` to leave system PAM alone.
+
+When a reader is on USB but `fprintd` is missing, `setup` installs it with
+`pacman -S --needed fprintd` through doas, or sudo when doas is absent, then
+carries on. Pacman's own prompt is the confirmation. With no terminal attached,
+`setup` stops before running doas, sudo, or pacman and prints the command to run
+by hand. `enroll`, `verify`, and `delete` point at `setup` instead, and `status`
+never installs anything.
+
+Every other path fails closed with an explanation: no reader, a reader that
+`fprintd` cannot drive, no terminal, a declined or failed install, an invalid
+finger name. Enrollment and configuration are not modified in those cases. If
+`setup` installs `fprintd` and libfprint cannot drive the reader, the packages
+stay installed. Honors
+`FINGERPRINT_AUTH_USER`, `FINGERPRINT_AUTH_USB_ROOT`,
+`FINGERPRINT_AUTH_HYPRLOCK_CONF`, `FINGERPRINT_AUTH_FPRINTD_{ENROLL,LIST,VERIFY,DELETE}`,
+`FINGERPRINT_AUTH_SUDO`, and `FINGERPRINT_AUTH_PACMAN`, which is how
+`tests/fingerprint-auth.test.sh` drives it against fixtures.
 
 ## Lock and idle settings
 
@@ -265,7 +330,7 @@ config that points at the regreet greeter. See
 | `screensaver/.local/bin/screensaver-branding` | text, image, and reset logo workflows with forced preview |
 | `screensaver/.local/bin/transcode-ascii` | ImageMagick PBM to Unicode braille/block converter |
 | `screensaver/.local/bin/screensaver-lock` | stop renderers and screensaver terminals before Hyprlock |
-| `hypr/.local/bin/webapp` | create/remove browser-style web application launchers |
+| `hypr/.local/bin/webapp` | create/edit/remove browser-style web application launchers |
 | `hypr/.local/bin/webapp-launch` | launch a stored web app with the configured browser profile/options |
 
 The Quickshell notification service owns state; the helper does not implement a
@@ -310,7 +375,9 @@ rest were removed — recoverable from Git history if ever wanted.
 ## AI launcher
 
 `ai/.local/bin/ai-agent` preserves the caller's working directory and launches
-Claude, Codex, OpenCode, or T3 Code. Selection precedence is an explicit `--agent`, then
+Claude through `teamclaude run --`, or Codex, OpenCode, or T3 Code directly.
+Claude requires a configured TeamClaude installation on `PATH`.
+Selection precedence is an explicit `--agent`, then
 `AI_AGENT_DEFAULT`, then the configured value in `AI_AGENT_CONFIG` (defaulting to
 `~/.config/ai-agent/config`). Shell aliases in `zsh/.zshrc` call this launcher.
 

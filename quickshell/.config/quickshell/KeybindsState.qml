@@ -118,7 +118,7 @@ Singleton {
     { rank: 70, re: /^power profile menu$/i },
     { rank: 71, re: /^toggle audio visualizer$/i },
     { rank: 72, re: /^wallpaper picker$/i },
-    { rank: 73, re: /^night light$/i },
+    { rank: 73, re: /^night light( schedule)?$/i },
     { rank: 74, re: /^spotify$/i },
     { rank: 75, re: /^(Windows VM|stop Windows VM)$/i },
     { rank: 76, re: /^default browser private window$/i },

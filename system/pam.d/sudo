@@ -1,9 +1,17 @@
 #%PAM-1.0
 
-# Prefer the YubiKey Bio fingerprint, then its PIN; system-auth remains the
-# password fallback when the key is absent or user verification fails.
-auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper pinverification=0 userverification=1
-auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper pinverification=1 userverification=0
+# Touch-only YubiKey. The attached key has no fingerprint sensor and no built-in
+# user verification, so presence is the only factor it can offer: a tap proves
+# the key is plugged in, not who pressed it. Registration must therefore use
+# `yubikey-auth setup --mode touch` (the default for such a key); a credential
+# registered with --mode bio or --mode pin will not satisfy this line.
+# Enter the account password normally; a correct password skips the fingerprint
+# and YubiKey checks and is checked again by system-auth. Otherwise, try one
+# host fingerprint scan, then a YubiKey touch. The leading '-' suppresses
+# missing-module logs on hosts without fprintd.
+auth       [success=2 default=ignore]  pam_unix.so
+-auth      sufficient                  pam_fprintd.so      max-tries=1 timeout=10
+auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper userpresence=1 pinverification=0 userverification=0
 auth       include                     system-auth
 account    include                     system-auth
 session    include                     system-auth

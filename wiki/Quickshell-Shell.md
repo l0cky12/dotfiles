@@ -29,51 +29,79 @@ from `quickshell/.config/quickshell/cava-visualizer/`.
 
 ## Bar layout
 
-One top-layer bar per screen. Content scales with `barScale`, capped at 1.25×,
-which is what makes the tallest chrome (the 26 design-px workspace cell) sit at
-33 px inside a 45 px bar.
+One top-layer bar per screen. The bar strip itself is transparent and paints
+nothing: everything you see is an **island** — a black stadium-shaped capsule
+(`BarIsland.qml`) floating over the wallpaper, holding a group of **modules**.
+The strip still reserves its full height, so windows tile below it and never
+slide underneath a capsule.
 
-**Left** — `WorkspacesModule`: fixed cells for workspaces 1–10. Clicking one
+Content scales with `barScale` (`Theme.barScaleFor`), capped at 1.25×, which is
+what makes the tallest chrome (the 26 design-px workspace cell) sit at 33 px
+inside a 40 px island. The reserved height is that island plus a 5 px gap above
+and below.
+
+Narrow bars scale down. If that still leaves too little room, the clock shifts
+off centre (`centerGroup.collisionShift`) to keep the capsules apart.
+
+Islands are spread to the two edges rather than clustered: workspaces hard left,
+the clock centred, the tray and power hard right.
+
+| Island | Holds |
+| --- | --- |
+| `leftIsland` | `WorkspacesModule` |
+| `centerIsland` | recording and mode indicators, clock |
+| `trayIsland` | launcher, agent, VM, Bluetooth, network, audio, battery when present |
+| `powerIsland` | the power button, alone, circular |
+
+An island is sized to its content, so it shrinks when a module hides itself —
+the battery on a desktop, the VM icon when the container is down. Its colour is
+`Theme.bgDeep`, not a hardcoded black, so a light palette still gets a legible
+bar. Its radius is deliberately *not* `Theme.hyprRounding`: the capsule is the
+design, and a theme setting rounding to 4 would flatten it back into a slab.
+
+`powerIsland` is separate on purpose. Power is the only destructive control on
+the bar, so it does not share a capsule with the icon a mis-aimed click would
+otherwise be one pixel away from.
+
+**Left** — `WorkspacesModule` has fixed cells for workspaces 1–10. Clicking one
 switches to it.
 
-**Centre** — the clock is the anchor, and both side groups grow away from it, so
-changing either side never nudges the time.
+**Centre** — the clock is the anchor. The indicator row grows left, so changing
+it does not nudge the time. The clock opens the calendar.
 
 | Position | Widget |
 | --- | --- |
-| left of the clock | `RecordIcon`, `ModeIndicators`, `UpdatesIcon`, `BatteryIcon` (when a laptop battery is present) |
+| left of the clock | `RecordIcon`, `ModeIndicators` |
 | the anchor | the clock itself |
-| right of the clock | `KeyboardLayoutWidget`, weather glyph, weather temperature |
 
-The `MediaPanel` anchors to the clock, but is opened from `MediaIcon` or the
-`media` IPC target — the clock itself is a plain label with no click target.
+The `MediaPanel` anchors to the clock and opens through the `media` IPC target.
 
-**Right** — `SystemTrayWidget`, `AgentIcon`, `WindowsVmIcon`, `ClipboardIcon`,
-`BluetoothIcon`, `NetworkIcon`, `AudioIcon`, `DisplayIcon`, then a power button
-that runs `scripts/power-menu.sh`.
+**Right** — `AppLauncher`, `AgentIcon`, `WindowsVmIcon`, `BluetoothIcon`,
+`NetworkIcon`, `AudioIcon`, `BatteryIcon` when present, then the power button.
 
 `tests/omakub-bar-layout.test.sh` asserts the bar still mounts this component
-set, so adding or removing a widget means updating that list.
+set, so adding or removing a widget means updating that list. It also asserts
+the island structure: that the strip stays transparent, that the four islands
+exist, that power stays out of the tray capsule, and that the reserved height
+still clears the island on both sides.
 
 ## Bar interactions
 
 - **Empty bar space**: inert. The bar is pinned to the top edge and cannot be
   moved.
-- **Display**: opens the display panel; the wheel adjusts DDC/CI brightness.
+- **Display**: Super+Ctrl+D opens the display panel.
 - **Network**: opens the themed NetworkManager panel.
 - **Bluetooth**: connected devices as hero cards, paired devices below, discovery
   folded behind a scan button. Pointer-driven; Escape closes.
 - **Audio**: panel on left or middle click, mute on right click, 3% wheel steps.
-- **Clipboard**: opens the cliphist browser.
+- **Clipboard**: Super+Ctrl+V opens the cliphist browser.
 - **Recording indicator**: only present while recording; clicking stops it.
 - **Mode indicators**: pills for active night light, DND, stay-awake,
   automatic-screensaver-disabled, and error states. Clicking opens the modes
   panel. They show *observed* state, so an error appears instead of a false
   success.
-- **Updates**: hover shows every pending pacman and AUR package; it checks every
-  90 minutes, and clicking opens a Kitty update window.
 - **Battery**: shows charge percentage and state; hidden when no laptop battery
-  is present.
+  is present. Clicking opens the battery panel.
 - **Windows VM icon**: appears while the container runs. Pulses amber while
   installation or startup waits for RDP, then goes solid accent when RDP is
   ready. Disappears when the VM stops.

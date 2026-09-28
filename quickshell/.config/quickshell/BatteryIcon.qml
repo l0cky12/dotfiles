@@ -14,7 +14,6 @@ Item {
                                              batteryState.state,
                                              batteryState.charging)
   readonly property string percentText: batteryState.percent + "%"
-  readonly property string tooltipText: tooltipFor(batteryState)
   function s(n) { return Theme.fs(n * root.barScale) }
 
   function glyphFor(percent, state, charging) {
@@ -29,35 +28,6 @@ Item {
     if (percent <= 65)
       return String.fromCodePoint(0xf007f) // md-battery_60
     return String.fromCodePoint(0xf0082)   // md-battery_90
-  }
-
-  function formatTime(seconds) {
-    const minutes = Math.max(0, Math.round(Number(seconds) / 60))
-    if (!isFinite(minutes) || minutes <= 0)
-      return "estimating"
-    const hours = Math.floor(minutes / 60)
-    const remainder = minutes % 60
-    if (hours === 0)
-      return remainder + "m"
-    return hours + "h" + (remainder > 0 ? " " + remainder + "m" : "")
-  }
-
-  function stateLabel(state) {
-    if (!state || state === "unknown")
-      return "Unknown"
-    return state.charAt(0).toUpperCase() + state.slice(1)
-  }
-
-  function tooltipFor(battery) {
-    const summary = battery.percent + "% · " + stateLabel(battery.state)
-    if (battery.state === "charging" || battery.state === "pending charge")
-      return summary + "\nTime to full: " + formatTime(battery.timeToCharge)
-    if (battery.state === "discharging"
-        || battery.state === "pending discharge")
-      return summary + "\nTime remaining: " + formatTime(battery.timeToEmpty)
-    if (battery.state === "full")
-      return battery.percent + "% · Full"
-    return summary
   }
 
   visible: batteryState.hasBattery
@@ -95,32 +65,17 @@ Item {
     }
   }
 
-  HoverHandler { id: hover }
+  // No hover tooltip: BatteryPanel is a strict superset of what the tooltip
+  // said, and a hover popup would fight the click popup for the same space
+  // directly under the icon.
+  MouseArea {
+    anchors.fill: parent
+    acceptedButtons: Qt.LeftButton
+    onClicked: panel.visible = !panel.visible
+  }
 
-  PopupWindow {
-    visible: root.visible && hover.hovered
-    anchor.item: root
-    anchor.edges: Edges.Bottom
-    anchor.gravity: Edges.Bottom
-    anchor.margins.top: root.s(6)
-    implicitWidth: tip.implicitWidth + Theme.gapL
-    implicitHeight: tip.implicitHeight + Theme.gapM
-
-    Rectangle {
-      anchors.fill: parent
-      radius: Theme.radiusCell
-      color: Theme.bg
-      border.width: Theme.borderWidth
-      border.color: Theme.surface
-    }
-
-    Text {
-      id: tip
-      anchors.centerIn: parent
-      text: root.tooltipText
-      color: Theme.text
-      font.family: Theme.uiFamily
-      font.pixelSize: Theme.fs(12)
-    }
+  BatteryPanel {
+    id: panel
+    anchorItem: root
   }
 }

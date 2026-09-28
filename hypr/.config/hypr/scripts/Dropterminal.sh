@@ -12,7 +12,7 @@
 
 DEBUG=false
 SPECIAL_WS="special:scratchpad"
-ADDR_FILE="/tmp/dropdown_terminal_addr"
+ADDR_FILE="${DROPTERMINAL_ADDR_FILE:-/tmp/dropdown_terminal_addr}"
 
 # Dropdown size and position configuration (percentages)
 WIDTH_PERCENT=65  # Width as percentage of screen width
@@ -31,6 +31,14 @@ if [ "$1" = "-d" ]; then
 fi
 
 TERMINAL_CMD="$1"
+
+# Cached client list, fetched lazily (at most one hyprctl clients -j per phase)
+CLIENTS=""
+refresh_clients() {
+  if [ -z "$CLIENTS" ]; then
+    CLIENTS=$(hyprctl clients -j)
+  fi
+}
 
 # Debug echo function
 debug_echo() {
@@ -86,7 +94,7 @@ fi
 # Function to get window geometry
 get_window_geometry() {
   local addr="$1"
-  hyprctl clients -j | jq -r --arg ADDR "$addr" '.[] | select(.address == $ADDR) | "\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"'
+  jq -r --arg ADDR "$addr" '.[] | select(.address == $ADDR) | "\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' <<<"$CLIENTS"
 }
 
 # Function to animate window slide down (show)
@@ -148,7 +156,8 @@ animate_slide_up() {
 
 # Function to get monitor info including scale and name of focused monitor
 get_monitor_info() {
-  local monitor_data=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | "\(.x) \(.y) \(.width) \(.height) \(.scale) \(.name)"')
+  local monitor_data
+  monitor_data=$(hyprctl monitors -j | jq -r '.[] | select(.focused == true) | "\(.x) \(.y) \(.width) \(.height) \(.scale) \(.name)"')
   if [ -z "$monitor_data" ] || [[ "$monitor_data" =~ ^null ]]; then
     debug_echo "Error: Could not get focused monitor information"
     return 1
@@ -158,7 +167,8 @@ get_monitor_info() {
 
 # Function to calculate dropdown position with proper scaling and centering
 calculate_dropdown_position() {
-  local monitor_info=$(get_monitor_info)
+  local monitor_info
+  monitor_info=$(get_monitor_info)
 
   if [ $? -ne 0 ] || [ -z "$monitor_info" ]; then
     debug_echo "Error: Failed to get monitor info, using fallback values"
@@ -166,12 +176,8 @@ calculate_dropdown_position() {
     return 1
   fi
 
-  local mon_x=$(echo $monitor_info | cut -d' ' -f1)
-  local mon_y=$(echo $monitor_info | cut -d' ' -f2)
-  local mon_width=$(echo $monitor_info | cut -d' ' -f3)
-  local mon_height=$(echo $monitor_info | cut -d' ' -f4)
-  local mon_scale=$(echo $monitor_info | cut -d' ' -f5)
-  local mon_name=$(echo $monitor_info | cut -d' ' -f6)
+  local mon_x mon_y mon_width mon_height mon_scale mon_name
+  read -r mon_x mon_y mon_width mon_height mon_scale mon_name <<<"$monitor_info"
 
   debug_echo "Monitor info: x=$mon_x, y=$mon_y, width=$mon_width, height=$mon_height, scale=$mon_scale"
 
@@ -182,19 +188,10 @@ calculate_dropdown_position() {
   fi
 
   # Calculate logical dimensions by dividing physical dimensions by scale
+  # awk int() truncates toward zero, same as the previous bc scale=0 + cut pipeline
   local logical_width logical_height
-  if command -v bc >/dev/null 2>&1; then
-    # Use bc for precise floating point calculation
-    logical_width=$(echo "scale=0; $mon_width / $mon_scale" | bc | cut -d'.' -f1)
-    logical_height=$(echo "scale=0; $mon_height / $mon_scale" | bc | cut -d'.' -f1)
-  else
-    # Fallback to integer math (multiply by 100 for precision, then divide)
-    local scale_int=$(echo "$mon_scale" | sed 's/\.//' | sed 's/^0*//')
-    if [ -z "$scale_int" ]; then scale_int=100; fi
-
-    logical_width=$(((mon_width * 100) / scale_int))
-    logical_height=$(((mon_height * 100) / scale_int))
-  fi
+  logical_width=$(awk "BEGIN{print int($mon_width / $mon_scale)}")
+  logical_height=$(awk "BEGIN{print int($mon_height / $mon_scale)}")
 
   # Ensure we have valid integer values
   if ! [[ "$logical_width" =~ ^-?[0-9]+$ ]]; then logical_width=$mon_width; fi
@@ -241,21 +238,25 @@ get_terminal_monitor() {
   fi
 }
 
-# Function to check if terminal exists
+# Function to check if terminal exists (lazily fetches and caches CLIENTS)
 terminal_exists() {
-  local addr=$(get_terminal_address)
+  local addr
+  addr=$(get_terminal_address)
   if [ -n "$addr" ]; then
-    hyprctl clients -j | jq -e --arg ADDR "$addr" 'any(.[]; .address == $ADDR)' >/dev/null 2>&1
+    refresh_clients
+    jq -e --arg ADDR "$addr" 'any(.[]; .address == $ADDR)' <<<"$CLIENTS" >/dev/null 2>&1
   else
     return 1
   fi
 }
 
-# Function to check if terminal is in special workspace
+# Function to check if terminal is in special workspace (uses cached CLIENTS)
 terminal_in_special() {
-  local addr=$(get_terminal_address)
+  local addr
+  addr=$(get_terminal_address)
   if [ -n "$addr" ]; then
-    hyprctl clients -j | jq -e --arg ADDR "$addr" 'any(.[]; .address == $ADDR and .workspace.name == "special:scratchpad")' >/dev/null 2>&1
+    refresh_clients
+    jq -e --arg ADDR "$addr" 'any(.[]; .address == $ADDR and .workspace.name == "special:scratchpad")' <<<"$CLIENTS" >/dev/null 2>&1
   else
     return 1
   fi
@@ -266,22 +267,22 @@ spawn_terminal() {
   debug_echo "Creating new dropdown terminal with command: $TERMINAL_CMD"
 
   # Calculate dropdown position for later use
-  local pos_info=$(calculate_dropdown_position)
+  local pos_info
+  pos_info=$(calculate_dropdown_position)
   if [ $? -ne 0 ]; then
     debug_echo "Warning: Using fallback positioning"
   fi
 
-  local target_x=$(echo $pos_info | cut -d' ' -f1)
-  local target_y=$(echo $pos_info | cut -d' ' -f2)
-  local width=$(echo $pos_info | cut -d' ' -f3)
-  local height=$(echo $pos_info | cut -d' ' -f4)
-  local monitor_name=$(echo $pos_info | cut -d' ' -f5)
+  local target_x target_y width height monitor_name
+  read -r target_x target_y width height monitor_name <<<"$pos_info"
 
   debug_echo "Target position: ${target_x},${target_y}, size: ${width}x${height}"
 
   # Get window count before spawning
-  local windows_before=$(hyprctl clients -j)
-  local count_before=$(echo "$windows_before" | jq 'length')
+  local windows_before
+  windows_before=$(hyprctl clients -j)
+  local count_before
+  count_before=$(jq 'length' <<<"$windows_before")
 
   # Launch terminal directly in special workspace to avoid visible spawn
   hyprctl dispatch "hl.dsp.exec_cmd($(lua_string "$TERMINAL_CMD"), { float = true, size = { $width, $height }, workspace = \"special:scratchpad silent\" })"
@@ -290,16 +291,18 @@ spawn_terminal() {
   sleep 0.1
 
   # Get windows after spawning
-  local windows_after=$(hyprctl clients -j)
-  local count_after=$(echo "$windows_after" | jq 'length')
+  local windows_after
+  windows_after=$(hyprctl clients -j)
+  local count_after
+  count_after=$(jq 'length' <<<"$windows_after")
 
   local new_addr=""
 
   if [ "$count_after" -gt "$count_before" ]; then
     # Find the new window by comparing before/after lists
     new_addr=$(comm -13 \
-      <(echo "$windows_before" | jq -r '.[].address' | sort) \
-      <(echo "$windows_after" | jq -r '.[].address' | sort) |
+      <(jq -r '.[].address' <<<"$windows_before" | sort) \
+      <(jq -r '.[].address' <<<"$windows_after" | sort) |
       head -1)
   fi
 
@@ -339,11 +342,7 @@ if terminal_exists; then
     debug_echo "Monitor focus changed: moving dropdown to $focused_monitor"
     # Calculate new position for focused monitor
     pos_info=$(calculate_dropdown_position)
-    target_x=$(echo $pos_info | cut -d' ' -f1)
-    target_y=$(echo $pos_info | cut -d' ' -f2)
-    width=$(echo $pos_info | cut -d' ' -f3)
-    height=$(echo $pos_info | cut -d' ' -f4)
-    monitor_name=$(echo $pos_info | cut -d' ' -f5)
+    read -r target_x target_y width height monitor_name <<<"$pos_info"
     # Move and resize window
     dispatch_window_move "$TERMINAL_ADDR" "$target_x" "$target_y"
     dispatch_window_resize "$TERMINAL_ADDR" "$width" "$height"
@@ -356,10 +355,7 @@ if terminal_exists; then
 
     # Calculate target position
     pos_info=$(calculate_dropdown_position)
-    target_x=$(echo $pos_info | cut -d' ' -f1)
-    target_y=$(echo $pos_info | cut -d' ' -f2)
-    width=$(echo $pos_info | cut -d' ' -f3)
-    height=$(echo $pos_info | cut -d' ' -f4)
+    read -r target_x target_y width height <<<"$pos_info"
 
     # Use movetoworkspacesilent to avoid affecting workspace history
     dispatch_window_workspace "$TERMINAL_ADDR" "$CURRENT_WS"
@@ -374,12 +370,11 @@ if terminal_exists; then
     debug_echo "Hiding terminal to scratchpad with slide up animation"
 
     # Get current geometry for animation
+    CLIENTS=""
+    refresh_clients
     geometry=$(get_window_geometry "$TERMINAL_ADDR")
     if [ -n "$geometry" ]; then
-      curr_x=$(echo $geometry | cut -d' ' -f1)
-      curr_y=$(echo $geometry | cut -d' ' -f2)
-      curr_width=$(echo $geometry | cut -d' ' -f3)
-      curr_height=$(echo $geometry | cut -d' ' -f4)
+      read -r curr_x curr_y curr_width curr_height <<<"$geometry"
 
       debug_echo "Current geometry: ${curr_x},${curr_y} ${curr_width}x${curr_height}"
 

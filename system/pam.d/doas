@@ -2,11 +2,13 @@
 
 # doas is the escalation command this desktop actually uses: .zshrc aliases
 # `sudo` to it, so a YubiKey stack deployed only to /etc/pam.d/sudo would never
-# be reached. Mirrors the sudo template: prefer the YubiKey Bio fingerprint,
-# then its PIN; system-auth remains the password fallback when the key is absent
-# or user verification fails.
-auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper pinverification=0 userverification=1
-auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper pinverification=1 userverification=0
+# be reached. Enter the password normally; a correct password skips the
+# fingerprint and YubiKey checks and is checked again by system-auth.
+# Otherwise, try one host fingerprint scan, then a YubiKey touch.
+# The leading '-' suppresses missing-module logs on hosts without fprintd.
+auth       [success=2 default=ignore]  pam_unix.so
+-auth      sufficient                  pam_fprintd.so      max-tries=1 timeout=10
+auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper userpresence=1 pinverification=0 userverification=0
 auth       include                     system-auth
 account    include                     system-auth
 session    include                     system-auth

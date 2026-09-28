@@ -328,9 +328,15 @@
     "id": "trigger.toggle.nightlight",
     "icon": "󰖔",
     "label": "Night light",
-    "when": "command -v hyprsunset >/dev/null",
     "checked": "~/.config/hypr/scripts/toggles-menu.sh status | jq -e '.nightlight == \"on\"' >/dev/null",
     "action": "~/.config/hypr/scripts/toggles-menu.sh nightlight"
+  },
+  {
+    "id": "trigger.toggle.nightlight-schedule",
+    "icon": "󰔛",
+    "label": "Night light schedule…",
+    "description": "Turn the night light on and off by time or at sunset",
+    "action": "quickshell ipc call nightlight toggle"
   },
   {
     "id": "trigger.toggle.bar",
@@ -716,35 +722,56 @@
     "icon": "󰋼",
     "label": "Status",
     "when": "command -v yubikey-auth >/dev/null",
-    "action": "kitty --hold -e yubikey-auth status"
+    "action": "kitty --title 'YubiKey status' -e bash -lc 'yubikey-auth status; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Status check finished.\\n\"; else printf \"\\n\u274c Setup is incomplete (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
   },
   {
     "id": "setup.security.yubikey.setup",
     "icon": "󰢬",
+    "label": "Set up first key",
+    "when": "command -v yubikey-auth >/dev/null",
+    "action": "kitty --title 'YubiKey setup' -e bash -lc 'yubikey-auth setup; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Setup complete.\\n\"; else printf \"\\n\u274c Setup failed (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
+  },
+  {
+    "id": "setup.security.yubikey.setup-pin",
+    "icon": "󰢬",
     "label": "Set up first key (PIN)",
     "when": "command -v yubikey-auth >/dev/null",
-    "action": "kitty --hold -e yubikey-auth setup --mode pin"
+    "action": "kitty --title 'YubiKey setup' -e bash -lc 'yubikey-auth setup --mode pin; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Setup complete.\\n\"; else printf \"\\n\u274c Setup failed (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
   },
   {
     "id": "setup.security.yubikey.add",
     "icon": "󰐕",
+    "label": "Add another key",
+    "when": "command -v yubikey-auth >/dev/null",
+    "action": "kitty --title 'Add YubiKey' -e bash -lc 'yubikey-auth add; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Key added.\\n\"; else printf \"\\n\u274c Could not add the key (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
+  },
+  {
+    "id": "setup.security.yubikey.add-pin",
+    "icon": "󰐕",
     "label": "Add another key (PIN)",
     "when": "command -v yubikey-auth >/dev/null",
-    "action": "kitty --hold -e yubikey-auth add --mode pin"
+    "action": "kitty --title 'Add YubiKey' -e bash -lc 'yubikey-auth add --mode pin; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Key added.\\n\"; else printf \"\\n\u274c Could not add the key (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
   },
   {
     "id": "setup.security.yubikey.setup-bio",
     "icon": "󰢬",
     "label": "Set up first key (Bio fingerprint)",
     "when": "command -v yubikey-auth >/dev/null",
-    "action": "kitty --hold -e yubikey-auth setup --enroll-fingerprint"
+    "action": "kitty --title 'YubiKey setup' -e bash -lc 'yubikey-auth setup --enroll-fingerprint; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Setup complete.\\n\"; else printf \"\\n\u274c Setup failed (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
   },
   {
     "id": "setup.security.yubikey.add-bio",
     "icon": "󰐕",
     "label": "Add another key (Bio fingerprint)",
     "when": "command -v yubikey-auth >/dev/null",
-    "action": "kitty --hold -e yubikey-auth add --enroll-fingerprint"
+    "action": "kitty --title 'Add YubiKey' -e bash -lc 'yubikey-auth add --enroll-fingerprint; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Key added.\\n\"; else printf \"\\n\u274c Could not add the key (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
+  },
+  {
+    "id": "setup.security.yubikey.remove",
+    "icon": "󰆴",
+    "label": "Remove last registered key",
+    "when": "command -v yubikey-auth >/dev/null",
+    "action": "kitty --title 'Remove YubiKey' -e bash -lc 'yubikey-auth remove; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Last key removed.\\n\"; else printf \"\\n\u274c No key was removed (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
   },
   {
     "id": "setup.security.yubikey.install",
@@ -752,13 +779,21 @@
     "label": "Install prerequisites",
     "when": "command -v pacman >/dev/null && command -v sudo >/dev/null",
     "disabled": "command -v pamu2fcfg >/dev/null && command -v fido2-token >/dev/null",
-    "action": "kitty --hold -e sudo pacman -S --needed pam-u2f libfido2"
+    "action": "kitty --title 'YubiKey prerequisites' -e bash -lc 'sudo pacman -S --needed pam-u2f libfido2; status=$?; if [ $status -eq 0 ]; then printf \"\\n\u2705 Prerequisites installed.\\n\"; else printf \"\\n\u274c Install failed (exit %s).\\n\" \"$status\"; fi; read -rp \"Press Enter to close\u2026\"'"
   },
   {
     "id": "setup.security.yubikey.docs",
     "icon": "󰈙",
     "label": "Setup and recovery guide",
     "action": "xdg-open https://github.com/fhlkfds/dotfiles/blob/main/docs/installation.md#yubikey-authentication"
+  },
+  {
+    "id": "setup.security.fingerprint",
+    "icon": "󰈷",
+    "label": "Fingerprint",
+    "when": "command -v fingerprint-auth >/dev/null",
+    "action": "kitty --title 'Fingerprint sign-in' -e bash -lc 'fingerprint-auth setup; read -rp \"Press Enter to close…\"'",
+    "aliases": ["fprint", "biometric", "finger", "reader"]
   },
   {
     "id": "setup.security.lock",

@@ -30,3 +30,8 @@ _darcs
 ^/\.config/hypr/workspaces\.lua$
 ^/\.config/hypr/monitors\.conf$
 ^/\.config/hypr/workspaces\.conf$
+
+# Generated theme files already owned by the live theme generator. Stow must
+# leave them in place when the package also contains an older ignored copy.
+^/\.config/hypr/conf/decorations\.lua$
+^/\.config/hypr/themes/\.active/theme\.json$

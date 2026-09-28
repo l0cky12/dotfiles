@@ -2,32 +2,30 @@
   "version": 3,
   "workspaces": [
     {
-      "id": "w1",
+      "id": "w2",
       "custom_name": null,
-      "identity_cwd": "/home/liam",
+      "identity_cwd": "/home/liam/.t3",
       "public_pane_numbers": {
         "1": 1,
-        "3": 4,
-        "2": 2,
-        "4": 6
+        "3": 3,
+        "2": 2
       },
-      "next_public_pane_number": 7,
+      "next_public_pane_number": 4,
       "public_tab_numbers": [
         1,
         2,
-        4,
-        5
+        3
       ],
-      "next_public_tab_number": 6,
+      "next_public_tab_number": 4,
       "tabs": [
         {
-          "custom_name": "hermes",
+          "custom_name": "docker",
           "layout": {
             "Pane": 1
           },
           "panes": {
             "1": {
-              "cwd": "/home/liam"
+              "cwd": "/home/liam/.t3"
             }
           },
           "zoomed": false,
@@ -35,13 +33,13 @@
           "root_pane": 1
         },
         {
-          "custom_name": null,
+          "custom_name": "Snipe it",
           "layout": {
             "Pane": 2
           },
           "panes": {
             "2": {
-              "cwd": "/home/liam/dotfiles"
+              "cwd": "/home/liam/.codex"
             }
           },
           "zoomed": false,
@@ -49,57 +47,59 @@
           "root_pane": 2
         },
         {
-          "custom_name": ".config",
+          "custom_name": "hermes",
           "layout": {
             "Pane": 3
           },
           "panes": {
             "3": {
-              "cwd": "/home/liam/.config"
+              "cwd": "/home/liam"
             }
           },
           "zoomed": false,
           "focused": 3,
           "root_pane": 3
-        },
+        }
+      ],
+      "active_tab": 0
+    },
+    {
+      "id": "w3",
+      "custom_name": null,
+      "identity_cwd": "/home/liam/dotfiles",
+      "public_pane_numbers": {
+        "4": 1,
+        "5": 2
+      },
+      "next_public_pane_number": 3,
+      "public_tab_numbers": [
+        1,
+        2
+      ],
+      "next_public_tab_number": 3,
+      "tabs": [
         {
-          "custom_name": "Dotfiles",
+          "custom_name": "gen",
           "layout": {
             "Pane": 4
           },
           "panes": {
             "4": {
-              "cwd": "/home/liam/dotfiles/wallpaper"
+              "cwd": "/home/liam/dotfiles"
             }
           },
           "zoomed": false,
           "focused": 4,
           "root_pane": 4
-        }
-      ],
-      "active_tab": 2
-    },
-    {
-      "id": "w2",
-      "custom_name": null,
-      "identity_cwd": "/home/liam",
-      "public_pane_numbers": {
-        "5": 1
-      },
-      "next_public_pane_number": 2,
-      "public_tab_numbers": [
-        1
-      ],
-      "next_public_tab_number": 2,
-      "tabs": [
+        },
         {
-          "custom_name": null,
+          "custom_name": "downlaod",
           "layout": {
             "Pane": 5
           },
           "panes": {
             "5": {
-              "cwd": "/home/liam"
+              "cwd": "/home/liam/Downloads"
             }
           },
           "zoomed": false,
@@ -107,7 +107,7 @@
           "root_pane": 5
         }
       ],
-      "active_tab": 0
+      "active_tab": 1
     }
   ],
   "active": 0,

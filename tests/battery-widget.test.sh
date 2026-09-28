@@ -7,6 +7,9 @@ state="$shell_dir/BatteryState.qml"
 icon="$shell_dir/BatteryIcon.qml"
 smoke="$shell_dir/BatterySmoke.qml"
 bar="$shell_dir/Bar.qml"
+panel="$shell_dir/BatteryPanel.qml"
+panel_content="$shell_dir/BatteryPanelContent.qml"
+metric="$shell_dir/BatteryMetric.qml"
 
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
@@ -21,7 +24,42 @@ grep -Fq 'BatteryIcon {' "$bar" || fail 'bar does not mount BatteryIcon'
 grep -Fq 'Theme.critical' "$icon" \
   || fail 'critical battery does not use the theme critical token'
 
-if grep -nE '"#[0-9a-fA-F]{3,8}"' "$state" "$icon" "$smoke"; then
+for required in "$panel" "$panel_content" "$metric"; do
+  test -f "$required" || fail "missing battery panel file: $required"
+done
+
+grep -Fq 'BatteryPanel {' "$icon" \
+  || fail 'battery icon does not mount BatteryPanel'
+grep -Fq 'panel.visible = !panel.visible' "$icon" \
+  || fail 'battery icon does not toggle the panel on click'
+grep -Fq 'HoverHandler' "$icon" \
+  && fail 'battery icon still has a hover tooltip competing with the panel'
+
+# The readout is the only reason these three exist on the singleton; without
+# them the panel would have to shell out to sysfs, which reports this laptop's
+# battery in uAh rather than uWh.
+for projection in 'property real energy:' 'property real energyCapacity:' \
+                  'property real changeRate:'; do
+  grep -Fq "$projection" "$state" \
+    || fail "BatteryState does not project $projection"
+done
+
+# UPower emits these; before the panel existed the Connections block dropped
+# them, so wattage could sit stale for a full refresh interval.
+for handler in onEnergyChanged onEnergyCapacityChanged onChangeRateChanged; do
+  grep -Fq "function $handler()" "$state" \
+    || fail "BatteryState does not react to $handler"
+done
+
+# PendingCharge is the kernel's "Not charging". powerState has to keep calling
+# it charging so BatteryLogic rearms alerts; the readout must not.
+grep -Fq 'case UPowerDeviceState.PendingCharge: return "idle"' "$state" \
+  || fail 'supplyStateFor does not treat pending charge as plugged-in idle'
+grep -Fq 'powerState: root.powerState' "$state" \
+  || fail 'alert engine no longer receives powerState'
+
+if grep -nE '"#[0-9a-fA-F]{3,8}"' "$state" "$icon" "$smoke" "$panel" \
+     "$panel_content" "$metric"; then
   fail 'battery QML contains a hardcoded color'
 fi
 

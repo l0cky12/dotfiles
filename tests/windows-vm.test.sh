@@ -203,6 +203,42 @@ set -e
 grep -Fq ' stop windows' "$calls" && fail 'failed RDP stopped the VM'
 assert_contains "$test_root/failed-rdp.out" 'left running for troubleshooting'
 
+# A configured launch dry-run plans the remaining steps without touching Docker
+# state or RDP. ensure_runtime_dir is a no-op under --dry-run, so point the
+# runtime directory at a path that does not exist: the unfixed script opened
+# its lock there and died with ENOENT, and a dry-run must not create it either.
+dry_runtime="$test_root/dry-runtime"
+: > "$calls"
+printf 'stopped\n' > "$WINDOWS_VM_TEST_STATE_FILE"
+set +e
+WINDOWS_VM_DRY_RUN=1 WINDOWS_VM_RUNTIME_DIR="$dry_runtime" \
+  "$helper" launch > "$test_root/launch-dry.out" 2>&1
+launch_dry_status=$?
+set -e
+[[ "$launch_dry_status" == 0 ]] || fail "launch dry-run exited $launch_dry_status"
+[[ ! -e "$dry_runtime" ]] || fail 'launch dry-run created the runtime directory'
+assert_contains "$test_root/launch-dry.out" "dry-run: lock $dry_runtime/launch.lock"
+assert_contains "$test_root/launch-dry.out" 'dry-run: docker compose up --detach windows'
+assert_contains "$test_root/launch-dry.out" 'dry-run: connect sdl-freerdp3 as '
+assert_contains "$test_root/launch-dry.out" 'dry-run: docker compose stop windows'
+grep -Fq ' up --detach windows' "$calls" && fail 'launch dry-run started the VM'
+grep -Fq ' stop windows' "$calls" && fail 'launch dry-run stopped the VM'
+grep -q '^rdp ' "$calls" && fail 'launch dry-run invoked the RDP client'
+[[ $(<"$WINDOWS_VM_TEST_STATE_FILE") == stopped ]] || fail 'launch dry-run changed container state'
+
+# The plan mirrors the real path: an already running VM is not started again.
+printf 'running\n' > "$WINDOWS_VM_TEST_STATE_FILE"
+WINDOWS_VM_DRY_RUN=1 "$helper" launch > "$test_root/launch-dry-running.out" 2>&1
+grep -Fq 'dry-run: docker compose up --detach windows' "$test_root/launch-dry-running.out" \
+  && fail 'dry-run planned to start a running VM'
+assert_contains "$test_root/launch-dry-running.out" 'dry-run: docker compose stop windows'
+
+# Keep-alive suppresses only the post-session stop in the planned output.
+WINDOWS_VM_DRY_RUN=1 "$helper" launch --keep-alive > "$test_root/launch-dry-keep.out" 2>&1
+assert_contains "$test_root/launch-dry-keep.out" 'dry-run: connect sdl-freerdp3 as '
+grep -Fq 'dry-run: docker compose stop windows' "$test_root/launch-dry-keep.out" \
+  && fail 'keep-alive dry-run planned a stop'
+
 # Non-destructive removal preserves all three user directories.
 WINDOWS_VM_DRY_RUN=1 "$helper" remove > "$test_root/remove.out"
 assert_contains "$test_root/remove.out" "$WINDOWS_VM_STORAGE_DIR"

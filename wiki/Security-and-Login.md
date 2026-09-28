@@ -108,9 +108,31 @@ Both generated files are gitignored. Edit
 
 ## YubiKey authentication
 
-The `security` package provides `yubikey-auth`, a guarded setup command for the
-YubiKey Bio, sudo, doas, and Hyprlock. It never stores the registered credential
-in Git and keeps password authentication as the final fallback.
+The `security` package provides `yubikey-auth`, a guarded setup command wiring
+a FIDO2 key into sudo, doas, and optionally Hyprlock. It never stores the
+registered credential in Git and keeps password authentication as the final
+fallback.
+
+### What the key can actually verify with
+
+The mode is chosen from `fido2-token -I`, not from the USB product ID.
+`product=0x0402` is the plain FIDO interface and is shared by keys that have no
+fingerprint sensor, so keying off it sent sensorless hardware into Bio
+enrollment and `fido_bio_dev_enroll_begin: FIDO_ERR_INVALID_COMMAND`.
+
+| Mode | Registered with | Needed at each sign-in |
+| --- | --- | --- |
+| `touch` | neither flag | a touch |
+| `bio` | `-V` | the key's own fingerprint |
+| `pin` | `-N` | the key's FIDO PIN |
+| `auto` | — | `bio` when the key reports `bioEnroll`, else `touch` |
+
+`yubikey-auth status` prints a `verification:` line per token saying which of
+these the hardware can offer. Requesting a mode the key cannot do fails with a
+message naming the limit rather than a raw libfido2 error.
+
+The key attached to this host reports `options: rk, up, noplat, clientPin,
+credentialMgmtPreview` — no `bioEnroll`, no `uv` — so it resolves to `touch`.
 
 ### Why both sudo and doas
 
@@ -118,47 +140,63 @@ in Git and keeps password authentication as the final fallback.
 would never be reached by the command actually typed, so both are deployed.
 
 Both key rules use `sufficient`, so initial greetd login and password recovery
-remain unchanged. The order per attempt is: enrolled fingerprint, then the FIDO
-PIN, then the account password.
+remain unchanged. Enter the account password normally. To use the key, submit
+an empty prompt, then touch it when prompted. The password is checked by the
+usual system stack before success is returned.
 
 ### Normal setup
 
 Open `SUPER+SHIFT+A` > Setup > Security > YubiKey for status, first-key setup,
-additional-key setup, prerequisite installation, and this recovery guide. The
-terminal stays open when status or setup exits, including when setup is
-incomplete.
+additional-key setup, removal of the last registered key, prerequisites, and
+this recovery guide. Each entry finishes with a ✅ or ❌ line and then waits
+for Enter, so the output of a failed run stays on screen instead of the
+window closing or leaving a bare shell.
 
 ```bash
 stow security
 yubikey-auth status
-yubikey-auth setup --enroll-fingerprint
+yubikey-auth setup
 ```
 
 For an additional key, leave only the new one inserted:
 
 ```bash
-yubikey-auth add --enroll-fingerprint
+yubikey-auth add
 ```
 
 | Command | Behaviour |
 | --- | --- |
-| `status` | tools, visible tokens, mapping presence, deployed-template state |
-| `setup --enroll-fingerprint` | enrol a fingerprint, create the first mapping, back up `/etc` targets, stage sudo before Hyprlock |
-| `add --enroll-fingerprint` | append another Bio credential to the existing single mapping line |
-| `add --mode pin` | register a non-biometric FIDO2 key with PIN verification |
-| `setup\|add --dry-run` | detect and report without changing the key, the mapping, or PAM |
+| `status` | tools, visible tokens, per-token verification options, mapping presence, deployed-template state |
+| `setup` | create the first mapping, back up `/etc` targets, deploy sudo and doas |
+| `add` | append another credential to the existing single mapping line |
+| `remove` | after confirmation, back up the mapping and remove its last credential; no key needs to be plugged in |
+| `setup --with-hyprlock` | additionally deploy the lock-screen stack, behind the `INSTALL HYPRLOCK` checkpoint |
+| `setup\|add --mode pin` | require the key's FIDO PIN at every authentication |
+| `setup\|add --mode bio --enroll-fingerprint` | enrol and require a fingerprint on a key that has a sensor |
+| `setup\|add\|remove --dry-run` | report without changing the key, the mapping, or PAM |
 
 Use `--device /dev/hidrawN` when several keys are attached. Automatic detection
 fails closed rather than guessing.
 
-`setup` installs and tests sudo first, then waits for the exact confirmation
-string `INSTALL HYPRLOCK` before deploying the lock-screen stack. Generated
-credentials are held in a mode-0700 temporary directory, validated before
-installation, and removed on exit.
+Generated credentials are held in a mode-0700 temporary directory, validated
+before installation, and removed on exit.
 
 Zsh aliases, defined only when the names are otherwise unused: `yubi`,
-`yubi-status`, `yubi-setup`, `yubi-add`. The last two include fingerprint
-enrollment.
+`yubi-status`, `yubi-setup`, `yubi-add`.
+
+### Why Hyprlock is opt-in
+
+A touch-only credential proves the key is plugged in, not who pressed it. On
+sudo and doas that is a reasonable trade at a machine you are already sitting
+at. On the lock screen it removes the lock: anyone walking up can tap the key
+and get in. `setup` therefore leaves `/etc/pam.d/hyprlock` alone and prints how
+to opt in, and `status` reports that state as `pam: password only` rather than
+as an incomplete setup. `--with-hyprlock` is worth using once the credential
+requires the key's own fingerprint or PIN.
+
+If the key already has a FIDO PIN, registration may prompt for it once. That is
+libfido2 unlocking the key to create the credential; `-N` is what would make
+the credential itself PIN-protected, and touch mode does not pass it.
 
 ### The relying-party identifier
 
@@ -187,15 +225,15 @@ Generate and validate a user-verifying credential before touching PAM:
 ```bash
 u2f_tmp=$(mktemp -p /tmp liam-u2f-mapping.XXXXXX)
 chmod 600 "$u2f_tmp"
-pamu2fcfg -u liam -o pam://Kelper -i pam://Kelper -V > "$u2f_tmp"
+pamu2fcfg -u liam -o pam://Kelper -i pam://Kelper > "$u2f_tmp"
 awk -F: 'NR == 1 && $1 == "liam" && NF == 2 && $2 ~ /,/ { ok = 1 } END { exit !(NR == 1 && ok) }' "$u2f_tmp"
 sudo cp -a /etc/u2f_mappings /etc/u2f_mappings.pre-yubikey
 sudo install -o root -g root -m0600 "$u2f_tmp" /etc/u2f_mappings
 rm -f "$u2f_tmp"
 ```
 
-Deploy and test both escalation stacks. Do **not** install the Hyprlock template
-until the key path and the password path have both succeeded:
+Deploy and test both escalation stacks. The Hyprlock template is optional and
+should stay uninstalled while the credential is touch-only:
 
 ```bash
 sudo cp -a /etc/pam.d/sudo /etc/pam.d/sudo.pre-yubikey
@@ -211,21 +249,59 @@ sudo -k;  sudo -v
 doas -L;  doas true
 ```
 
-Only then:
+Only if you have decided to accept a tap as enough to unlock the screen:
 
 ```bash
 sudo cp -a /etc/pam.d/hyprlock /etc/pam.d/hyprlock.pre-yubikey
 sudo install -o root -g root -m0644 system/pam.d/hyprlock /etc/pam.d/hyprlock
 ```
 
-At the lock screen, press Enter on the empty input and use an enrolled finger.
-Test the PIN fallback, then test the account password with the key removed. PAM
-files are read on each attempt, so no greetd restart or reboot is needed. If any
-path fails, restore the matching `.pre-yubikey` file from the retained root
-shell.
+At the lock screen, press Enter on the empty input and touch the key, then test
+the account password with the key removed. PAM files are read on each attempt,
+so no greetd restart or reboot is needed. If any path fails, restore the
+matching `.pre-yubikey` file from the retained root shell.
 
-Requires `pam-u2f` (including `pamu2fcfg`) and `libfido2`. Fingerprints are
-enrolled with `fido2-token`, so `yubikey-manager` is not needed.
+Requires `pam-u2f` (including `pamu2fcfg`) and `libfido2`. Fingerprints, on a
+key that has a sensor, are enrolled with `fido2-token`, so `yubikey-manager` is
+not needed.
+
+## Host fingerprint sign-in
+
+Two different things in this repository are called "fingerprint", and it is
+worth keeping them apart:
+
+| | Sensor | Enrolled by | Authenticated by |
+| --- | --- | --- | --- |
+| `yubikey-auth --enroll-fingerprint` | on a YubiKey Bio token, which the key attached here is not | `fido2-token -S -e` | `pam_u2f.so` with `userverification=1` |
+| `fingerprint-auth` | built into the laptop | `fprintd-enroll` | Hyprlock's fprintd client; sudo/doas/greetd PAM |
+
+`fingerprint-auth` is for the second. It applies to laptops with a reader — the
+Goodix sensor in a Framework 13 power button — and reports that there is
+nothing to do on any host without one, which is how the shared desktops in this
+configuration see it.
+
+```bash
+fingerprint-auth status   # reader, tools, enrolled prints, Hyprlock wiring
+fingerprint-auth setup    # install fprintd, enroll, configure Hyprlock and PAM
+```
+
+`Setup → Security → Fingerprint` in the Super+Shift+A menu runs `setup` in a
+terminal that stays open, and the entry is hidden unless the command is on
+`PATH`.
+
+### Hyprlock and PAM
+
+Hyprlock speaks to fprintd directly and runs the scan beside the password
+field, so `setup` flips `auth { fingerprint:enabled }` in
+`hypr/.config/hypr/hyprlock.conf`. It also installs the fingerprint PAM
+templates for sudo, doas, and greetd. Setup pauses for escalation tests before
+installing greetd. `--no-pam` leaves system PAM alone.
+
+Prints live in `/var/lib/fprint/`, are host-local, and are never in Git — the
+same boundary as `/etc/u2f_mappings`. Requires `fprintd`, which is in the
+`optional` setup group. When it is missing on a host with a reader, `setup`
+installs it through doas, or sudo when doas is absent, after pacman's own
+confirmation prompt.
 
 ## GnuPG
 

@@ -62,6 +62,7 @@ exec(mod .. " + SHIFT + Backspace", "toggle window gaps on all workspaces", cfg.
 bind(mod .. " + CTRL + N", "night light", function()
     hl.dispatch(hl.dsp.exec_cmd(cfg.scripts_dir .. "/night-light.sh toggle"))
 end)
+exec(mod .. " + SHIFT + N", "night light schedule", "quickshell ipc call nightlight toggle")
 
 exec(mod .. " + comma", "dismiss newest notification", "$HOME/.local/bin/notificationctl dismiss-one")
 exec(mod .. " + SHIFT + comma", "dismiss all notifications", "$HOME/.local/bin/notificationctl dismiss-all")
@@ -139,7 +140,10 @@ exec(mod .. " + SHIFT + ALT + F", "files here (terminal cwd)", cfg.scripts_dir .
 exec(mod .. " + SHIFT + D", "disks", cfg.disks)
 exec(mod .. " + U", "eject removable drives", cfg.scripts_dir .. "/eject-drive.sh")
 exec(mod .. " + A", "application launcher", cfg.scripts_dir .. "/quick-search.sh drun")
-exec(mod .. " + SHIFT + A", "lmenu root", "$HOME/.local/bin/lmenu toggle")
+-- A global shortcut rather than exec: Quickshell keeps lmenu resident, and the
+-- keypress reaches it without starting a process. `lmenu toggle` is the rofi
+-- fallback for when the shell is not running.
+bind(mod .. " + SHIFT + A", "lmenu root", hl.dsp.global("quickshell:lmenu"))
 exec(mod .. " + ALT + A", "web app manager", "quickshell ipc call webapps toggle")
 -- One-step install of the page in the focused browser window: the helper
 -- recovers the URL from the window's Wayland class and opens the install form

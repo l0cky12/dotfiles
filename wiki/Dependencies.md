@@ -37,7 +37,7 @@ confirmed package list.
 | `bluez-utils` | configured | `bluetoothctl` |
 | `iputils` | configured | dashboard and network checks |
 | `qrencode` | network panel | runtime-only Wi-Fi QR |
-| polkit provider | configured | NetworkManager authorization for persistent DNS/IPv4 changes |
+| `hyprpolkitagent` | started at login from `conf/autostart.lua` | polkit password prompts for NetworkManager DNS/IPv4 changes and fingerprint enrollment |
 | `greetd` | display manager | login |
 | `greetd-regreet` | themed GTK4 greeter | `[default_session]` |
 | `greetd-tuigreet` | rescue greeter | manual fallback |
@@ -112,6 +112,11 @@ ImageMagick 7 is needed only for PNG/SVG logo conversion.
 `pam-u2f` (including `pamu2fcfg`) and `libfido2`. Fingerprints enrol with
 `fido2-token`, so `yubikey-manager` is not required. The SSH-agent path in the
 GnuPG examples additionally needs `gnupg`.
+
+### Fingerprint sign-in
+
+`fprintd`, which pulls in `libfprint`, on laptops with a built-in sensor only.
+`fingerprint-auth setup` installs it when it is missing.
 
 ### Browser tools
 

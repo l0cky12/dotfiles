@@ -47,3 +47,4 @@ text/x-shellscript=nvim-kitty.desktop
 application/json=nvim-kitty.desktop
 text/x-python=nvim-kitty.desktop
 text/x-csrc=nvim-kitty.desktop
+x-scheme-handler/webcal=helium.desktop

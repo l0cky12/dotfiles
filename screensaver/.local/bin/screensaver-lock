@@ -81,15 +81,15 @@ render_lock_config() {
   filename=$(layout_filename "$selected")
   [[ -r $source_config ]] || {
     printf '%s: lock config is not readable: %s\n' "$PROGRAM" "$source_config" >&2
-    exit 1
+    return 1
   }
   [[ -r $layout_dir/$filename ]] || {
     printf '%s: lock layout is not readable: %s\n' "$PROGRAM" "$layout_dir/$filename" >&2
-    exit 1
+    return 1
   }
 
-  mkdir -p -- "$runtime_dir"
-  temp_config=$(mktemp "$runtime_dir/.hyprlock.conf.XXXXXX")
+  mkdir -p -- "$runtime_dir" || return 1
+  temp_config=$(mktemp "$runtime_dir/.hyprlock.conf.XXXXXX") || return 1
   trap 'rm -f -- "${temp_config:-}"' RETURN
   replacement="source = \$hyprlockDir/layouts/$filename"
   awk -v replacement="$replacement" '
@@ -102,10 +102,10 @@ render_lock_config() {
     END { if (replaced != 1) exit 42 }
   ' "$source_config" > "$temp_config" || {
     printf '%s: expected one active layout source in %s\n' "$PROGRAM" "$source_config" >&2
-    exit 1
+    return 1
   }
-  chmod 600 "$temp_config"
-  mv -f -- "$temp_config" "$runtime_config"
+  chmod 600 "$temp_config" || return 1
+  mv -f -- "$temp_config" "$runtime_config" || return 1
   trap - RETURN
 }
 
@@ -154,7 +154,13 @@ pkill -f '[i]o.github.fhlkfds.screensaver' 2>/dev/null || true
 if ! pidof hyprlock >/dev/null 2>&1; then
   # Locking must continue even if clipboard tools are unavailable, but make a
   # best effort to clear both the live selection and plaintext history first.
-  render_lock_config
+  # A missing selected layout must not prevent the session from locking.
+  if render_lock_config; then
+    lock_config=$runtime_config
+  else
+    printf '%s: using the source lock config after layout rendering failed\n' "$PROGRAM" >&2
+    lock_config=$source_config
+  fi
   [[ ! -x $clipboard_wipe ]] || "$clipboard_wipe" || true
-  exec hyprlock --config "$runtime_config"
+  exec hyprlock --config "$lock_config"
 fi

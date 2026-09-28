@@ -1,7 +1,12 @@
 #%PAM-1.0
 
-# Submit an empty prompt for the YubiKey Bio fingerprint or PIN, or enter the
-# normal account password through the unchanged login stack.
-auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper pinverification=0 userverification=1
-auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper pinverification=1 userverification=0
+# Opt-in only: `yubikey-auth setup --with-hyprlock` deploys this, and plain
+# `setup` deliberately does not. With a touch-only credential this weakens the
+# lock screen rather than strengthening it, because anyone standing at the
+# machine can unlock it with a tap while the key is plugged in. It is worth
+# deploying when the credential requires the key's own fingerprint or PIN.
+#
+# Submit an empty prompt to use the key, or type the account password to go
+# through the unchanged login stack.
+auth       sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper userpresence=1 pinverification=0 userverification=0
 auth       include                     login

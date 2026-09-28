@@ -15,7 +15,9 @@
 # Shift+Backspace and Ctrl+H still delete a character in the search box.
 #
 # A route is a dotted id ("style.theme") or an alias ("themes"). Guards run
-# batched, one bash process per render, in lmenu-parse.py.
+# in lmenu-parse.py, which streams each view: the view's own rows first, then
+# the rows nested below them for search, so rofi opens before the rest of the
+# subtree's guards have finished.
 set -euo pipefail
 
 config_home=${XDG_CONFIG_HOME:-$HOME/.config}
@@ -24,6 +26,7 @@ parser=${LMENU_PARSER:-$config_home/lmenu/lmenu-parse.py}
 rofi_command=${ROFI:-rofi}
 pid_file=$state_dir/instance.pid
 route_file=$state_dir/route
+view_file=$state_dir/view
 
 # Fall back to the repo layout so lmenu works before the first `stow`.
 if [[ ! -f $parser ]]; then
@@ -53,59 +56,47 @@ parse() {
   python3 "$parser" "$@"
 }
 
-# Split one "icon<TAB>label<TAB>suffix<TAB>id" row into the globals row_icon,
-# row_label, row_suffix and row_id.
-#
-# This deliberately avoids `IFS=$'\t' read`: tab is an IFS whitespace
-# character, so bash collapses a run of tabs into a single delimiter and an
-# empty suffix field would silently shift the id one column left.
-split_row() {
-  local rest=$1
-  row_icon=${rest%%$'\t'*}; rest=${rest#*$'\t'}
-  row_label=${rest%%$'\t'*}; rest=${rest#*$'\t'}
-  row_suffix=${rest%%$'\t'*}
-  row_id=${rest#*$'\t'}
-}
-
-# The exact string rofi shows for a row. Suffixes (a chevron for rows that
-# descend, a tick for rows reporting state) are padded into a column of their
-# own, which only lines up because the launcher font is monospace - the same
-# approach quick-search-everything.sh uses for its chevrons.
-row_display() {
-  local pad=${1:-0}
-  if [[ -n $row_suffix ]]; then
-    printf '%s%-*s  %s' "${row_icon:+$row_icon  }" "$pad" "$row_label" "$row_suffix"
-  else
-    printf '%s%s' "${row_icon:+$row_icon  }" "$row_label"
-  fi
-}
-
-# Width of the widest label in a view, so the suffix column clears every row.
-label_width() {
-  local line width=0 row_icon row_label row_suffix row_id
-  while IFS= read -r line; do
-    [[ -z $line || $line == '#urgent:'* ]] && continue
-    split_row "$line"
-    ((${#row_label} > width)) && width=${#row_label}
-  done <<<"$1"
-  printf '%s' "$width"
-}
-
 running_pid() {
-  local pid
+  local pid script
+  local -a argv
   [[ -f $pid_file ]] || return 1
   pid=$(<"$pid_file")
   [[ $pid =~ ^[0-9]+$ ]] || return 1
+  [[ $pid != 0 && $pid != 1 && $pid != 0* ]] || return 1
   kill -0 "$pid" 2>/dev/null || return 1
+  # The pid file outlives a crash or a reboot, and the number can be handed to
+  # an unrelated process by then. Only an lmenu process is ours to close.
+  [[ -O /proc/$pid ]] || return 1
+  mapfile -d '' -t argv <"/proc/$pid/cmdline" 2>/dev/null || return 1
+  [[ ${#argv[@]} -ge 2 ]] || return 1
+  [[ ${argv[0]##*/} == bash ]] || return 1
+  script=${argv[1]}
+  [[ $script == /* ]] || script=/proc/$pid/cwd/$script
+  [[ $(readlink -f -- "$script") == "$(readlink -f -- "${BASH_SOURCE[0]}")" ]] || return 1
   printf '%s' "$pid"
 }
 
+# Every process below a pid, parents before children.
+descendants() {
+  local child
+  for child in $(pgrep -P "$1" 2>/dev/null); do
+    printf '%s\n' "$child"
+    descendants "$child"
+  done
+}
+
+# rofi runs in a command substitution below the lmenu process, so killing lmenu
+# alone orphans it: the menu stays on screen, a selection goes nowhere, and it
+# keeps rofi's single-instance lock, so every later open fails with "Rofi
+# already running". The tree is collected before any signal is sent, because a
+# dying parent hands its children to init and pgrep -P would lose them.
 close_menu() {
-  local pid
+  local pid procs
   if pid=$(running_pid); then
-    kill "$pid" 2>/dev/null || true
+    mapfile -t procs < <(descendants "$pid")
+    kill "$pid" "${procs[@]}" 2>/dev/null || true
   fi
-  rm -f -- "$pid_file" "$route_file"
+  rm -f -- "$pid_file" "$route_file" "$view_file"
 }
 
 # The route one level up. A route with no dot is a top-level section, whose
@@ -125,66 +116,85 @@ launch() {
 }
 
 # Result of the last show(). Globals rather than stdout because navigate()
-# needs both the chosen id and how rofi was dismissed, and a command
-# substitution would run show() in a subshell where the state is lost.
+# needs the chosen row and how rofi was dismissed, and a command substitution
+# would run show() in a subshell where the state is lost.
 sel_state=cancel
 sel_id=
+sel_kind=
+sel_payload=
 
-# One rofi round. Sets sel_state to ok, back or cancel, and sel_id when ok.
+# One rofi round. Sets sel_state to ok, back, redraw or cancel, and the chosen
+# row's sel_id, sel_kind and sel_payload when ok.
+#
+# The parser streams the view: a header, the view's own rows at once, then the
+# rows nested below them as their guards finish. rofi reads that stream
+# asynchronously, so the menu is on screen before the subtree is evaluated.
+# That is also why -no-custom is absent: rofi 2.0 forces synchronous reading
+# whenever it is given.
 show() {
-  local route=$1 rows urgent=() lines=() display=() choice index theme rc=0
+  local route=$1 feed_fd feed_pid header title direct nested choice theme rc=0
+  local -a records
   sel_state=cancel
-  sel_id=
-  rows=$(parse rows "$route") || return 1
+  sel_id='' sel_kind='' sel_payload=''
   theme=$(theme_file)
 
-  local line
-  while IFS= read -r line; do
-    if [[ $line == '#urgent:'* ]]; then
-      IFS=, read -r -a urgent <<<"${line#\#urgent:}"
-      continue
-    fi
-    lines+=("$line")
-  done <<<"$rows"
-
-  ((${#lines[@]})) || return 1
-
-  local row_icon row_label row_suffix row_id pad
-  pad=$(label_width "$rows")
-  for line in "${lines[@]}"; do
-    split_row "$line"
-    display+=("$(row_display "$pad")")
-  done
+  # A fresh file each round: a parser left over from the previous round may
+  # still hold the old one open, and must not write into this round's rows.
+  rm -f -- "$view_file"
+  exec {feed_fd}< <(parse feed "$route" "$view_file" 2>/dev/null)
+  feed_pid=$!
+  if ! IFS= read -r -u "$feed_fd" header; then
+    exec {feed_fd}<&-
+    return 1
+  fi
+  IFS=$'\t' read -r title direct nested <<<"$header"
+  if ((direct == 0)); then
+    exec {feed_fd}<&-
+    return 1
+  fi
 
   # Backspace walks back up the tree, so it has to be taken off character
   # deletion; Shift+Backspace and Ctrl+H still delete, as rofi's own defaults
   # already list all three. custom-1 makes rofi exit with status 10.
   local -a rofi_args=(
-    -dmenu -i -no-custom -p "$(parse title "$route")"
+    -dmenu -i -p "$title"
     -format i -theme "$theme"
     -kb-custom-1 "BackSpace"
     -kb-remove-char-back "Shift+BackSpace,Control+h"
   )
-  local joined
-  joined=$(IFS=,; printf '%s' "${urgent[*]}")
-  [[ -n $joined ]] && rofi_args+=(-u "$joined")
+  # Size the list to the view's own rows, so the nested rows queued up behind
+  # them only come into view once typing filters the direct rows away.
+  ((nested)) && rofi_args+=(-l "$direct")
 
-  choice=$(printf '%s\n' "${display[@]}" | "$rofi_command" "${rofi_args[@]}") || rc=$?
+  choice=$("$rofi_command" "${rofi_args[@]}" <&"$feed_fd") || rc=$?
+  # A row can be picked before the nested rows finish streaming. Stop the
+  # parser rather than let it evaluate guards nobody will see.
+  exec {feed_fd}<&-
+  kill "$feed_pid" 2>/dev/null || true
   case $rc in
     0)  ;;
     10) sel_state=back; return 0 ;;
     *)  sel_state=cancel; return 0 ;;
   esac
-  [[ $choice =~ ^[0-9]+$ ]] || return 0
-  index=$choice
-  split_row "${lines[$index]}"
+  # Enter on text that matches no row returns -1. Stay in the view, as the
+  # old -no-custom behaviour did.
+  if ! [[ $choice =~ ^[0-9]+$ ]]; then
+    sel_state=redraw
+    return 0
+  fi
+
+  mapfile -d '' -t records <"$view_file"
+  ((choice < ${#records[@]})) || return 0
+  local record=${records[$choice]}
+  sel_id=${record%%$'\t'*}; record=${record#*$'\t'}
+  sel_kind=${record%%$'\t'*}
+  sel_payload=${record#*$'\t'}
   sel_state=ok
-  sel_id=$row_id
 }
 
 # Walk the tree until a leaf runs or the user dismisses rofi.
 navigate() {
-  local route=$1 kind payload resolved
+  local route=$1
   while true; do
     printf '%s' "$route" >"$route_file"
     show "$route" || break
@@ -195,18 +205,17 @@ navigate() {
         route=$(parent_route "$route")
         continue
         ;;
+      redraw) continue ;;
       ok) ;;
       *) break ;;
     esac
-    resolved=$(parse resolve "$route" "$sel_id") || break
-    IFS=$'\t' read -r kind payload <<<"$resolved"
-    case "$kind" in
+    case "$sel_kind" in
       leaf)
-        launch "$payload"
+        launch "$sel_payload"
         break
         ;;
       link)
-        route=$(parse route "$payload")
+        route=$sel_payload
         ;;
       submenu|provider)
         route=$sel_id
@@ -219,26 +228,29 @@ navigate() {
         ;;
     esac
   done
-  rm -f -- "$pid_file" "$route_file"
+  rm -f -- "$pid_file" "$route_file" "$view_file"
 }
 
-# Print the rows exactly as rofi would receive them, for tests and eyeballing.
+# The canonical id for a route or alias. The root needs no parser round trip,
+# which keeps the common Super+Shift+A path to a single Python start.
+canonical_route() {
+  case ${1:-} in
+    ''|menu|go|root) printf '' ;;
+    *) parse route "$1" ;;
+  esac
+}
+
+# Print the rows exactly as rofi would display them, for tests and eyeballing.
 dry_run_display() {
-  local route rows line
-  route=$(parse route "${1:-}")
-  rows=$(parse rows "$route") || return 1
-  local row_icon row_label row_suffix row_id pad
-  pad=$(label_width "$rows")
-  while IFS= read -r line; do
-    [[ $line == '#urgent:'* ]] && continue
-    split_row "$line"
-    printf '%s\n' "$(row_display "$pad")"
-  done <<<"$rows"
+  local route
+  route=$(canonical_route "${1:-}")
+  # Drop the header, then everything from the NUL that starts a row's options.
+  parse feed "$route" /dev/null | tail -n +2 | tr '\0' '\037' | cut -d $'\037' -f1
 }
 
 open_menu() {
   local route
-  route=$(parse route "${1:-}")
+  route=$(canonical_route "${1:-}")
   mkdir -p -- "$state_dir"
   close_menu
   printf '%s' "$$" >"$pid_file"
@@ -247,7 +259,7 @@ open_menu() {
 
 toggle_menu() {
   local route current
-  route=$(parse route "${1:-}")
+  route=$(canonical_route "${1:-}")
   if current=$(cat "$route_file" 2>/dev/null) && running_pid >/dev/null; then
     if [[ $current == "$route" ]]; then
       close_menu
@@ -260,7 +272,7 @@ toggle_menu() {
 case "${1:-toggle}" in
   --dry-run) shift; parse --dry-run "${1:-}" ;;
   --dry-run-display) shift; dry_run_display "${1:-}" ;;
-  parent)    shift || true; parent_route "$(parse route "${1:-}")"; printf '\n' ;;
+  parent)    shift || true; parent_route "$(canonical_route "${1:-}")"; printf '\n' ;;
   toggle)    shift || true; toggle_menu "${1:-}" ;;
   summon)    shift || true; open_menu "${1:-}" ;;
   close)     close_menu ;;

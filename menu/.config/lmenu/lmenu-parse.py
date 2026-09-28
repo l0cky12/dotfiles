@@ -5,13 +5,20 @@ The dotted id *is* the tree: ``style.bar.position`` is a child of ``style.bar``.
 Entry kind is inferred - ``action`` makes a leaf, ``target`` makes a link, a
 ``provider`` makes a generated submenu, anything else is a plain submenu.
 
-Guards are bash conditions.  Every guard visible in one view is evaluated by a
-single batched bash process that prints ``<id>:<w|c|d>:<0|1>`` per guard, so a
-render costs one process rather than one per row.  A guard that fails to run at
-all is treated as ``0``.
+Guards are bash conditions.  A view evaluates its guards in two batches, one
+for its own rows and one for the rows nested below them, each a single bash
+process running the guards concurrently and printing ``<id>:<w|c|d>:<0|1>``
+per guard.  A guard that fails to run at all is treated as ``0``.
 
 Commands:
-    rows <route>            emit "<icon>\\t<label>\\t<suffix>\\t<id>" per row
+    rows <route>            emit "<icon>\\t<label>\\t<suffix>\\t<id>\\t<crumb>\\t<meta>"
+                            per row: the route's own rows, then every row
+                            nested below it, then "#direct:<n>" counting the
+                            former
+    feed <route> <file>     stream a view for rofi: a header, then display
+                            lines, recording what each row runs in <file>
+    dump                    emit the whole reachable tree, generated rows and
+                            aliases as JSON, for the Quickshell panel
     resolve <route> <id>    emit "<kind>\\t<payload>"
     title <route>           emit the prompt title for a route
     route <string>          emit the canonical id for an id or alias
@@ -27,11 +34,18 @@ import re
 import shlex
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 SEP = "#"  # separates a provider id from its generated row key
 CHECK = "✓"
 CHEVRON = "\u203a"  # marks a row that opens another view
+CRUMB_SEP = " / "  # joins the menu names above a nested search row
+
+# Generated lists short and cheap enough to search from a parent menu.  Apps,
+# fonts and timezones run to hundreds of rows, so they stay searchable only
+# inside their own view.
+SEARCHABLE_PROVIDERS = {"themes"}
 
 CONFIG_HOME = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
 DEFAULT_MENU = Path(
@@ -173,7 +187,10 @@ def evaluate_guards(requests: list[tuple[str, str, str]]) -> dict[tuple[str, str
     """requests is a list of (id, kind, expression); kind is w, c or d.
 
     Every expression runs as its own `bash -c` inside one batched bash process,
-    so a syntax error in one guard cannot abort the render.
+    so a syntax error in one guard cannot abort the render.  The guards run
+    concurrently: a searchable view evaluates the whole subtree, and several
+    status probes take a fifth of a second each.  Each result is one short
+    printf, which a pipe writes atomically, so lines never interleave.
     """
     results: dict[tuple[str, str], bool] = {}
     if not requests:
@@ -181,10 +198,11 @@ def evaluate_guards(requests: list[tuple[str, str, str]]) -> dict[tuple[str, str
     script = ["#!/usr/bin/env bash\n"]
     for entry_id, kind, expression in requests:
         script.append(
-            "if bash -c %s >/dev/null 2>&1; then s=1; else s=0; fi\n"
-            "printf '%%s:%%s:%%s\\n' %s %s \"$s\"\n"
+            "{ if bash -c %s >/dev/null 2>&1 </dev/null; then s=1; else s=0; fi\n"
+            "printf '%%s:%%s:%%s\\n' %s %s \"$s\"; } &\n"
             % (shlex.quote(expression), shlex.quote(entry_id), shlex.quote(kind))
         )
+    script.append("wait\n")
     try:
         completed = subprocess.run(
             ["bash", "-s"],
@@ -376,7 +394,8 @@ def run_lines(command: list[str]) -> list[str]:
 
 
 class Row:
-    def __init__(self, icon, label, suffix, row_id, kind, payload, urgent=False):
+    def __init__(self, icon, label, suffix, row_id, kind, payload, urgent=False,
+                 crumb="", meta=""):
         self.icon = icon
         self.label = label
         self.suffix = suffix
@@ -384,19 +403,39 @@ class Row:
         self.kind = kind
         self.payload = payload
         self.urgent = urgent
+        # Where a nested search row lives, relative to the view showing it.
+        # Empty for the view's own direct rows.
+        self.crumb = crumb
+        # Invisible search terms rofi matches against as well as the label.
+        self.meta = meta
 
     def tsv(self) -> str:
-        return "\t".join((self.icon, self.label, self.suffix, self.id))
+        return "\t".join((self.icon, self.label, self.suffix, self.id,
+                          self.crumb, self.meta))
+
+
+def search_terms(*parts: str) -> str:
+    """Flatten search terms onto one line so they survive the TSV protocol."""
+    return " ".join(" ".join(part.split()) for part in parts if part)
 
 
 def build_view(menu: Menu, route: str) -> list[Row]:
+    direct, nested = view_phases(menu, route)
+    return direct + list(nested)
+
+
+def view_phases(menu: Menu, route: str):
+    """The route's own rows as a list, and a lazy iterator over the rows
+    nested below them.  Nothing below the direct rows is evaluated until the
+    iterator is consumed, which is what lets lmenu draw a view before its
+    subtree's guards have finished."""
     entry = menu.by_id.get(route)
     if entry is not None and menu.kind(entry) == "provider":
-        return provider_view(entry)
+        return provider_view(entry), iter(())
     return static_view(menu, route)
 
 
-def provider_view(entry: dict) -> list[Row]:
+def provider_view(entry: dict, crumb: str = "") -> list[Row]:
     rows = []
     for generated in provider_rows(entry["provider"]):
         suffix = CHECK if generated.get("checked_now") else ""
@@ -407,45 +446,261 @@ def provider_view(entry: dict) -> list[Row]:
             f"{entry['id']}{SEP}{generated['key']}",
             "leaf",
             generated["action"],
+            crumb=crumb,
+            meta=search_terms(generated.get("search", "")),
         ))
     return rows
 
 
-def static_view(menu: Menu, route: str) -> list[Row]:
-    children = menu.children.get(route, [])
+def subtree(menu: Menu, route: str) -> list[tuple[dict, list[str]]]:
+    """Every entry below route in tree order, each with the labels of the
+    entries between route and it."""
+    found: list[tuple[dict, list[str]]] = []
+
+    def walk(parent: str, trail: list[str]) -> None:
+        for child in menu.children.get(parent, []):
+            found.append((child, trail))
+            walk(child["id"], trail + [label_of(child)])
+
+    walk(route, [])
+    return found
+
+
+def label_of(entry: dict) -> str:
+    return entry.get("label", entry["id"].rpartition(".")[2])
+
+
+def guard_requests(entries: list[tuple[dict, list[str]]]) -> list[tuple[str, str, str]]:
     requests: list[tuple[str, str, str]] = []
-    for child in children:
+    for child, _ in entries:
         for kind, field in (("w", "when"), ("c", "checked"), ("d", "disabled")):
             if child.get(field):
                 requests.append((child["id"], kind, child[field]))
-    guards = evaluate_guards(requests)
+    return requests
 
-    rows = []
-    for child in children:
+
+def reachable(entries, guards, unreachable: set[str]):
+    """Yield (entry, trail, checked, disabled) for every entry browsing could
+    reach: a failing "when" hides an entry, and a hidden or dimmed entry takes
+    everything below it along.  unreachable carries that across calls, so a
+    subtree can be walked in phases."""
+    for child, trail in entries:
+        parent = child["id"].rpartition(".")[0]
+        if parent in unreachable:
+            unreachable.add(child["id"])
+            continue
         if child.get("when") and not guards.get((child["id"], "w"), False):
+            unreachable.add(child["id"])
             continue
         disabled = bool(child.get("disabled")) and guards.get((child["id"], "d"), False)
         checked = bool(child.get("checked")) and guards.get((child["id"], "c"), False)
-        kind = menu.kind(child)
-        # A tick outranks a chevron: a checked row is reporting state, which
-        # matters more than the fact that it also descends.
-        if checked or disabled:
-            suffix = CHECK
-        elif kind in ("submenu", "link", "provider"):
-            suffix = CHEVRON
-        else:
-            suffix = ""
-        payload = child.get("action") or child.get("target") or child["id"]
-        rows.append(Row(
-            child.get("icon", ""),
-            child.get("label", child["id"].rpartition(".")[2]),
-            suffix,
-            child["id"],
-            kind,
-            payload,
-            urgent=disabled,
-        ))
-    return rows
+        if disabled:
+            unreachable.add(child["id"])
+        yield child, trail, checked, disabled
+
+
+def static_view(menu: Menu, route: str):
+    """The route's own rows, and an iterator over every row nested below it.
+
+    The nested rows are what make a submenu searchable from above: the launcher
+    sizes its list to the direct rows, so they only come into view once typing
+    filters the direct rows away.  A nested row is dropped when any entry
+    between it and the route is hidden or dimmed, exactly as browsing could
+    never reach it.
+
+    The two phases evaluate their guards separately, so the direct rows cost
+    only their own guards and the whole subtree's are paid while the menu is
+    already on screen.
+    """
+    entries = subtree(menu, route)
+    unreachable: set[str] = set()
+
+    def rows_for(phase: list[tuple[dict, list[str]]]) -> list[Row]:
+        guards = evaluate_guards(guard_requests(phase))
+        rows: list[Row] = []
+        for child, trail, checked, disabled in reachable(phase, guards, unreachable):
+            kind = menu.kind(child)
+            # A tick outranks a chevron: a checked row is reporting state, which
+            # matters more than the fact that it also descends.  Nested rows
+            # carry their breadcrumb instead of a chevron.
+            if checked or disabled:
+                suffix = CHECK
+            elif kind in ("submenu", "link", "provider") and not trail:
+                suffix = CHEVRON
+            else:
+                suffix = ""
+            payload = child.get("action") or child.get("target") or child["id"]
+            rows.append(Row(
+                child.get("icon", ""),
+                label_of(child),
+                suffix,
+                child["id"],
+                kind,
+                payload,
+                urgent=disabled,
+                crumb=CRUMB_SEP.join(trail),
+                meta=search_terms(" ".join(child.get("aliases", [])),
+                                  child.get("description", "")),
+            ))
+            if (kind == "provider" and not disabled
+                    and child["provider"] in SEARCHABLE_PROVIDERS):
+                searchable.append((len(rows), child, trail))
+        return rows
+
+    def expand(rows: list[Row]) -> list[Row]:
+        """Splice searchable provider rows in after the row that owns them."""
+        for position, child, trail in reversed(searchable):
+            rows[position:position] = provider_view(
+                child, CRUMB_SEP.join(trail + [label_of(child)]))
+        searchable.clear()
+        return rows
+
+    searchable: list[tuple[int, dict, list[str]]] = []
+    direct = rows_for([entry for entry in entries if not entry[1]])
+    # A direct provider's generated rows are nested rows, so they wait too.
+    direct_providers = list(searchable)
+    searchable.clear()
+
+    def nested():
+        rows = rows_for([entry for entry in entries if entry[1]])
+        for _, child, trail in direct_providers:
+            yield from provider_view(child, label_of(child))
+        yield from expand(rows)
+
+    return direct, nested()
+
+
+def has_nested(menu: Menu, route: str) -> bool:
+    """Whether a view can show search rows below its own, judged from the tree
+    alone so the answer is ready before any guard runs."""
+    entry = menu.by_id.get(route)
+    if entry is not None and menu.kind(entry) == "provider":
+        return False
+    for child in menu.children.get(route, []):
+        if menu.children.get(child["id"]):
+            return True
+        if child.get("provider") in SEARCHABLE_PROVIDERS:
+            return True
+    return False
+
+
+def display(row: Row, pad: int) -> str:
+    """The exact text rofi shows for a row.
+
+    Suffixes (a chevron for rows that descend, a tick for rows reporting state)
+    are padded into a column of their own, which only lines up because the
+    launcher font is monospace.  A nested row trails the menus it lives under
+    instead of joining that column.
+    """
+    icon = f"{row.icon}  " if row.icon else ""
+    if row.crumb:
+        return f"{icon}{row.label}   {row.crumb}" + (f"  {row.suffix}" if row.suffix else "")
+    if row.suffix:
+        return f"{icon}{row.label:<{pad}}  {row.suffix}"
+    return f"{icon}{row.label}"
+
+
+def rofi_line(row: Row, pad: int) -> str:
+    """A display line plus rofi row options: hidden search terms, and the
+    urgent flag lmenu uses to dim a disabled row."""
+    options = []
+    if row.meta:
+        options.append(f"meta\x1f{row.meta}")
+    if row.urgent:
+        options.append("urgent\x1ftrue")
+    line = display(row, pad)
+    if options:
+        line += "\0" + "\x1f".join(options)
+    return line + "\n"
+
+
+def feed(menu: Menu, route: str, view_path: str) -> int:
+    """Stream one view to lmenu, which hands the stream straight to rofi.
+
+    The first line is a "<title>\\t<direct rows>\\t<has nested rows>" header
+    lmenu reads to size the list.  Every row after it is written to view_path
+    as a NUL-terminated "<id>\\t<kind>\\t<payload>" record before it is
+    printed, so the index rofi returns maps straight back to what to run,
+    without evaluating the view a second time.
+    """
+    direct, nested = view_phases(menu, route)
+    pad = max((len(row.label) for row in direct), default=0)
+    out = sys.stdout
+    try:
+        with open(view_path, "w", encoding="utf-8") as view:
+            out.write(f"{menu.title(route)}\t{len(direct)}\t"
+                      f"{int(has_nested(menu, route))}\n")
+            out.flush()
+
+            def emit(row: Row) -> None:
+                kind, payload = row.kind, row.payload
+                if row.urgent:
+                    kind, payload = "disabled", ""
+                elif kind == "link":
+                    payload = menu.resolve_route(payload)
+                view.write(f"{row.id}\t{kind}\t{payload}\0")
+                view.flush()
+                out.write(rofi_line(row, pad))
+
+            for row in direct:
+                emit(row)
+            out.flush()
+            for row in nested:
+                emit(row)
+                out.flush()
+    except BrokenPipeError:
+        # rofi closed before the stream ended: a row was picked early.
+        os.dup2(os.open(os.devnull, os.O_WRONLY), out.fileno())
+    return 0
+
+
+def dump(menu: Menu) -> dict:
+    """The whole reachable tree as one document, for a resident front end.
+
+    The Quickshell panel holds this in memory, so opening, browsing and
+    searching never wait on a process; it re-runs the dump in the background
+    to refresh ticks and visibility.  Guards and every provider run
+    concurrently, since each is a wait on another process.
+    """
+    entries = subtree(menu, "")
+    providers = [child for child, _ in entries if menu.kind(child) == "provider"]
+    with ThreadPoolExecutor(max_workers=len(providers) + 1) as pool:
+        guard_job = pool.submit(evaluate_guards, guard_requests(entries))
+        provider_jobs = {child["id"]: pool.submit(provider_rows, child["provider"])
+                         for child in providers}
+        guards = guard_job.result()
+
+        items = []
+        generated: dict[str, list[dict]] = {}
+        for child, _, checked, disabled in reachable(entries, guards, set()):
+            kind = menu.kind(child)
+            payload = child.get("action") or child.get("target") or child["id"]
+            if kind == "link":
+                payload = menu.resolve_route(payload)
+            items.append({
+                "id": child["id"],
+                "parent": child["id"].rpartition(".")[0],
+                "icon": child.get("icon", ""),
+                "label": label_of(child),
+                "title": menu.title(child["id"]),
+                "kind": kind,
+                "payload": payload,
+                "search": search_terms(" ".join(child.get("aliases", [])),
+                                       child.get("description", "")),
+                "checked": checked,
+                "disabled": disabled,
+                "searchable": child.get("provider") in SEARCHABLE_PROVIDERS,
+            })
+            if kind == "provider" and not disabled:
+                generated[child["id"]] = [{
+                    "id": f"{child['id']}{SEP}{row['key']}",
+                    "icon": row.get("icon", ""),
+                    "label": row["label"],
+                    "payload": row["action"],
+                    "search": search_terms(row.get("search", "")),
+                    "checked": bool(row.get("checked_now")),
+                } for row in provider_jobs[child["id"]].result()]
+    return {"entries": items, "providers": generated, "aliases": menu.aliases}
 
 
 def resolve(menu: Menu, route: str, row_id: str) -> tuple[str, str] | None:
@@ -508,9 +763,21 @@ def main(argv: list[str]) -> int:
             return 0
         for row in rows:
             print(row.tsv())
+        print("#direct:" + str(sum(1 for row in rows if not row.crumb)))
         urgent = [str(i) for i, row in enumerate(rows) if row.urgent]
         print("#urgent:" + ",".join(urgent))
         return 0
+
+    if command == "dump":
+        json.dump(dump(menu), sys.stdout, ensure_ascii=False)
+        sys.stdout.write("\n")
+        return 0
+
+    if command == "feed":
+        if len(rest) < 2:
+            warn("feed needs a route and a view file")
+            return 2
+        return feed(menu, menu.resolve_route(rest[0]), rest[1])
 
     if command == "resolve":
         if len(rest) < 2:

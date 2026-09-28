@@ -65,6 +65,9 @@ end
 hl.dsp.exec_cmd = function(command)
     return { kind = "exec_cmd", command = command }
 end
+hl.dsp.global = function(name)
+    return { kind = "global", name = name }
+end
 local dispatched
 hl.dispatch = function(dispatcher)
     dispatched = dispatcher
@@ -125,7 +128,18 @@ expect_exec("CTRL + ALT + Delete", "close all windows",
     "/home/liam/.config/hypr/scripts/close-all-windows.sh")
 expect_exec("SUPER + A", "application launcher",
     "/home/liam/.config/hypr/scripts/quick-search.sh drun")
-expect_exec("SUPER + SHIFT + A", "lmenu root", "$HOME/.local/bin/lmenu toggle")
+local function expect_global(keys, description, name)
+    for _, capture in ipairs(captures) do
+        if capture.keys == keys and capture.description == description and
+                capture.dispatcher.kind == "global" and capture.dispatcher.name == name then
+            return
+        end
+    end
+    error("missing global binding: " .. keys .. " -> " .. description)
+end
+
+-- lmenu lives in Quickshell; the keypress must not start a process.
+expect_global("SUPER + SHIFT + A", "lmenu root", "quickshell:lmenu")
 expect_exec("SUPER + ALT + A", "web app manager",
     "quickshell ipc call webapps toggle")
 expect_exec("SUPER + CTRL + T", "activity (btop, floating)",
@@ -201,6 +215,10 @@ grep -Fqx 'bindd = $mainMod CTRL, Escape, start ASCII screensaver, exec, $script
 grep -Fqx 'bindd = $mainMod CTRL SHIFT, G, play temporary dotfiles history, exec, $scriptsDir/gource-dotfiles.sh' \
   "$hypr_root/conf/keybinding.conf" ||
   fail 'legacy Gource binding is missing or changed'
+
+grep -Fqx 'bindd = $mainMod SHIFT, A, lmenu root, global, quickshell:lmenu' \
+  "$hypr_root/conf/keybinding.conf" ||
+  fail 'legacy lmenu binding does not reach the resident Quickshell menu'
 
 grep -Fqx 'bindd = $mainMod, T, theme picker, exec, quickshell ipc call theme toggle' \
   "$hypr_root/conf/keybinding.conf" ||

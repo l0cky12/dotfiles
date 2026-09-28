@@ -64,7 +64,7 @@ python3 -m unittest tests.test_theme_generator
 | `bluetooth-control.test.sh`, `network-control.test.sh` | the Quickshell panel backends |
 | `browser-native-tools.test.sh` | both native hosts, with mocked clipboard, downloader, notification, player, and OSD commands |
 | `capture-screenshot-editor.test.sh`, `webcam-resize.test.sh` | capture behaviours |
-| `lmenu.test.sh`, `lmenu-reminder.test.sh` | menu rendering and systemd-timer reminders |
+| `lmenu.test.sh`, `lmenu-quickshell.test.sh`, `lmenu-reminder.test.sh` | nested search, resident Quickshell state, invisible panel geometry, Rofi fallback, and systemd-timer reminders |
 | `windows-vm.test.sh` | the VM controller |
 | `yubikey-auth.test.sh` | the guarded PAM helper |
 | `dots-deploy.test.sh` | changed-package deployment, manual-package safeguards, system-file safety, and deployment-state handling |

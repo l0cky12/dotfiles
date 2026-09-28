@@ -10,6 +10,9 @@ Item {
   property bool active: false
   property int size: Theme.fs(30)
   property int glyphSize: Theme.fs(15)
+  // Off on the bar, where the button already sits inside a BarIsland and the
+  // resting outline would draw a rounded square inside the capsule.
+  property bool bordered: true
   signal clicked()
 
   implicitWidth: size
@@ -20,7 +23,7 @@ Item {
     anchors.fill: parent
     radius: Theme.radiusCell
     color: root.active ? Theme.accent : "transparent"
-    border.width: Theme.borderWidth
+    border.width: root.bordered || root.active ? Theme.borderWidth : 0
     border.color: root.active ? Theme.accent : Theme.surface
   }
 

@@ -147,6 +147,47 @@ Scope {
     }
   }
 
+  // Super+Shift+N and the lmenu "Night light schedule…" row.
+  IpcHandler {
+    target: "nightlight"
+    function toggle(): void {
+      NightLightState.togglePanel(bar.focusedScreen())
+    }
+  }
+
+  // lmenu opens from a Hyprland global shortcut (hl.dsp.global("quickshell:lmenu")
+  // in keybindings.lua) rather than `quickshell ipc call`, so the keypress
+  // reaches the shell without starting a process. The IPC target is for scripts
+  // that want to open it at a route: `quickshell ipc call lmenu summon themes`.
+  GlobalShortcut {
+    name: "lmenu"
+    description: "lmenu root"
+    onPressed: LmenuState.toggle(bar.focusedScreen(), "")
+  }
+
+  IpcHandler {
+    target: "lmenu"
+    function toggle(route: string): void {
+      LmenuState.toggle(bar.focusedScreen(), route)
+    }
+    function summon(route: string): void {
+      LmenuState.summon(bar.focusedScreen(), route)
+    }
+    function close(): void {
+      LmenuState.close()
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+
+    LmenuPanel {
+      required property var modelData
+      screen: modelData
+      ownerScreen: modelData.name
+    }
+  }
+
   // The keybindings palette is a fullscreen overlay rather than a bar-anchored
   // popup, so it gets its own per-screen instance instead of living inside a
   // bar widget. Only the one on the focused monitor ever becomes visible.
@@ -220,6 +261,16 @@ Scope {
   Variants {
     model: Quickshell.screens
 
+    NightLightPanel {
+      required property var modelData
+      screen: modelData
+      ownerScreen: modelData.name
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+
     CavaEdgeVisualizer {
       required property var modelData
       output: modelData
@@ -262,45 +313,89 @@ Scope {
       }
       implicitHeight: Theme.barHeight
 
-      // Content scale for a 45px bar: the tallest chrome is the workspace cell
-      // at 26 design px, so 1.25x gives 33px inside 45px -- about 6px of padding
-      // above and below. Capped there rather than filling the bar edge to edge.
-      // The width/800 term only bites on a bar narrower than 1000px, where the
-      // fixed content (10 workspace cells, status icons, weekday
-      // clock) would otherwise crowd out the centred media widget.
-      readonly property real barScale: Math.max(1.0, Math.min(1.25, width / 800))
+      // Content scale for the bar: the tallest chrome is the workspace cell at
+      // 26 design px, so 1.25x gives 33px inside a 40px island -- about 3px of
+      // padding above and below. Narrow bars scale down instead, so the three
+      // island groups keep their separation on a rotated monitor. See
+      // Theme.barScaleFor for why the curve is what it is.
+      readonly property real barScale: Theme.barScaleFor(width)
 
-      Rectangle {
-        anchors.fill: parent
-        color: Theme.bg
-      }
+      // The strip paints nothing of its own. Everything visible is a BarIsland
+      // floating on it, which is what makes the bar read as capsules over the
+      // wallpaper instead of as a slab across the top of the screen.
+      color: "transparent"
 
-      // Empty bar space swallows clicks so drags and stray clicks cannot
-      // reach anything below the bar.
+      // The whole reserved strip still swallows clicks, gaps between islands
+      // included, so a drag that overshoots an island edge cannot land on
+      // whatever sits behind the bar.
       MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.AllButtons
       }
 
-      Row {
-        id: leftGroup
+      BarIsland {
+        id: leftIsland
         anchors.left: parent.left
-        anchors.leftMargin: Theme.fs(8 * panel.barScale)
+        anchors.leftMargin: Theme.barSideMargin
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Theme.fs(6 * panel.barScale)
+        moduleSpacing: Theme.fs(4 * panel.barScale)
 
         WorkspacesModule { id: workspaces; barScale: panel.barScale }
       }
 
-      // The clock itself is the center anchor. Indicators grow left while
-      // keyboard/weather grow right, so changing either side never nudges it.
+      // The clock is the center anchor. Indicators grow left without nudging it.
       Item {
         id: centerGroup
         anchors.fill: parent
 
+        // Distance from the clock to each side row.
+        readonly property int rowMargin: Theme.fs(8 * panel.barScale)
+
+        // Scaling the content down keeps the islands apart on narrow bars;
+        // this shift is the backstop when scaling is not enough.
+        //
+        // Every term is a width or the x of something the offset does not
+        // move. Deriving any of it from leadingRow.x or clockLabel.x would
+        // feed the offset back into itself and cycle the binding.
+        readonly property real clockBase: (width - clockLabel.width) / 2
+        readonly property real leadingNeed:
+          rowMargin + leadingRow.width + Theme.barIslandPadding
+        readonly property real trailingNeed:
+          rowMargin + Theme.barIslandPadding
+        readonly property real minShift:
+          leftIsland.x + leftIsland.width + Theme.barIslandGap
+          - clockBase + leadingNeed
+        readonly property real maxShift:
+          rightGroup.x - Theme.barIslandGap
+          - clockBase - clockLabel.width - trailingNeed
+        // When even the clamp cannot satisfy both sides there is genuinely no
+        // room, so split the shortfall rather than dumping all of it on one
+        // neighbour.
+        readonly property real collisionShift:
+          minShift > maxShift ? (minShift + maxShift) / 2
+                              : Math.min(Math.max(0, minShift), maxShift)
+
+        // Drawn from the indicator row and clock rather than wrapping them in a
+        // BarIsland, because the clock has to stay pinned to the screen centre.
+        // A content-sized capsule would centre itself instead, and the time
+        // would drift sideways every time a mode pill appeared.
+        Rectangle {
+          id: centerIsland
+          anchors.verticalCenter: parent.verticalCenter
+          x: leadingRow.x - Theme.barIslandPadding
+          width: clockLabel.x + clockLabel.width + centerGroup.rowMargin
+                 + Theme.barIslandPadding - x
+          height: Theme.barIslandHeight
+          radius: height / 2
+          color: Theme.bgDeep
+        }
+
         Text {
           id: clockLabel
           anchors.centerIn: parent
+          // Zero whenever the bar is wide enough, which is every landscape
+          // monitor. The clock only leaves true centre to avoid a collision.
+          anchors.horizontalCenterOffset: centerGroup.collisionShift
           text: Qt.formatDateTime(ClockState.zonedDate(), "h:mm AP")
           color: Theme.text
           font.family: Theme.uiFamily
@@ -309,6 +404,7 @@ Scope {
         }
 
         MouseArea {
+          id: clockClickGuard
           anchors.fill: clockLabel
           acceptedButtons: Qt.LeftButton
           onClicked: calendarPopup.visible = !calendarPopup.visible
@@ -320,64 +416,18 @@ Scope {
         }
 
         Row {
+          id: leadingRow
           anchors.right: clockLabel.left
-          anchors.rightMargin: Theme.fs(8 * panel.barScale)
+          anchors.rightMargin: centerGroup.rowMargin
           anchors.verticalCenter: parent.verticalCenter
           spacing: Theme.fs(3 * panel.barScale)
 
           RecordIcon { barScale: panel.barScale }
           ModeIndicators { screenName: panel.modelData.name; barScale: panel.barScale }
-          UpdatesIcon { barScale: panel.barScale }
-          BatteryIcon { barScale: panel.barScale }
         }
 
-        Row {
-          anchors.left: clockLabel.right
-          anchors.leftMargin: Theme.fs(8 * panel.barScale)
-          anchors.verticalCenter: parent.verticalCenter
-          spacing: Theme.fs(7 * panel.barScale)
-
-          KeyboardLayoutWidget { barScale: panel.barScale }
-
-          Row {
-            id: weatherReadout
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.fs(4 * panel.barScale)
-
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              text: WeatherState.hasData
-                    ? WeatherState.codeGlyph(WeatherState.current.code,
-                                             WeatherState.current.isDay) : ""
-              color: Theme.text
-              font.family: Theme.glyphFamily
-              font.pixelSize: Theme.fs(15 * panel.barScale)
-            }
-
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              text: WeatherState.hasData
-                    ? WeatherState.fmtTemp(WeatherState.current.temp) : "weather…"
-              color: Theme.textDim
-              font.family: Theme.uiFamily
-              font.pixelSize: Theme.fs(12 * panel.barScale)
-            }
-
-            MouseArea {
-              anchors.fill: parent
-              onClicked: forecastPopup.visible = !forecastPopup.visible
-            }
-
-            WeatherForecastPopup {
-              id: forecastPopup
-              anchorItem: weatherReadout
-            }
-          }
-        }
-
-        // The media panel anchors to the centered clock; it is opened from the
-        // media icon or the `media` IPC target. Left-clicking the clock opens
-        // the calendar instead.
+        // The media panel anchors to the centered clock and opens through the
+        // `media` IPC target. Left-clicking the clock opens the calendar.
         MediaPanel {
           anchorItem: clockLabel
           ownerScreen: panel.modelData.name
@@ -387,32 +437,59 @@ Scope {
       Row {
         id: rightGroup
         anchors.right: parent.right
-        anchors.rightMargin: Theme.fs(8 * panel.barScale)
+        anchors.rightMargin: Theme.barSideMargin
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Theme.fs(2 * panel.barScale)
+        spacing: Theme.barIslandGap
 
-        AppLauncher { barScale: panel.barScale }
-        AgentIcon { barScale: panel.barScale }
-        WindowsVmIcon { barScale: panel.barScale }
-        ClipboardIcon { screenName: panel.modelData.name; barScale: panel.barScale }
-        BluetoothIcon { screenName: panel.modelData.name; barScale: panel.barScale }
-        NetworkIcon { screenName: panel.modelData.name; barScale: panel.barScale }
-        AudioIcon { screenName: panel.modelData.name; barScale: panel.barScale }
-        DisplayIcon { screenName: panel.modelData.name; barScale: panel.barScale }
-
-        IconButton {
-          id: powerButton
+        BarIsland {
+          id: trayIsland
           anchors.verticalCenter: parent.verticalCenter
-          glyph: String.fromCodePoint(0xf0425) // md-power
-          size: Theme.fs(28 * panel.barScale)
-          glyphSize: Theme.fs(15 * panel.barScale)
-          onClicked: powerPopup.visible = !powerPopup.visible
+          moduleSpacing: Theme.fs(2 * panel.barScale)
+
+          AppLauncher { barScale: panel.barScale }
+          AgentIcon { barScale: panel.barScale }
+          WindowsVmIcon { barScale: panel.barScale }
+          BluetoothIcon { screenName: panel.modelData.name; barScale: panel.barScale }
+          NetworkIcon { screenName: panel.modelData.name; barScale: panel.barScale }
+          AudioIcon { screenName: panel.modelData.name; barScale: panel.barScale }
+          BatteryIcon { barScale: panel.barScale }
         }
 
-        PowerPopup {
-          id: powerPopup
-          anchorItem: powerButton
+        // Power gets a circular island of its own. It is the only destructive
+        // control on the bar, so it does not share a capsule with the icons a
+        // mis-aimed click would otherwise be one pixel away from.
+        BarIsland {
+          id: powerIsland
+          anchors.verticalCenter: parent.verticalCenter
+          implicitWidth: Theme.barIslandHeight
+
+          IconButton {
+            id: powerButton
+            anchors.verticalCenter: parent.verticalCenter
+            bordered: false
+            glyph: String.fromCodePoint(0xf0425) // md-power
+            size: Theme.fs(28 * panel.barScale)
+            glyphSize: Theme.fs(15 * panel.barScale)
+            onClicked: powerPopup.visible = !powerPopup.visible
+          }
         }
+      }
+
+      PowerPopup {
+        id: powerPopup
+        anchorItem: powerButton
+      }
+
+      // Keep the clipboard and display panels available through their IPC
+      // shortcuts after removing their bar icons.
+      ClipboardPanel {
+        anchorItem: trayIsland
+        ownerScreen: panel.modelData.name
+      }
+
+      DisplayPanel {
+        anchorItem: trayIsland
+        ownerScreen: panel.modelData.name
       }
     }
   }

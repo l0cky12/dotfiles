@@ -31,6 +31,21 @@ Singleton {
   property string state: "unknown"
   property real timeToEmpty: 0
   property real timeToCharge: 0
+  // Absolute figures straight from UPower: stored energy and full capacity in
+  // Wh, plus the instantaneous rate in W. These have to come from the service
+  // rather than sysfs -- this laptop's battery node reports charge_now in uAh,
+  // not energy_now in uWh, and UPower is what multiplies through by voltage.
+  // energyCapacity is energy-full (the pack's current full charge), not
+  // energy-full-design, which is what "of N Wh full" is meant to report.
+  property real energy: 0
+  property real energyCapacity: 0
+  property real changeRate: 0
+  // Presentation-only supply state, deliberately separate from powerState.
+  // BatteryLogic.update() keys alert rearming off powerState === "charging"
+  // and needs PendingCharge to keep counting as charging. A readout needs the
+  // opposite: UPower maps the kernel's "Not charging" to PendingCharge, so a
+  // charge-limited battery sitting at 0 W would otherwise claim to be charging.
+  property string supplyState: "unknown"
   readonly property int criticalThreshold: 15
   property var alertState: BatteryLogic.initialState()
   property var alertThresholds: null
@@ -50,6 +65,19 @@ Singleton {
     case UPowerDeviceState.FullyCharged: return "full"
     case UPowerDeviceState.PendingCharge: return "pending charge"
     case UPowerDeviceState.PendingDischarge: return "pending discharge"
+    default: return "unknown"
+    }
+  }
+  function supplyStateFor(deviceState) {
+    switch (deviceState) {
+    case UPowerDeviceState.FullyCharged: return "full"
+    case UPowerDeviceState.Charging: return "charging"
+    // Not a lie by omission: PendingCharge is the kernel's "Not charging",
+    // which is a charger that is connected and deliberately idle.
+    case UPowerDeviceState.PendingCharge: return "idle"
+    case UPowerDeviceState.Discharging: return "discharging"
+    case UPowerDeviceState.PendingDischarge: return "discharging"
+    case UPowerDeviceState.Empty: return "empty"
     default: return "unknown"
     }
   }
@@ -76,6 +104,8 @@ Singleton {
       root.percent = 0; root.charging = false; root.discharging = false
       root.powerState = "indeterminate"; root.state = "unknown"
       root.timeToEmpty = 0; root.timeToCharge = 0
+      root.energy = 0; root.energyCapacity = 0; root.changeRate = 0
+      root.supplyState = "unknown"
       root.evaluateAlerts()
       return
     }
@@ -87,6 +117,12 @@ Singleton {
     root.discharging = battery.state === UPowerDeviceState.Discharging || battery.state === UPowerDeviceState.PendingDischarge
     root.timeToEmpty = root.discharging ? Math.max(0, Number(battery.timeToEmpty) || 0) : 0
     root.timeToCharge = root.charging ? Math.max(0, Number(battery.timeToFull) || 0) : 0
+    root.energy = Math.max(0, Number(battery.energy) || 0)
+    root.energyCapacity = Math.max(0, Number(battery.energyCapacity) || 0)
+    // UPower reports the rate as an unsigned magnitude; direction comes from
+    // the device state, so a negative value here would be a source regression.
+    root.changeRate = Math.max(0, Number(battery.changeRate) || 0)
+    root.supplyState = root.supplyStateFor(battery.state)
     const onBattery = root.fixtureMode && root.deviceOverride ? root.discharging : UPower.onBattery
     root.powerState = root.charging || battery.state === UPowerDeviceState.FullyCharged || onBattery === false ? "charging" : (root.discharging || onBattery === true ? "discharging" : "indeterminate")
     root.evaluateAlerts()
@@ -122,6 +158,9 @@ Singleton {
     function onStateChanged() { root.refresh() }
     function onTimeToEmptyChanged() { root.refresh() }
     function onTimeToFullChanged() { root.refresh() }
+    function onEnergyChanged() { root.refresh() }
+    function onEnergyCapacityChanged() { root.refresh() }
+    function onChangeRateChanged() { root.refresh() }
   }
   Connections {
     target: Battery.BatteryConfig

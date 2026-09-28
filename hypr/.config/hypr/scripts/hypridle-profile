@@ -9,8 +9,8 @@ runtime_dir=${HYPRIDLE_PROFILE_RUNTIME_DIR:-${XDG_RUNTIME_DIR:-/tmp}/hyprland-de
 runtime_config="$runtime_dir/hypridle.conf"
 hypridle_command=${HYPRIDLE_PROFILE_HYPRIDLE:-hypridle}
 pkill_command=${HYPRIDLE_PROFILE_PKILL:-pkill}
+pgrep_command=${HYPRIDLE_PROFILE_PGREP:-pgrep}
 setsid_command=${HYPRIDLE_PROFILE_SETSID:-setsid}
-script_path=$(readlink -f -- "${BASH_SOURCE[0]}")
 
 usage() {
   cat >&2 <<EOF
@@ -103,11 +103,38 @@ write_runtime_config() {
   trap - RETURN
 }
 
+stop_daemon() {
+  "$pkill_command" -u "$(id -u)" -x hypridle 2>/dev/null || true
+  for _ in {1..50}; do
+    "$pgrep_command" -u "$(id -u)" -x hypridle >/dev/null 2>&1 || return 0
+    sleep .02
+  done
+  printf '%s: previous Hypridle did not stop\n' "$PROGRAM" >&2
+  return 1
+}
+
+start_daemon() {
+  local pid
+  # Keep a waitable launcher alive so an immediate Hypridle failure is visible.
+  # Hypridle has no readiness notification; observe the initial startup window.
+  "$setsid_command" --wait -- "$hypridle_command" --config "$runtime_config" \
+    </dev/null >>"$runtime_dir/hypridle.log" 2>&1 &
+  pid=$!
+  for _ in {1..10}; do
+    sleep .05
+    if ! kill -0 "$pid" 2>/dev/null; then
+      wait "$pid" || true
+      return 1
+    fi
+  done
+}
+
 set_profile() {
-  local selected=$1 requested_dry_run=${2:-0} state_dir temp_state
+  local selected=$1 requested_dry_run=${2:-0} state_dir temp_state temp_config backup
+  local was_running=0
   profile_is_valid "$selected" || {
     printf '%s: unknown idle profile: %s\n' "$PROGRAM" "$selected" >&2
-    exit 1
+    return 1
   }
   if ((requested_dry_run)); then
     printf 'would select idle profile: %s\n' "$selected"
@@ -118,24 +145,42 @@ set_profile() {
 
   require_command "$hypridle_command"
   require_command "$pkill_command"
+  require_command "$pgrep_command"
   require_command "$setsid_command"
 
-  # Validate and render before changing persistent state or stopping the current
-  # daemon. A broken source template must leave the running profile untouched.
-  write_runtime_config "$selected"
-
+  # Prepare both files before stopping the existing daemon. The selected state
+  # is committed only after the replacement survives startup.
   state_dir=${state_file%/*}
-  mkdir -p -- "$state_dir"
+  mkdir -p -- "$state_dir" "$runtime_dir"
   temp_state=$(mktemp "$state_dir/.idle-profile.XXXXXX")
-  trap 'rm -f -- "${temp_state:-}"' RETURN
-  printf '%s\n' "$selected" > "$temp_state"
-  chmod 600 "$temp_state"
-  mv -f -- "$temp_state" "$state_file"
-  trap - RETURN
+  temp_config=$(mktemp "$runtime_dir/.hypridle.conf.XXXXXX")
+  backup=$(mktemp "$runtime_dir/.hypridle.previous.XXXXXX")
+  trap 'rm -f -- "$temp_state" "$temp_config" "$backup"' RETURN
+  render_profile "$selected" >"$temp_config" || return 1
+  printf '%s\n' "$selected" >"$temp_state"
+  if [[ -f $runtime_config ]]; then
+    cp -- "$runtime_config" "$backup"
+  else
+    render_profile "$(current_profile)" >"$backup" || return 1
+  fi
+  "$pgrep_command" -u "$(id -u)" -x hypridle >/dev/null 2>&1 && was_running=1
+  stop_daemon || return 1
+  mv -f -- "$temp_config" "$runtime_config"
+  if start_daemon && mv -f -- "$temp_state" "$state_file"; then
+    rm -f -- "$backup"
+    trap - RETURN
+    printf 'idle profile: %s\n' "$selected"
+    return
+  fi
 
-  "$pkill_command" -x hypridle 2>/dev/null || true
-  "$setsid_command" -f -- "$script_path" daemon
-  printf 'idle profile: %s\n' "$selected"
+  stop_daemon || return 1
+  mv -f -- "$backup" "$runtime_config"
+  if ((was_running)) && ! start_daemon; then
+    printf '%s: replacement and recovery failed; see %s/hypridle.log\n' "$PROGRAM" "$runtime_dir" >&2
+    return 1
+  fi
+  printf '%s: replacement failed; previous profile restored\n' "$PROGRAM" >&2
+  return 1
 }
 
 case ${1:-} in

@@ -236,6 +236,16 @@ HOME="$test_root/home" HYPRLOCK_RUNNING=0 "$bin_root/screensaver-lock"
 grep -Fxq "source = \$hyprlockDir/layouts/layout5.conf" \
   "$test_root/lock-runtime/hyprlock.conf" || fail 'lock config did not use the selected layout'
 
+mkdir "$test_root/fallback-layouts"
+cp "$repo_root/hyprlock/.config/hyprlock/layouts/hyprlock.conf" \
+  "$test_root/fallback-layouts/hyprlock.conf"
+: >"$LOCK_ACTION_LOG"
+HOME="$test_root/home" HYPRLOCK_RUNNING=0 \
+  SCREENSAVER_LOCK_LAYOUT_DIR="$test_root/fallback-layouts" \
+  "$bin_root/screensaver-lock" 2>"$test_root/layout-fallback.err"
+[[ $(<"$LOCK_ACTION_LOG") == $'wipe\nhyprlock --config '"$SCREENSAVER_LOCK_CONFIG" ]] ||
+  fail 'missing selected layout prevented the source config from locking'
+
 : >"$LOCK_ACTION_LOG"
 HOME="$test_root/home" HYPRLOCK_RUNNING=1 "$bin_root/screensaver-lock"
 [[ ! -s $LOCK_ACTION_LOG ]] || fail 'real lock path acted while hyprlock was already running'

@@ -65,31 +65,46 @@ the first time) and restart greetd.
 ### YubiKey authentication
 
 `system/pam.d/sudo`, `system/pam.d/doas` and `system/pam.d/hyprlock` are
-repository-owned templates for the attached YubiKey Bio. Both escalation stacks
-are deployed because `.zshrc` aliases `sudo` to `doas`: a stack installed only to
-`/etc/pam.d/sudo` would never be reached by the command actually typed. They try its enrolled fingerprint first, its FIDO
-PIN second, and the existing account password last. Both key rules use
-`sufficient`, so initial greetd login and password recovery remain unchanged.
+repository-owned templates. Both escalation stacks are deployed because `.zshrc`
+aliases `sudo` to `doas`: a stack installed only to `/etc/pam.d/sudo` would
+never be reached by the command actually typed. They accept a touch on the key
+first and the existing account password second. The key rules use `sufficient`,
+so initial greetd login and password recovery remain unchanged.
+
+The attached key has no fingerprint sensor and no built-in user verification —
+`fido2-token -I` lists `rk, up, noplat, clientPin` with no `bioEnroll` — so a
+touch is the only factor it can offer. `yubikey-auth` reads those capabilities
+rather than guessing from the USB product ID, and selects `--mode touch`.
 
 Stow the guarded helper and use one command for normal setup:
 
 ```bash
 stow security
 yubikey-auth status
-yubikey-auth setup --enroll-fingerprint
+yubikey-auth setup
 ```
 
-For another YubiKey Bio, leave only the new key inserted and run:
+For another key, leave only the new one inserted and run:
 
 ```bash
-yubikey-auth add --enroll-fingerprint
+yubikey-auth add
 ```
 
-Use `--device /dev/hidrawN` when multiple keys are attached, `--mode pin` for a
-non-biometric FIDO2 key, and `--dry-run` to inspect the selected device and
-targets without registering or installing anything. `setup` installs and tests
-sudo first, then waits for the exact confirmation `INSTALL HYPRLOCK`; `add`
-updates only the existing one-line mapping.
+Use `--device /dev/hidrawN` when multiple keys are attached, `--mode pin` to
+require the key's FIDO PIN at every authentication, `--mode bio
+--enroll-fingerprint` for a key that has its own sensor, and `--dry-run` to
+inspect the selected device and targets without registering or installing
+anything. `add` updates only the existing one-line mapping.
+
+`setup` deploys sudo and doas and leaves the lock screen on the account
+password, because a touch-only credential would let anyone standing at the
+machine unlock it while the key is plugged in. Opt in with `setup
+--with-hyprlock`, which installs and tests sudo first and then waits for the
+exact confirmation `INSTALL HYPRLOCK`.
+
+If the key already has a FIDO PIN set, registration may prompt for it once.
+That is libfido2 unlocking the key to create the credential; it does not make
+the credential PIN-protected, and sign-in afterwards is still touch-only.
 
 The commands below document the equivalent manual recovery procedure.
 
@@ -100,26 +115,28 @@ relying-party identifier `pam://Kelper`; registration must use the same origin
 and app ID.
 
 Keep a root shell open for recovery by running `sudo -s` in a separate terminal.
-In the original terminal, locate the key and enroll a fingerprint if one is not
-already listed. These commands prompt locally for the FIDO PIN; never paste that
-PIN into chat or a shell command:
+In the original terminal, locate the key and read back what it can verify with.
+An `options:` line without `bioEnroll` means the key has no fingerprint sensor,
+and `fido2-token -S -e` on it will answer `FIDO_ERR_INVALID_COMMAND`:
 
 ```bash
 key_device=$(fido2-token -L | awk -F: '/Yubico YubiKey FIDO/ { print $1; exit }')
 test -n "$key_device"
-fido2-token -L -e "$key_device"
+fido2-token -I "$key_device" | grep '^options:'
 
-# Run this only when no suitable fingerprint is listed.
+# Only for a key whose options list includes bioEnroll or nobioEnroll.
 fido2-token -S -e "$key_device"
 ```
 
-Generate and validate a user-verifying PAM credential before changing PAM.
-Enter the FIDO PIN and use the enrolled finger when prompted:
+Generate and validate the PAM credential before changing PAM. Passing neither
+`-V` nor `-N` records a touch-only credential; the key may still prompt locally
+for an existing FIDO PIN to unlock itself during registration. Never paste that
+PIN into chat or a shell command:
 
 ```bash
 u2f_tmp=$(mktemp -p /tmp liam-u2f-mapping.XXXXXX)
 chmod 600 "$u2f_tmp"
-pamu2fcfg -u liam -o pam://Kelper -i pam://Kelper -V > "$u2f_tmp"
+pamu2fcfg -u liam -o pam://Kelper -i pam://Kelper > "$u2f_tmp"
 awk -F: 'NR == 1 && $1 == "liam" && NF == 2 && $2 ~ /,/ { ok = 1 } END { exit !(NR == 1 && ok) }' "$u2f_tmp"
 sudo cp -a /etc/u2f_mappings /etc/u2f_mappings.pre-yubikey
 sudo install -o root -g root -m0600 "$u2f_tmp" /etc/u2f_mappings
@@ -144,18 +161,20 @@ sudo -k;  sudo -v
 doas -L;  doas true
 ```
 
-Once both checks pass, deploy Hyprlock:
+Deploying Hyprlock is optional and weakens the lock screen while the
+credential is touch-only, because a tap does not identify who made it. Skip
+this step to keep the lock screen on the account password. To deploy it
+anyway:
 
 ```bash
 sudo cp -a /etc/pam.d/hyprlock /etc/pam.d/hyprlock.pre-yubikey
 sudo install -o root -g root -m0644 system/pam.d/hyprlock /etc/pam.d/hyprlock
 ```
 
-At the lock screen, press Enter on the empty input and use an enrolled finger on
-the key. Test its PIN fallback, then test the account password with the key
-removed. PAM files are read on each attempt; no greetd restart or reboot is
-required. If any path fails, use the retained root shell to restore the
-corresponding `.pre-yubikey` file.
+At the lock screen, press Enter on the empty input and touch the key, then test
+the account password with the key removed. PAM files are read on each attempt;
+no greetd restart or reboot is required. If any path fails, use the retained
+root shell to restore the corresponding `.pre-yubikey` file.
 
 On Arch Linux, install the deployment tool, clone into the path expected by the
 root README, and enter the repository:

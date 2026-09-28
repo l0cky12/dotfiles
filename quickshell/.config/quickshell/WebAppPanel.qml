@@ -4,14 +4,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 
-// Web app manager (Super+Shift+A): install a website as a launcher, or remove
-// one this tool installed.
+// Web app manager (Super+Alt+A, or Web apps in lmenu): install a website as a
+// launcher, or edit or remove one this tool installed.
 //
 // Same layer-shell shape as the other fullscreen overlays in this shell -- one
 // instance per monitor, only the one matching panelScreen visible, exclusive
 // keyboard focus, no space reserved.
 //
-// Two views on one `mode` property: the managed list, and the install form.
+// Views on one `mode` property: the managed list, and the form, which installs
+// a new app or edits an existing one in place.
 // Only apps with backend metadata are ever listed, so an unrelated .desktop file
 // can never appear here.
 PanelWindow {
@@ -30,7 +31,8 @@ PanelWindow {
   WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
   WlrLayershell.namespace: "quickshell-webapps"
 
-  property string mode: "list"     // "list" | "install"
+  property string mode: "list"     // "list" | "install" | "edit"
+  readonly property bool formMode: panel.mode === "install" || panel.mode === "edit"
   property bool shown: false
 
   readonly property int cardW: Math.min(Theme.webappCardW,
@@ -44,13 +46,29 @@ PanelWindow {
     urlField.forceActiveFocus()
   }
 
+  function editApp(app) {
+    WebAppState.cancelRemove()
+    WebAppState.startEdit(app)
+    panel.mode = "edit"
+    nameField.forceActiveFocus()
+    nameField.selectAll()
+  }
+
+  // Leaving an edit drops it, so a later Install… does not start from it. A
+  // half-filled install is kept, as before.
+  function backToList() {
+    if (panel.mode === "edit")
+      WebAppState.resetForm()
+    panel.mode = "list"
+  }
+
   function dismiss() {
     if (WebAppState.confirmingId !== "") {
       WebAppState.cancelRemove()
       return
     }
-    if (panel.mode === "install") {
-      panel.mode = "list"
+    if (panel.formMode) {
+      panel.backToList()
       return
     }
     WebAppState.close()
@@ -119,7 +137,8 @@ PanelWindow {
           anchors.left: headerGlyph.right
           anchors.leftMargin: Theme.gapS
           anchors.verticalCenter: parent.verticalCenter
-          text: panel.mode === "install" ? "Install Web App" : "Web Apps"
+          text: panel.mode === "install" ? "Install Web App"
+              : panel.mode === "edit" ? "Edit Web App" : "Web Apps"
           color: Theme.text
           font.family: Theme.uiFamily
           font.pixelSize: Theme.webappFontTitle
@@ -139,7 +158,7 @@ PanelWindow {
           Text {
             id: headerBtnLabel
             anchors.centerIn: parent
-            text: panel.mode === "install" ? "Back" : "Install…"
+            text: panel.formMode ? "Back" : "Install…"
             color: headerBtnMouse.containsMouse ? Theme.bgDeep : Theme.text
             font.family: Theme.uiFamily
             font.pixelSize: Theme.webappFontBody
@@ -151,8 +170,8 @@ PanelWindow {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: {
-              if (panel.mode === "install") {
-                panel.mode = "list"
+              if (panel.formMode) {
+                panel.backToList()
               } else {
                 WebAppState.resetForm()
                 panel.mode = "install"
@@ -272,7 +291,9 @@ PanelWindow {
                 source: row.modelData.icon ? "file://" + row.modelData.icon : ""
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
-                cache: true
+                // An edit replaces the icon under the same path, which a cached
+                // image would go on showing.
+                cache: false
                 sourceSize.width: Theme.fs(96)
                 sourceSize.height: Theme.fs(96)
                 visible: status === Image.Ready
@@ -368,6 +389,14 @@ PanelWindow {
                 visible: !row.confirming
                 size: Theme.fs(26)
                 glyphSize: Theme.fs(13)
+                glyph: WebAppState.glyphEdit
+                onClicked: panel.editApp(row.modelData)
+              }
+
+              IconButton {
+                visible: !row.confirming
+                size: Theme.fs(26)
+                glyphSize: Theme.fs(13)
                 glyph: WebAppState.glyphDelete
                 onClicked: WebAppState.askRemove(row.modelData.id)
               }
@@ -376,9 +405,9 @@ PanelWindow {
         }
       }
 
-      // ══ INSTALL FORM ══════════════════════════════════════════════════════
+      // ══ INSTALL / EDIT FORM ═══════════════════════════════════════════════
       Column {
-        visible: panel.mode === "install"
+        visible: panel.formMode
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: divider.bottom
@@ -554,6 +583,7 @@ PanelWindow {
                 case "searching": return "Finding icon…"
                 case "found":     return "Icon found automatically"
                 case "chosen":    return "Using the icon you picked"
+                case "current":   return "Current icon — Auto looks it up again"
                 case "none":      return "No icon found — a letter tile will be used"
                 default:          return "An icon is looked up once the URL is valid"
                 }
@@ -592,6 +622,7 @@ PanelWindow {
 
               Rectangle {
                 visible: WebAppState.iconState === "chosen"
+                      || WebAppState.iconState === "current"
                 width: resetLabel.implicitWidth + Theme.gapM
                 height: Theme.fs(24)
                 radius: Theme.radiusCell
@@ -664,7 +695,7 @@ PanelWindow {
 
       // --- form actions, pinned to the bottom ---
       Row {
-        visible: panel.mode === "install"
+        visible: panel.formMode
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.webappPadding
@@ -703,7 +734,9 @@ PanelWindow {
           Text {
             id: installBtnLabel
             anchors.centerIn: parent
-            text: WebAppState.installing ? "Installing…" : "Install"
+            text: panel.mode === "edit"
+              ? (WebAppState.installing ? "Saving…" : "Save")
+              : (WebAppState.installing ? "Installing…" : "Install")
             color: parent.live ? Theme.bgDeep : Theme.textMuted
             font.family: Theme.uiFamily
             font.pixelSize: Theme.webappFontBody
@@ -725,7 +758,8 @@ PanelWindow {
 
   Connections {
     target: WebAppState
-    // Land back on the list after a successful install so the new app is visible.
+    // Land back on the list after a successful install or edit so the result
+    // is visible.
     function onInstalled(name) { panel.mode = "list" }
     // Super+Space on a panel that is already open: onVisibleChanged will not
     // fire, so the requested view has to be applied directly.

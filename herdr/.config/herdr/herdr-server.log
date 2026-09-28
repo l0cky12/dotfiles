@@ -508,3 +508,750 @@
 2026-09-17T14:26:51.024781Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
 2026-09-17T14:56:51.008252Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
 2026-09-17T15:26:51.101191Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-18T09:53:14.741215Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-18T09:53:14.748363Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T09:53:14.766082Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=3057
+2026-09-18T09:53:14.766558Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T09:53:14.769415Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=3066
+2026-09-18T09:53:14.772963Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T09:53:14.776445Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=3071
+2026-09-18T09:53:14.777321Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T09:53:14.780169Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=3075
+2026-09-18T09:53:14.780941Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T09:53:14.782387Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=3078
+2026-09-18T09:53:14.782709Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-18T09:53:14.782754Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-18T09:53:14.968114Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-18T09:53:14.970462Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-18T09:53:14.970927Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-18T09:53:14.971039Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-18T09:53:14.973638Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=3014
+2026-09-18T09:53:15.233536Z  INFO herdr::server::headless: client connected client_id=2 cols=217 rows=71 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-18T09:53:17.994327Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-18T09:53:22.005181Z  WARN herdr::logging: update check failed event="update.check.complete" subsystem="update" outcome="error" err="failed to fetch update manifest"
+2026-09-18T10:23:15.527461Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-18T10:26:54.544435Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-18T10:27:37.927119Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-18T10:27:37.931343Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T10:27:37.933145Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=2161
+2026-09-18T10:27:37.933663Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T10:27:37.935100Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=2164
+2026-09-18T10:27:37.935948Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T10:27:37.939450Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=2168
+2026-09-18T10:27:37.941324Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T10:27:37.948696Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=2173
+2026-09-18T10:27:37.950054Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T10:27:37.952986Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=2179
+2026-09-18T10:27:37.953308Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-18T10:27:37.953369Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-18T10:27:38.200523Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-18T10:27:38.206432Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-18T10:27:38.206975Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-18T10:27:38.207689Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-18T10:27:38.207921Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=2129
+2026-09-18T10:27:38.465291Z  INFO herdr::server::headless: client connected client_id=2 cols=217 rows=71 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-18T10:27:41.225941Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-18T10:27:45.228361Z  WARN herdr::logging: update check failed event="update.check.complete" subsystem="update" outcome="error" err="failed to fetch update manifest"
+2026-09-18T10:57:41.223789Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-18T11:08:53.445947Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-18T11:54:58.600712Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-18T11:54:58.615086Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T11:54:58.621617Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=2847
+2026-09-18T11:54:58.622764Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T11:54:58.624178Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=2850
+2026-09-18T11:54:58.626086Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T11:54:58.628921Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=2853
+2026-09-18T11:54:58.630993Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T11:54:58.634151Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=2857
+2026-09-18T11:54:58.638541Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T11:54:58.643852Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=2866
+2026-09-18T11:54:58.644339Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-18T11:54:58.644386Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-18T11:54:58.816516Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-18T11:54:58.817493Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-18T11:54:58.817793Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-18T11:54:58.817973Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-18T11:54:58.818205Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=2821
+2026-09-18T11:54:59.078789Z  INFO herdr::server::headless: client connected client_id=2 cols=217 rows=71 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-18T11:55:01.839456Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-18T11:55:05.839800Z  WARN herdr::logging: update check failed event="update.check.complete" subsystem="update" outcome="error" err="failed to fetch update manifest"
+2026-09-18T12:06:02.278352Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t2"
+2026-09-18T12:06:02.278436Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t2"
+2026-09-18T12:06:07.281258Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-18T12:06:17.226670Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-18T13:15:44.380792Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-18T13:15:44.390997Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T13:15:44.394283Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=4349
+2026-09-18T13:15:44.396384Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T13:15:44.400419Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=4353
+2026-09-18T13:15:44.402092Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T13:15:44.409826Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=4367
+2026-09-18T13:15:44.410795Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T13:15:44.415039Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=4375
+2026-09-18T13:15:44.417221Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-18T13:15:44.420884Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=4378
+2026-09-18T13:15:44.422117Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-18T13:15:44.422224Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-18T13:15:45.127938Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-18T13:15:45.133625Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-18T13:15:45.134222Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-18T13:15:45.134416Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-18T13:15:45.134803Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=4321
+2026-09-18T13:15:45.388745Z  INFO herdr::server::headless: client connected client_id=2 cols=217 rows=71 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-18T13:15:48.168470Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-18T13:15:52.175632Z  WARN herdr::logging: update check failed event="update.check.complete" subsystem="update" outcome="error" err="failed to fetch update manifest"
+2026-09-18T13:45:46.505070Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-18T14:15:45.906810Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-18T14:22:17.451921Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-19T14:50:47.482642Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-19T14:50:47.488862Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-19T14:50:47.491359Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=3904
+2026-09-19T14:50:47.492289Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-19T14:50:47.495059Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=3910
+2026-09-19T14:50:47.496845Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-19T14:50:47.499705Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=3913
+2026-09-19T14:50:47.500665Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-19T14:50:47.503043Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=3916
+2026-09-19T14:50:47.504515Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-19T14:50:47.508146Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=3919
+2026-09-19T14:50:47.508842Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-19T14:50:47.508922Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-19T14:50:47.965771Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-19T14:50:47.977721Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-19T14:50:47.978247Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-19T14:50:47.978383Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-19T14:50:47.981630Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=3881
+2026-09-19T14:50:48.048954Z  INFO herdr::server::headless: client connected client_id=2 cols=217 rows=71 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-19T14:50:51.052139Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-19T14:50:55.069249Z  WARN herdr::logging: update check failed event="update.check.complete" subsystem="update" outcome="error" err="failed to fetch update manifest"
+2026-09-19T14:51:10.365951Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-19T15:20:50.990679Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-20T15:21:40.259818Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-20T15:51:40.268074Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-20T16:49:38.059092Z  INFO herdr::server::headless: client connected client_id=4 cols=217 rows=68 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-20T16:49:51.898718Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-20T16:49:51.898812Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-20T16:49:56.907902Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-20T16:55:40.642582Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t2"
+2026-09-20T16:55:40.642682Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t2"
+2026-09-20T16:55:45.646564Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-20T16:58:35.716609Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-20T16:58:35.716690Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-20T16:58:40.722539Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-20T16:58:41.145621Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t2"
+2026-09-20T16:58:41.145769Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t2"
+2026-09-20T16:58:46.150374Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-20T17:10:19.002966Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-20T17:10:19.003049Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-20T17:10:23.050234Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t2"
+2026-09-20T17:10:23.050325Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t2"
+2026-09-20T17:10:28.054818Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-20T17:13:02.090847Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-20T17:27:30.353220Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-20T17:27:30.353356Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w1" tab_id="w1:t1"
+2026-09-20T17:27:35.357242Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-20T17:43:03.000610Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-21T03:10:29.830182Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-21T03:40:29.375558Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-21T04:10:29.241852Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-21T14:27:48.140820Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-21T14:57:48.687326Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-21T15:27:48.907791Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-21T15:55:38.786118Z  INFO herdr::server::headless: client detached client_id=4
+2026-09-21T17:12:43.413206Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-21T17:12:43.416594Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T17:12:43.419254Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=3215
+2026-09-21T17:12:43.420882Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T17:12:43.423321Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=3227
+2026-09-21T17:12:43.425665Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T17:12:43.428484Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=3234
+2026-09-21T17:12:43.429064Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T17:12:43.430619Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=3240
+2026-09-21T17:12:43.431519Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T17:12:43.435110Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=3250
+2026-09-21T17:12:43.435508Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-21T17:12:43.435583Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-21T17:12:43.781885Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-21T17:12:43.784419Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-21T17:12:43.784703Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-21T17:12:43.785105Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-21T17:12:43.786716Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=3191
+2026-09-21T17:12:43.992679Z  INFO herdr::server::headless: client connected client_id=2 cols=217 rows=71 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-21T17:12:46.798280Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-21T17:12:50.829792Z  WARN herdr::logging: update check failed event="update.check.complete" subsystem="update" outcome="error" err="failed to fetch update manifest"
+2026-09-21T17:42:46.803877Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-21T19:22:06.953308Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-21T19:22:58.456229Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-21T19:22:58.465330Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T19:22:58.468736Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=3547
+2026-09-21T19:22:58.469682Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T19:22:58.475118Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=3551
+2026-09-21T19:22:58.477529Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T19:22:58.480840Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=3556
+2026-09-21T19:22:58.482355Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T19:22:58.487343Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=3561
+2026-09-21T19:22:58.489222Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-21T19:22:58.492581Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=3571
+2026-09-21T19:22:58.493411Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-21T19:22:58.493500Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-21T19:22:58.994448Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-21T19:22:59.000490Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-21T19:22:59.001336Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-21T19:22:59.001530Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-21T19:22:59.002055Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=3523
+2026-09-21T19:22:59.024373Z  INFO herdr::server::headless: client connected client_id=2 cols=217 rows=71 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-21T19:23:02.042805Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-21T19:23:06.079108Z  WARN herdr::logging: update check failed event="update.check.complete" subsystem="update" outcome="error" err="failed to fetch update manifest"
+2026-09-21T19:28:37.593343Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-22T12:17:49.026407Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-22T12:17:49.035161Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-22T12:17:49.038711Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=4930
+2026-09-22T12:17:49.039948Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-22T12:17:49.044174Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=4933
+2026-09-22T12:17:49.046790Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-22T12:17:49.050148Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=4937
+2026-09-22T12:17:49.051626Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-22T12:17:49.054500Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=4941
+2026-09-22T12:17:49.057579Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-22T12:17:49.061823Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=4948
+2026-09-22T12:17:49.063092Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-22T12:17:49.063273Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-22T12:17:49.662182Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T12:17:49.664910Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-22T12:17:49.667317Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-22T12:17:49.667493Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-22T12:17:49.667848Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=4902
+2026-09-22T12:17:49.830407Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-22T12:17:49.881126Z  INFO herdr::logging: update available event="update.available" subsystem="update" outcome="ok" version="0.9.1"
+2026-09-22T12:17:49.881274Z  INFO herdr::update: new stable build available at https://github.com/herdrdev/herdr/releases/download/v0.9.1/herdr-linux-x86_64
+2026-09-22T12:17:49.882949Z  INFO herdr::update: auto-update check: 0.9.1 available, waiting for explicit install
+2026-09-22T12:17:49.893174Z  INFO herdr::server::headless: client connected client_id=2 cols=217 rows=71 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-22T12:47:49.796371Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-22T12:51:32.564479Z  INFO herdr::server::headless: client connected client_id=4 cols=180 rows=47 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-22T12:51:37.562151Z  INFO herdr::logging: pane child exited event="pane.exit" subsystem="pane" outcome="completed" pane_id=1 status="ExitStatus { code: 0, signal: None }"
+2026-09-22T12:51:37.562589Z  INFO herdr::pane: pane session terminated pane=1 pid=4930 signal=Hangup
+2026-09-22T12:51:39.392514Z  INFO herdr::logging: pane child exited event="pane.exit" subsystem="pane" outcome="completed" pane_id=2 status="ExitStatus { code: 0, signal: None }"
+2026-09-22T12:51:39.392970Z  INFO herdr::pane: pane session terminated pane=2 pid=4933 signal=Hangup
+2026-09-22T12:51:41.281569Z  INFO herdr::logging: pane child exited event="pane.exit" subsystem="pane" outcome="completed" pane_id=3 status="ExitStatus { code: 0, signal: None }"
+2026-09-22T12:51:41.281962Z  INFO herdr::pane: pane session terminated pane=3 pid=4937 signal=Hangup
+2026-09-22T12:51:42.350442Z  INFO herdr::logging: pane child exited event="pane.exit" subsystem="pane" outcome="completed" pane_id=4 status="ExitStatus { code: 0, signal: None }"
+2026-09-22T12:51:42.365151Z  INFO herdr::pane: pane session terminated pane=4 pid=4941 signal=Hangup
+2026-09-22T12:51:44.196610Z  INFO herdr::server::headless: client detached client_id=4
+2026-09-22T12:51:47.371624Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T12:51:56.624012Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-22T13:17:49.798930Z  WARN herdr::detect::manifest_update: skipping unknown remote manifest agent agent="letta"
+2026-09-22T13:40:15.991580Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-22T13:40:16.009468Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-22T13:40:16.014189Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=4478
+2026-09-22T13:40:16.015249Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=1
+2026-09-22T13:40:16.015362Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-22T13:40:16.608278Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T13:40:16.612088Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-22T13:40:16.612784Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-22T13:40:16.613751Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-22T13:40:16.615672Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=4440
+2026-09-22T13:40:16.870507Z  INFO herdr::server::headless: client connected client_id=2 cols=180 rows=47 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-22T13:40:19.645823Z  WARN herdr::detect::manifest_update: agent detection manifest update failed: failed to fetch https://herdr.dev/agent-detection/index.toml
+2026-09-22T13:40:23.666841Z  WARN herdr::logging: update check failed event="update.check.complete" subsystem="update" outcome="error" err="failed to fetch update manifest"
+2026-09-22T13:44:42.483240Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-22T14:00:00.562753Z  INFO herdr::server::headless: client connected client_id=4 cols=180 rows=47 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-22T14:00:29.827120Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=47 cols=180 scrollback_limit_bytes=10000000
+2026-09-22T14:00:29.829441Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=138806
+2026-09-22T14:00:29.829845Z  INFO herdr::logging: tab renamed event="tab.rename" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T14:00:29.829877Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T14:00:34.837821Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:02:26.735519Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T14:02:26.735624Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T14:02:31.738382Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:03:07.287884Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T14:03:07.287974Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T14:03:12.290737Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:06:32.686043Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T14:06:32.686162Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T14:06:37.688754Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:06:37.899916Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=47 cols=180 scrollback_limit_bytes=10000000
+2026-09-22T14:06:37.902551Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=173113
+2026-09-22T14:06:37.902890Z  INFO herdr::logging: tab renamed event="tab.rename" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T14:06:37.902931Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T14:06:42.909820Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:07:18.988140Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T14:07:18.988273Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T14:07:23.990656Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:07:24.223313Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T14:07:24.223408Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T14:07:29.226309Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:07:56.918903Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T14:07:56.919016Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T14:08:01.920245Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:10:16.613976Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T14:25:02.942268Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T14:25:02.942388Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T14:25:07.944542Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:25:18.043835Z  INFO herdr::logging: tab renamed event="tab.rename" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T14:25:23.045267Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=1
+2026-09-22T14:25:31.617931Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=47 cols=180 scrollback_limit_bytes=10000000
+2026-09-22T14:25:31.620201Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=285709
+2026-09-22T14:25:31.620552Z  INFO herdr::logging: workspace created event="workspace.create" subsystem="workspace" outcome="ok" workspace_id="w3" pane_id=4
+2026-09-22T14:25:31.620563Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T14:25:31.620570Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T14:25:36.628824Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T14:26:45.389640Z  INFO herdr::logging: tab renamed event="tab.rename" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T14:26:50.391438Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T14:40:16.615379Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T14:41:12.207235Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=47 cols=180 scrollback_limit_bytes=10000000
+2026-09-22T14:41:12.210183Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=370188
+2026-09-22T14:41:12.210470Z  INFO herdr::logging: tab renamed event="tab.rename" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-22T14:41:12.210496Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-22T14:41:17.218083Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T15:10:16.616527Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T15:20:15.858810Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:15.858861Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-22T15:20:16.234858Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:16.234936Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-22T15:20:16.963737Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:16.963838Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-22T15:20:17.315391Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:17.315448Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-22T15:20:17.653337Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:17.653419Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-22T15:20:17.898331Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:17.898379Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-22T15:20:18.838707Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T15:20:18.838845Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T15:20:19.693188Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:19.693250Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T15:20:20.022087Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:20.022134Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T15:20:20.248537Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T15:20:20.248615Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T15:20:21.626920Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-22T15:20:21.627074Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T15:20:21.627134Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-22T15:20:21.627142Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T15:20:21.942057Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-22T15:20:21.942098Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T15:20:23.495004Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T15:20:23.495135Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T15:20:24.063520Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T15:20:24.063607Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T15:20:29.066515Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T15:40:16.617445Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T16:10:16.618521Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T17:06:28.744459Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:06:28.744589Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:06:33.748187Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T17:09:32.678615Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T17:17:58.651517Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T17:17:58.651592Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T17:17:58.651688Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T17:17:58.651704Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T17:18:03.655653Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T17:19:20.943890Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T17:19:20.943959Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T17:19:21.310450Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-22T17:19:21.310518Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:19:21.310598Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-22T17:19:21.310606Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:19:26.313781Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T17:23:40.019592Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T17:23:40.019646Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T17:23:40.019707Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T17:23:40.019714Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T17:23:45.022460Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T17:39:33.439268Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-22T17:46:04.493248Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-22T17:46:04.493316Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-22T17:46:05.174026Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-22T17:46:05.174066Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:46:05.174112Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-22T17:46:05.174117Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:46:06.292132Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T17:46:06.292239Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-22T17:46:11.295101Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T17:58:39.505623Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T17:58:39.505772Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T17:58:42.024867Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:58:42.024952Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:58:42.849540Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T17:58:42.849705Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T17:58:43.845768Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:58:43.845892Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-22T17:58:48.848195Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T18:00:57.809994Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T18:00:57.810151Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-22T18:01:02.812622Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-22T18:09:33.440923Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T12:41:48.325957Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-23T12:41:48.342824Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T12:41:48.345835Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=5932
+2026-09-23T12:41:48.347402Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T12:41:48.350368Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=5935
+2026-09-23T12:41:48.351595Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T12:41:48.354181Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=5938
+2026-09-23T12:41:48.359405Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T12:41:48.361858Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=5941
+2026-09-23T12:41:48.362848Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T12:41:48.365794Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=5944
+2026-09-23T12:41:48.369479Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-23T12:41:48.369594Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-23T12:41:48.876026Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T12:41:48.882013Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-23T12:41:48.882641Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-23T12:41:48.882873Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-23T12:41:48.888313Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=5900
+2026-09-23T12:41:49.202294Z  INFO herdr::server::headless: client connected client_id=2 cols=179 rows=49 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-23T13:06:27.709783Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T13:06:27.709927Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T13:06:32.713602Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T13:07:12.739366Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T13:07:12.739494Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T13:07:17.742086Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T13:11:48.881553Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T13:41:48.883059Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T14:11:48.884366Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T14:26:22.368409Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T14:26:22.368623Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T14:26:27.371757Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T14:41:48.885738Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T15:05:02.782824Z  INFO herdr::pane: agent changed pane=1 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1031837)
+2026-09-23T15:05:06.400437Z  INFO herdr::pane: agent changed pane=1 previous_agent=Some(Claude) agent=None pgid=Some(5932)
+2026-09-23T15:05:07.911669Z  INFO herdr::pane: agent changed pane=1 previous_agent=None agent=Some(Codex) process=codex pgid=Some(1032232)
+2026-09-23T15:11:48.887393Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T15:24:34.227710Z  INFO herdr::pane: agent changed pane=1 previous_agent=Some(Codex) agent=None pgid=Some(5932)
+2026-09-23T15:32:13.516028Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T15:32:13.516169Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T15:32:18.519071Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T15:32:53.002722Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T15:32:53.002933Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T15:32:56.150679Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T15:32:56.150780Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T15:33:01.153017Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T15:33:13.809420Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T15:33:13.809532Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T15:33:18.812130Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T15:41:48.888143Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T15:46:58.251236Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Codex) process=codex pgid=Some(1275827)
+2026-09-23T15:59:39.259932Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Codex) agent=None pgid=Some(5935)
+2026-09-23T15:59:42.283671Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1360720)
+2026-09-23T16:01:56.450887Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Claude) agent=None pgid=Some(5935)
+2026-09-23T16:02:04.515881Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1380445)
+2026-09-23T16:02:17.039594Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:02:17.039792Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:02:22.042726Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T16:02:44.259681Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T16:02:44.259813Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T16:02:49.263176Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T16:03:00.705759Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Claude) agent=None pgid=Some(5935)
+2026-09-23T16:03:38.047528Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:03:38.047629Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:03:43.050868Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T16:04:40.228467Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:04:41.256932Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T16:04:41.257038Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T16:04:43.911369Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1402075)
+2026-09-23T16:04:46.260495Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T16:05:27.695396Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Claude) agent=None pgid=Some(5935)
+2026-09-23T16:08:04.907083Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1435193)
+2026-09-23T16:11:01.953192Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Claude) agent=None pgid=Some(5935)
+2026-09-23T16:11:09.445962Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:11:09.446090Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:11:14.449510Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T16:11:31.727098Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T16:11:31.727265Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T16:11:33.710288Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1461423)
+2026-09-23T16:11:36.731052Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T16:11:41.290055Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Claude) agent=None pgid=Some(5935)
+2026-09-23T16:11:42.298143Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1462529)
+2026-09-23T16:11:48.888892Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T16:11:49.055088Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:11:49.057213Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T16:11:54.061500Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T16:12:02.286436Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T16:12:02.286565Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T16:12:07.292736Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T16:41:48.890103Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T17:03:09.743033Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Claude) agent=None pgid=Some(5935)
+2026-09-23T17:05:35.368748Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Codex) process=codex pgid=Some(1685710)
+2026-09-23T17:05:49.591868Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Codex) agent=None pgid=Some(5935)
+2026-09-23T17:06:20.292209Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Codex) process=codex pgid=Some(1691295)
+2026-09-23T17:06:30.594224Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Codex) agent=None pgid=Some(5935)
+2026-09-23T17:06:55.278979Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1695992)
+2026-09-23T17:07:06.784189Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Claude) agent=None pgid=Some(5935)
+2026-09-23T17:07:07.792885Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Codex) process=codex pgid=Some(1697694)
+2026-09-23T17:07:11.415258Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Codex) agent=None pgid=Some(5935)
+2026-09-23T17:07:11.920876Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Codex) process=codex pgid=Some(1698340)
+2026-09-23T17:07:21.305915Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Codex) agent=None pgid=Some(5935)
+2026-09-23T17:07:24.836260Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Codex) process=codex pgid=Some(1700625)
+2026-09-23T17:07:45.940482Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Codex) agent=None pgid=Some(5935)
+2026-09-23T17:07:49.973615Z  INFO herdr::pane: agent changed pane=2 previous_agent=None agent=Some(Codex) process=codex pgid=Some(1704116)
+2026-09-23T17:08:13.521061Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:08:13.521232Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:08:18.525396Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:14:23.615509Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:14:23.615785Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:14:26.024029Z  INFO herdr::pane: agent changed pane=2 previous_agent=Some(Codex) agent=None pgid=Some(5935)
+2026-09-23T17:14:28.618496Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:15:25.951354Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:15:25.951531Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:15:30.955652Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:15:40.800985Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:15:40.801098Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:15:45.803393Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:15:50.164183Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:15:50.164483Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:15:53.921953Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:15:53.922079Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:15:58.924373Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:16:18.094799Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:16:18.094897Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:16:23.097874Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:16:41.683409Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:16:41.683523Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:16:46.686113Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:17:34.892011Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:17:34.892177Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:17:39.894627Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:18:04.154971Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:18:04.155116Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:18:09.156968Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:18:28.628212Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:18:28.628319Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:18:33.632066Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:19:07.472622Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:19:07.472723Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:19:10.568954Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:19:10.569110Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:19:15.571587Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:22:30.005536Z  INFO herdr::pane: agent changed pane=1 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1816811)
+2026-09-23T17:23:11.423987Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:23:11.424557Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:23:16.427390Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:25:10.838378Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:25:10.838501Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:25:15.842542Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:25:39.954624Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:25:39.954815Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:25:44.957922Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:26:06.106691Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:26:06.106797Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:26:11.110224Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:26:12.729519Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:26:12.730523Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:26:17.735986Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:26:18.585494Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:26:18.585598Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:26:21.241259Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:26:21.241440Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:26:26.245589Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:26:40.668281Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:26:40.668479Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:26:43.331848Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:26:43.331967Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:26:47.217368Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:26:47.217485Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:26:52.220661Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:27:00.340185Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:27:00.340314Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:27:05.342693Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:27:32.454101Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:27:32.454205Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:27:37.457280Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:28:05.241963Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:28:05.242113Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:28:10.245462Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:28:30.189744Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:28:30.189870Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:28:35.191922Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:31:01.066929Z  INFO herdr::pane: agent changed pane=1 previous_agent=Some(Claude) agent=None pgid=Some(5932)
+2026-09-23T17:31:05.963790Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T17:32:00.968008Z  INFO herdr::pane: agent changed pane=1 previous_agent=None agent=Some(Claude) process=claude pgid=Some(1889883)
+2026-09-23T17:32:41.983972Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:32:41.984095Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:32:46.986640Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:33:08.412674Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:33:08.412810Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:33:13.415648Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:34:43.796105Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:34:43.796205Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:34:48.799037Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:35:48.878415Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:35:48.878667Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:35:53.881880Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:37:58.568769Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:37:58.568922Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:38:03.571210Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:38:18.941784Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:38:18.941943Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:38:20.985657Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:38:20.985788Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:38:23.162724Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:38:23.162854Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:38:28.165262Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:39:15.156353Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:39:15.156451Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:39:18.142703Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:39:18.142853Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:39:23.145517Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:40:16.261368Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:40:16.261480Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:40:21.263935Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:40:41.233172Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:40:41.233300Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:40:46.236122Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:41:10.089984Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:41:10.090192Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:41:15.093555Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:41:16.637323Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:41:16.637481Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:41:17.909726Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:41:17.909875Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:41:19.331143Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:41:19.331287Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:41:24.334219Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:41:25.974865Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:41:25.975002Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:41:30.978882Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:41:44.666507Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:41:44.666657Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T17:41:45.833922Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:41:45.834072Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:41:50.837367Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:42:01.761122Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:42:01.761326Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T17:42:06.764734Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T17:44:10.201280Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:44:10.201404Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T17:44:15.204818Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T18:01:06.533899Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T18:24:39.429113Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T18:24:39.429244Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T18:24:44.432031Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T18:27:20.297922Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T18:27:20.298157Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T18:27:25.301648Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T18:31:06.535292Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T18:31:28.172636Z  INFO herdr::pane: agent changed pane=1 previous_agent=Some(Claude) agent=None pgid=Some(5932)
+2026-09-23T18:39:41.514598Z  INFO herdr::server::headless: client detached client_id=2
+2026-09-23T19:04:59.007419Z  INFO herdr::api::server: api server listening path=/home/liam/.config/herdr/herdr.sock
+2026-09-23T19:04:59.013699Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=1 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T19:04:59.017952Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=1 pid=36217
+2026-09-23T19:04:59.018764Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=2 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T19:04:59.021479Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=2 pid=36223
+2026-09-23T19:04:59.022248Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=3 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T19:04:59.031056Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=3 pid=36233
+2026-09-23T19:04:59.032743Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=4 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T19:04:59.053918Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=4 pid=36242
+2026-09-23T19:04:59.059022Z  INFO herdr::logging: spawning pane terminal event="pane.spawn.start" subsystem="pane" outcome="started" pane_id=5 rows=24 cols=80 scrollback_limit_bytes=10000000
+2026-09-23T19:04:59.076756Z  INFO herdr::logging: pane child spawned event="pane.spawned" subsystem="pane" outcome="ok" pane_id=5 pid=36261
+2026-09-23T19:04:59.081603Z  INFO herdr::logging: session restore evaluated event="persist.restore" subsystem="persist" outcome="ok" workspaces=2
+2026-09-23T19:04:59.081859Z  INFO herdr::app: using pane scrollback configuration pane_scrollback_limit_bytes=10000000
+2026-09-23T19:04:59.837975Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T19:04:59.840819Z  INFO herdr::server::headless::bootstrap: restored session already has workspaces; ignoring startup cwd cwd=/home/liam
+2026-09-23T19:04:59.841654Z  INFO herdr::server::headless: client protocol socket listening path=/home/liam/.config/herdr/herdr-client.sock
+2026-09-23T19:04:59.841955Z  INFO herdr::server::headless::bootstrap: herdr server started api_socket=/home/liam/.config/herdr/herdr.sock client_socket=/home/liam/.config/herdr/herdr-client.sock
+2026-09-23T19:04:59.842540Z  INFO herdr::logging: herdr starting event="app.startup" subsystem="server" outcome="started" pid=36187
+2026-09-23T19:05:00.056797Z  INFO herdr::server::headless: client connected client_id=2 cols=179 rows=49 cell_width_px=9 cell_height_px=20 surface_active=true render_encoding=SemanticFrame
+2026-09-23T19:13:24.000289Z  INFO herdr::pane: agent changed pane=1 previous_agent=None agent=Some(Claude) process=claude pgid=Some(85405)
+2026-09-23T19:22:30.102444Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:22:30.102579Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:22:35.105310Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:23:43.809812Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:23:43.809943Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:23:48.813102Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:24:03.033895Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:24:03.034055Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:24:05.467020Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:24:05.467142Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:24:10.470333Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:24:22.781965Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:24:22.782078Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:24:27.783931Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:24:43.295151Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:24:43.295260Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:24:48.297611Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:25:10.579697Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:25:10.579875Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:25:15.582671Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:25:43.559785Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:25:43.559889Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:25:45.550105Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:25:45.550253Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:25:50.553920Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:26:14.265127Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:26:14.265265Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:26:19.269055Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:28:40.171572Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:28:40.171688Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:28:45.175034Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:29:21.367852Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:29:21.367998Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:29:26.370692Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:31:22.255799Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:31:22.255917Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:31:24.725956Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:31:24.726075Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:31:29.728122Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:32:10.635234Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:32:11.635696Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:32:11.635852Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:32:16.638840Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:34:59.842198Z  INFO herdr::logging: checking for updates event="update.check.start" subsystem="update" outcome="started"
+2026-09-23T19:37:47.691529Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:37:47.691644Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:37:52.694372Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:40:15.208502Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:40:16.306294Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:40:16.306446Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:40:21.310174Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:40:32.290763Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:40:32.290885Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:40:37.292823Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:40:58.360267Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:40:58.360381Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:41:03.363574Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:41:14.845359Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:41:14.845523Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:41:19.848813Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:41:57.055332Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:41:57.055677Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:42:02.059088Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:42:24.119485Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:42:24.119620Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:42:29.122848Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:42:34.278572Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:42:34.278737Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:42:36.431848Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T19:42:36.431955Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t3"
+2026-09-23T19:42:37.774774Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:42:37.774941Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:42:39.693033Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:42:44.695331Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:42:44.913370Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-23T19:42:44.913481Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-23T19:42:44.913616Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w3"
+2026-09-23T19:42:44.913623Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t1"
+2026-09-23T19:42:49.916934Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:48:48.152645Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-23T19:48:48.152815Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w3" tab_id="w3:t2"
+2026-09-23T19:48:49.650349Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-23T19:48:49.650444Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:48:49.650533Z  INFO herdr::logging: workspace focused event="workspace.focus" subsystem="workspace" outcome="ok" workspace_id="w2"
+2026-09-23T19:48:49.650544Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:48:54.654020Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:49:02.877682Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:49:02.877818Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:49:07.881708Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:49:29.201183Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:49:29.201294Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:49:34.203191Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:50:41.021839Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:50:41.022003Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:50:45.707988Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:50:45.708096Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:50:50.711861Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:57:44.787065Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:57:44.787210Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t2"
+2026-09-23T19:57:49.791284Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2
+2026-09-23T19:58:15.823765Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:58:15.823903Z  INFO herdr::logging: tab focused event="tab.focus" subsystem="tab" outcome="ok" workspace_id="w2" tab_id="w2:t1"
+2026-09-23T19:58:20.826902Z  INFO herdr::logging: session saved event="persist.save" subsystem="persist" outcome="ok" path=/home/liam/.config/herdr/session.json workspaces=2

@@ -76,13 +76,27 @@ The active shell is Quickshell, and only Quickshell. Editing SwayNC or Noctalia
 changes nothing you can see.
 
 Widgets live as individual QML files under `quickshell/.config/quickshell/`, and
-`Bar.qml` mounts them into three groups: `leftGroup`, the centre clock anchor,
-and `rightGroup`. Colours should come from `Theme.qml` — which watches
+`Bar.qml` mounts them into islands — black capsules floating on a transparent
+strip. There are four: `leftIsland` (workspaces), `centerIsland` (the clock
+anchor and its two rows), `trayIsland` (status icons) and `powerIsland` (power,
+alone). Adding a widget means dropping it inside the right `BarIsland`, which
+sizes itself to whatever it holds.
+
+Colours should come from `Theme.qml` — which watches
 `~/.config/hypr/themes/.active/theme.json` and updates live — rather than being
-hardcoded per widget.
+hardcoded per widget. That applies to the islands too: they are `Theme.bgDeep`,
+so a light palette gets a light bar rather than the black one the design was
+drawn against. Island geometry is `Theme.barIslandHeight`, `Theme.barGap`,
+`Theme.barSideMargin` and `Theme.barIslandPadding`; `Theme.barHeight` is derived
+from them and is what the bar reserves from the screen.
+
+The bar is spread to the two edges. Grouping the islands around the centre, or
+fusing them into one capsule, is a change to the anchors in `Bar.qml` — there is
+deliberately no runtime switch between the three.
 
 `tests/omakub-bar-layout.test.sh` asserts that the bar still mounts the expected
-component set, so removing a widget means updating that list too.
+component set and keeps that island structure, so removing a widget means
+updating that list too.
 
 Waybar was retired when Quickshell became the authoritative bar. Restoring it
 from Git history would also mean restoring its theme template and generator

@@ -407,6 +407,18 @@ launch_windows() {
   timeout_seconds=$(read_setting WINDOWS_START_TIMEOUT 900)
   [[ "$timeout_seconds" =~ ^[1-9][0-9]*$ ]] || timeout_seconds=900
   ensure_runtime_dir
+  if [[ "$DRY_RUN" == 1 ]]; then
+    # compose() is not dry-run aware, so plan the rest of the sequence here.
+    # container_status only reads Docker state, so it is safe to consult.
+    state=$(container_status)
+    printf 'dry-run: lock %q\n' "$RUNTIME_DIR/launch.lock"
+    [[ "$state" == running ]] || printf 'dry-run: docker compose up --detach windows\n'
+    printf 'dry-run: await authenticated RDP on 127.0.0.1:%s for up to %ss\n' \
+      "$port" "$timeout_seconds"
+    printf 'dry-run: connect %q as %q\n' "$client" "$username"
+    (( keep_alive )) || printf 'dry-run: docker compose stop windows\n'
+    return 0
+  fi
   exec 9>"$RUNTIME_DIR/launch.lock"
   flock -n 9 || { notify normal "$APP_NAME" "A Windows connection is already opening or active."; return 0; }
 

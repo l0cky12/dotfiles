@@ -98,6 +98,29 @@ KVM_DESCS=(
 # ── Live state ──────────────────────────────────────────────────────────────
 LIVE_JSON=""
 
+# Per-refresh cache: one jq pass turns the monitor array into a single TSV
+# stream (name \t description \t enabled \t actual-state) plus sorted
+# desc/name lists, so the per-key lookups below are awk scans instead of a
+# jq spawn each. Contents are only ever read after a successful refresh.
+LIVE_CACHE=""
+LIVE_DESCS=""
+LIVE_NAMES=""
+
+compute_live_cache() {
+  LIVE_CACHE="$(jq -r '.[] | [
+    .name,
+    (.description // ""),
+    (if .disabled == true then 0 else 1 end),
+    ((.width|tostring) + "x" + (.height|tostring) + "@" +
+     ((.refreshRate * 100 | round / 100)|tostring) + "|" +
+     (.x|tostring) + "x" + (.y|tostring) + "|" +
+     ((.scale * 100 | round / 100)|tostring) + "|" +
+     (.transform|tostring))
+  ] | @tsv' <<<"$LIVE_JSON")"
+  LIVE_DESCS="$(awk -F'\t' '$2 != "" { print $2 }' <<<"$LIVE_CACHE" | sort)"
+  LIVE_NAMES="$(awk -F'\t' '$1 != "" { print $1 }' <<<"$LIVE_CACHE" | sort)"
+}
+
 # `monitors all` rather than `monitors`: the latter omits disabled outputs, so
 # a lid-closed eDP-1 reads as unplugged. Unplugged connectors are absent from
 # both lists, which is what the presence checks below actually want to know.
@@ -108,10 +131,11 @@ refresh_live() {
     # `all` is the correct query; losing it entirely is worse than losing sight
     # of disabled outputs, so fall back rather than give up on the layout.
     log 'warning: "hyprctl -j monitors all" unusable, falling back to "monitors"'
-    LIVE_JSON="$("$HYPRCTL" -j monitors 2>/dev/null)" || return 1
-    [[ -n "$LIVE_JSON" ]] || return 1
-    jq -e 'type == "array"' >/dev/null 2>&1 <<<"$LIVE_JSON" || return 1
+    LIVE_JSON="$("$HYPRCTL" -j monitors 2>/dev/null)" || { LIVE_CACHE=""; LIVE_DESCS=""; LIVE_NAMES=""; return 1; }
+    [[ -n "$LIVE_JSON" ]] || { LIVE_CACHE=""; LIVE_DESCS=""; LIVE_NAMES=""; return 1; }
+    jq -e 'type == "array"' >/dev/null 2>&1 <<<"$LIVE_JSON" || { LIVE_CACHE=""; LIVE_DESCS=""; LIVE_NAMES=""; return 1; }
   fi
+  compute_live_cache
   return 0
 }
 
@@ -126,19 +150,23 @@ load_simulated_live() {
   [[ -n "$LIVE_JSON" ]] || die 'simulated monitor list is empty'
   jq -e 'type == "array"' >/dev/null 2>&1 <<<"$LIVE_JSON" ||
     die 'simulated monitor list must be a JSON array'
+  compute_live_cache
 }
 
-live_descs() { jq -r '.[].description // empty' <<<"$LIVE_JSON" | sort; }
+live_descs() { printf '%s\n' "$LIVE_DESCS"; }
 # Is a profile key present *and* switched on? Resolution answers presence only.
 is_enabled() {
-  jq -e --arg k "$1" \
-    'any(.[]; (.name == $k or ("desc:" + .description) == $k) and (.disabled != true))' \
-    >/dev/null 2>&1 <<<"$LIVE_JSON"
+  awk -F'\t' -v k="$1" '($1 == k || "desc:" $2 == k) && $3 == 1 { found = 1; exit }
+    END { exit !found }' <<<"$LIVE_CACHE"
 }
-live_names() { jq -r '.[].name // empty' <<<"$LIVE_JSON" | sort; }
+live_names() { printf '%s\n' "$LIVE_NAMES"; }
 
-has_desc() { grep -Fxq "$1" <<<"$(live_descs)"; }
-has_name() { grep -Fxq "$1" <<<"$(live_names)"; }
+has_desc() {
+  awk -F'\t' -v d="$1" '$2 == d { found = 1; exit } END { exit !found }' <<<"$LIVE_CACHE"
+}
+has_name() {
+  awk -F'\t' -v n="$1" '$1 == n { found = 1; exit } END { exit !found }' <<<"$LIVE_CACHE"
+}
 
 kvm_present_count() {
   local d n=0
@@ -148,9 +176,7 @@ kvm_present_count() {
 
 # Resolve a profile key ("eDP-1" or "desc:...") to the live connector name.
 resolve_output() {
-  jq -r --arg k "$1" \
-    'first(.[] | select(.name == $k or ("desc:" + .description) == $k) | .name) // empty' \
-    <<<"$LIVE_JSON"
+  awk -F'\t' -v k="$1" '($1 == k || "desc:" $2 == k) { print $1; exit }' <<<"$LIVE_CACHE"
 }
 
 # ── Settle ──────────────────────────────────────────────────────────────────
@@ -256,11 +282,7 @@ desired_layout() {
 
 # Actual state of one profile key, in the same canonical shape.
 actual_state() {
-  jq -r --arg k "$1" '
-    first(.[] | select(.name == $k or ("desc:" + .description) == $k))
-    | "\(.width)x\(.height)@\(.refreshRate*100|round/100|tostring)"
-      + "|\(.x)x\(.y)|\(.scale*100|round/100|tostring)|\(.transform)"
-  ' <<<"$LIVE_JSON" 2>/dev/null
+  awk -F'\t' -v k="$1" '($1 == k || "desc:" $2 == k) { print $4; exit }' <<<"$LIVE_CACHE" 2>/dev/null
 }
 
 # Renders jq's numbers the way awk's %.2f does, so the two are comparable.

@@ -1,0 +1,527 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Host fingerprint-reader sign-in, for machines with a real sensor (the Goodix
+# reader in a Framework 13 power button, for example).
+#
+# Hyprlock uses its parallel fprintd client. Login and sudo/doas use a short
+# PAM fingerprint attempt, followed by the existing YubiKey/password fallback.
+#
+# Not to be confused with `yubikey-auth --enroll-fingerprint`, which enrolls a
+# fingerprint onto a YubiKey Bio token. Different sensor, different subsystem.
+
+PROGRAM=${0##*/}
+ACTION=
+FINGER=right-index-finger
+DRY_RUN=false
+WIRE_HYPRLOCK=true
+WIRE_PAM=true
+CONFIRM_ESCALATION_TESTED=false
+
+AUTH_USER=${FINGERPRINT_AUTH_USER:-${SUDO_USER:-${USER:-$(id -un)}}}
+
+script_path=$(readlink -f -- "${BASH_SOURCE[0]}")
+script_dir=$(cd -- "$(dirname -- "$script_path")" && pwd)
+repo_root=$(cd -- "$script_dir/../../.." && pwd)
+
+FPRINTD_ENROLL=${FINGERPRINT_AUTH_FPRINTD_ENROLL:-fprintd-enroll}
+FPRINTD_LIST=${FINGERPRINT_AUTH_FPRINTD_LIST:-fprintd-list}
+FPRINTD_DELETE=${FINGERPRINT_AUTH_FPRINTD_DELETE:-fprintd-delete}
+FPRINTD_VERIFY=${FINGERPRINT_AUTH_FPRINTD_VERIFY:-fprintd-verify}
+USB_ROOT=${FINGERPRINT_AUTH_USB_ROOT:-/sys/bus/usb/devices}
+HYPRLOCK_CONF=${FINGERPRINT_AUTH_HYPRLOCK_CONF:-$repo_root/hypr/.config/hypr/hyprlock.conf}
+ETC_ROOT=${FINGERPRINT_AUTH_ETC_ROOT:-/etc}
+TEMPLATE_DIR=${FINGERPRINT_AUTH_TEMPLATE_DIR:-$repo_root/system/pam.d}
+PAM_MODULE=${FINGERPRINT_AUTH_PAM_MODULE:-/usr/lib/security/pam_fprintd.so}
+
+# Prefer doas, which is what this desktop escalates with. zsh aliases sudo to
+# it, but the menu runs setup under `bash -lc`, where `sudo` is the real sudo.
+# Root needs neither.
+SUDO=${FINGERPRINT_AUTH_SUDO:-$(command -v doas >/dev/null 2>&1 && echo doas || echo sudo)}
+[[ ${EUID:-$(id -u)} -ne 0 ]] || SUDO=
+PACMAN=${FINGERPRINT_AUTH_PACMAN:-pacman}
+INSTALL_HINT="${SUDO:+$SUDO }pacman -S --needed fprintd"
+
+VALID_FINGERS=(
+  left-thumb left-index-finger left-middle-finger left-ring-finger left-little-finger
+  right-thumb right-index-finger right-middle-finger right-ring-finger right-little-finger
+)
+
+# USB vendor IDs that ship fingerprint sensors. 27c6 (Goodix) is the Framework
+# 13 reader; the rest cover the readers libfprint commonly supports.
+usb_vendor_name() {
+  case $1 in
+    27c6) printf 'Goodix' ;;
+    06cb) printf 'Synaptics' ;;
+    138a) printf 'Validity' ;;
+    04f3) printf 'Elan' ;;
+    08ff) printf 'AuthenTec' ;;
+    1c7a) printf 'LighTuning/Egis' ;;
+    2808) printf 'Focal-systems' ;;
+    05ba) printf 'DigitalPersona' ;;
+    147e) printf 'Upek' ;;
+    1491) printf 'Futronic' ;;
+    *) return 1 ;;
+  esac
+}
+
+usage() {
+  cat <<EOF
+Usage:
+  $PROGRAM status             report reader, dependencies, enrolled fingers, wiring
+  $PROGRAM setup [OPTIONS]    install fprintd if needed, enroll, wire Hyprlock and PAM
+  $PROGRAM enroll [OPTIONS]   enroll one more finger
+  $PROGRAM verify             test an enrolled finger against the reader
+  $PROGRAM delete             remove every enrolled fingerprint for the user
+
+Options:
+  --finger NAME               which finger to enroll (default: $FINGER)
+  --no-hyprlock               leave Hyprlock configuration alone
+  --no-pam                    leave system PAM configuration alone
+  --confirm-escalation-tested skip the login checkpoint after testing sudo/doas
+  --dry-run                   report actions without installing or touching prints or config
+  -h, --help                  show this help
+
+Fingers:
+  ${VALID_FINGERS[*]}
+
+Examples:
+  $PROGRAM status
+  $PROGRAM setup
+  $PROGRAM enroll --finger left-index-finger
+  $PROGRAM setup --dry-run
+EOF
+}
+
+fail() {
+  printf '%s: %s\n' "$PROGRAM" "$*" >&2
+  exit 1
+}
+
+note() { printf '%s\n' "$*"; }
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+# ---------------------------------------------------------------- detection ---
+
+# Scan sysfs rather than shelling out to lsusb, which is not installed on a
+# default Arch desktop and would turn "no reader" into "command not found".
+reader_vendor=''
+reader_product=''
+reader_name=''
+detect_reader_usb() {
+  reader_vendor=''; reader_product=''; reader_name=''
+  [[ -d $USB_ROOT ]] || return 1
+
+  local dev vendor product name label
+  for dev in "$USB_ROOT"/*/; do
+    [[ -r $dev/idVendor ]] || continue
+    vendor=$(<"$dev/idVendor") || continue
+    label=$(usb_vendor_name "$vendor") || continue
+    product=unknown
+    [[ -r $dev/idProduct ]] && product=$(<"$dev/idProduct")
+    name=
+    [[ -r $dev/product ]] && name=$(<"$dev/product")
+    reader_vendor=$vendor
+    reader_product=$product
+    reader_name=${name:-$label fingerprint reader}
+    return 0
+  done
+  return 1
+}
+
+# fprintd is authoritative when it is installed: it knows which of those USB IDs
+# libfprint actually drives.
+fprintd_output=
+fprintd_sees_device() {
+  have "$FPRINTD_LIST" || return 2
+  local status=0
+  fprintd_output=$(LC_ALL=C "$FPRINTD_LIST" "$AUTH_USER" 2>&1) || status=$?
+  if grep -qi 'no devices available\|impossible to enumerate' <<<"$fprintd_output"; then
+    return 1
+  fi
+  if (( status != 0 )); then
+    FPRINTD_ERROR=$fprintd_output
+    return 3
+  fi
+  # Fail closed even if an unexpected response happens to exit successfully.
+  if ! grep -qE '^found [1-9][0-9]* devices' <<<"$fprintd_output"; then
+    FPRINTD_ERROR=$fprintd_output
+    return 3
+  fi
+  return 0
+}
+
+enrolled_fingers() {
+  # require_reader/show_status already obtained this snapshot. Do not turn a
+  # second failed query into an empty enrollment list and overwrite a print.
+  grep -oE '\- #[0-9]+: [a-z-]+' <<<"$fprintd_output" | sed 's/.*: //' || true
+}
+
+# ------------------------------------------------------------------ hyprlock ---
+
+hyprlock_state() {
+  [[ -r $HYPRLOCK_CONF ]] || { printf 'missing\n'; return; }
+  if grep -qE '^[[:space:]]*fingerprint:enabled[[:space:]]*=[[:space:]]*true' "$HYPRLOCK_CONF"; then
+    printf 'enabled\n'
+  elif grep -qE '^[[:space:]]*fingerprint:enabled[[:space:]]*=' "$HYPRLOCK_CONF"; then
+    printf 'disabled\n'
+  else
+    printf 'absent\n'
+  fi
+}
+
+preflight_hyprlock() {
+  [[ -r $HYPRLOCK_CONF && -w $HYPRLOCK_CONF ]] \
+    || fail "Hyprlock config missing or not writable: $HYPRLOCK_CONF"
+  local keys
+  keys=$(grep -cE '^[[:space:]]*fingerprint:enabled[[:space:]]*=' "$HYPRLOCK_CONF" || true)
+  [[ $keys == 1 ]] || fail "expected exactly one fingerprint:enabled key in $HYPRLOCK_CONF"
+  grep -qE '^[[:space:]]*fingerprint:enabled[[:space:]]*=[[:space:]]*(true|false)[[:space:]]*(#.*)?$' "$HYPRLOCK_CONF" \
+    || fail "expected exactly one fingerprint:enabled = true/false key in $HYPRLOCK_CONF"
+}
+
+enable_hyprlock_fingerprint() {
+  local state
+  state=$(hyprlock_state)
+  case $state in
+    enabled) note "Hyprlock fingerprint unlock: already enabled"; return 0 ;;
+    missing) fail "Hyprlock config not found at $HYPRLOCK_CONF" ;;
+    absent)
+      fail "No 'fingerprint:enabled' key in $HYPRLOCK_CONF; add it to the auth block by hand"
+      ;;
+  esac
+
+  if [[ $DRY_RUN == true ]]; then
+    note "would enable: fingerprint:enabled in $HYPRLOCK_CONF"
+    return 0
+  fi
+
+  local tmp
+  tmp=$(mktemp) || fail "could not create a temporary file"
+  sed -E 's/^([[:space:]]*fingerprint:enabled[[:space:]]*=[[:space:]]*)false/\1true/' \
+    "$HYPRLOCK_CONF" > "$tmp" || { rm -f -- "$tmp"; fail "could not rewrite $HYPRLOCK_CONF"; }
+  grep -qE '^[[:space:]]*fingerprint:enabled[[:space:]]*=[[:space:]]*true' "$tmp" \
+    || { rm -f -- "$tmp"; fail "refusing to install an edit that did not enable fingerprint"; }
+  cat "$tmp" > "$HYPRLOCK_CONF" || { rm -f -- "$tmp"; fail "could not write $HYPRLOCK_CONF"; }
+  rm -f -- "$tmp"
+  note "Enabled Hyprlock fingerprint unlock in $HYPRLOCK_CONF"
+  note "Re-stow the hypr package (or run 'dots deploy') and relock to pick it up."
+}
+
+# ---------------------------------------------------------------------- PAM ---
+
+run_root() {
+  if (( EUID == 0 )); then "$@"; else "$SUDO" "$@"; fi
+}
+
+preflight_pam() {
+  # The pending package supplies this module; a dry run cannot read it yet.
+  if [[ $DRY_RUN != true || $fprintd_pending != true ]]; then
+    [[ -r $PAM_MODULE ]] || fail "PAM module missing: $PAM_MODULE; $INSTALL_HINT"
+  fi
+  (( EUID == 0 )) || have "$SUDO" || fail "required command not found: $SUDO"
+  [[ -d $ETC_ROOT/pam.d ]] || fail "PAM directory missing: $ETC_ROOT/pam.d"
+  local service
+  for service in sudo doas greetd; do
+    [[ -r $TEMPLATE_DIR/$service ]] || fail "PAM template missing: $TEMPLATE_DIR/$service"
+    [[ ! -L $ETC_ROOT/pam.d/$service ]] || fail "refusing to replace PAM symlink: $ETC_ROOT/pam.d/$service"
+  done
+  if [[ $DRY_RUN == false && $CONFIRM_ESCALATION_TESTED == false && ! -t 0 ]]; then
+    fail "interactive login checkpoint unavailable; use --no-pam or --confirm-escalation-tested after testing sudo/doas"
+  fi
+}
+
+install_pam() {
+  local service=$1 target="$ETC_ROOT/pam.d/$1" backup
+  if cmp -s -- "$TEMPLATE_DIR/$service" "$target"; then
+    note "PAM $service: already configured"
+    return
+  fi
+  if [[ $DRY_RUN == true ]]; then
+    note "would back up and deploy: $TEMPLATE_DIR/$service -> $target"
+    return
+  fi
+  if [[ -e $target ]]; then
+    backup=$(run_root mktemp "${target}.pre-fingerprint.XXXXXX") \
+      || fail "could not create backup for $target"
+    run_root cp -a -- "$target" "$backup" || fail "could not back up $target"
+    note "backup: $backup"
+  fi
+  # Stage beside the destination, then rename so readers never see a partial file.
+  local staged
+  staged=$(run_root mktemp "${target}.fingerprint.XXXXXX") || fail "could not stage $target"
+  if ! run_root install -o root -g root -m 0644 -- "$TEMPLATE_DIR/$service" "$staged" \
+      || ! run_root mv -f -- "$staged" "$target"; then
+    run_root rm -f -- "$staged"
+    fail "could not install $target; earlier installations remain in place (see backups above)"
+  fi
+  note "installed: $target"
+}
+
+deploy_pam() {
+  install_pam sudo
+  install_pam doas
+  if [[ $DRY_RUN == false && $CONFIRM_ESCALATION_TESTED == false ]]; then
+    note "Keep this session open. In another terminal test /usr/bin/sudo -k; /usr/bin/sudo -v"
+    note "and doas -L; doas true with fingerprint, YubiKey, and password fallback."
+    local confirmation
+    read -r -p "Type INSTALL LOGIN after those tests pass: " confirmation \
+      || fail "login PAM was not changed; sudo/doas remain installed (see backups above)"
+    [[ $confirmation == 'INSTALL LOGIN' ]] \
+      || fail "login PAM was not changed; sudo/doas remain installed (see backups above)"
+  fi
+  install_pam greetd
+}
+
+# ------------------------------------------------------------------ install ---
+
+# setup installs fprintd itself, but only when a reader is on USB, because the
+# same configuration runs on desktops with no sensor. The confirmation is
+# pacman's own "Proceed with installation?", after doas or sudo has asked for a
+# password. Without a terminal nobody can answer either prompt, so setup stops
+# before running doas, sudo, or pacman and prints the command to run instead.
+fprintd_pending=false
+ensure_fprintd() {
+  have "$FPRINTD_LIST" && have "$FPRINTD_ENROLL" && return 0
+  # No reader: require_reader says so, and nothing gets installed.
+  detect_reader_usb || return 0
+
+  note "Found USB $reader_vendor:$reader_product ($reader_name), but fprintd is not installed."
+  if [[ $DRY_RUN == true ]]; then
+    note "would install: fprintd ($INSTALL_HINT)"
+    fprintd_pending=true
+    return 0
+  fi
+
+  [[ -z $SUDO ]] || have "$SUDO" \
+    || fail "found neither doas nor sudo to install fprintd with. As root, run: pacman -S --needed fprintd"
+  [[ -t 0 ]] || fail "no terminal is attached to confirm the fprintd install, so nothing was installed, enrolled, or changed.
+  Install it from a terminal, then re-run '$PROGRAM setup':
+    $INSTALL_HINT"
+  note "Installing it: $INSTALL_HINT"
+  ${SUDO:+"$SUDO"} "$PACMAN" -S --needed fprintd \
+    || fail "fprintd was not installed, so nothing was enrolled or changed.
+  If pacman could not download it, run a full upgrade (${SUDO:+$SUDO }pacman -Syu) first.
+  Then re-run '$PROGRAM setup', or install it yourself:
+    $INSTALL_HINT"
+  if ! have "$FPRINTD_LIST" || ! have "$FPRINTD_ENROLL"; then
+    fail "pacman finished, but $FPRINTD_LIST or $FPRINTD_ENROLL is still not on PATH"
+  fi
+}
+
+# -------------------------------------------------------------- diagnostics ---
+
+# Fails closed with an explanation, never a stack of unbound-variable noise.
+require_reader() {
+  local seen=0
+  fprintd_sees_device || seen=$?
+  if (( seen == 0 )); then
+    return 0
+  fi
+  if (( seen == 3 )); then
+    fail "fprintd-list failed: $FPRINTD_ERROR"
+  fi
+  if (( seen == 1 )); then
+    if detect_reader_usb; then
+      fail "fprintd reports no usable device, but USB $reader_vendor:$reader_product ($reader_name) looks like a reader.
+  libfprint may not support it yet, or fprintd.service may be masked. Check:
+    systemctl status fprintd.service
+    fprintd-list $AUTH_USER"
+    fi
+    fail "no fingerprint reader found on this machine.
+  This desktop configuration is shared across hosts; fingerprint sign-in only
+  applies to laptops with a sensor. Nothing was changed."
+  fi
+
+  # fprintd absent entirely. setup has installed it by now whenever a reader is
+  # on USB, so a reader here means one of the other actions.
+  if detect_reader_usb; then
+    fail "found USB $reader_vendor:$reader_product ($reader_name), but fprintd is not installed.
+  Run '$PROGRAM setup' first; it installs fprintd and enrolls a finger."
+  fi
+  fail "fprintd is not installed and no fingerprint reader was detected on USB.
+  If this machine has a sensor, install fprintd first:
+    $INSTALL_HINT"
+}
+
+show_status() {
+  printf 'user: %s\n' "$AUTH_USER"
+
+  local tool
+  for tool in "$FPRINTD_ENROLL" "$FPRINTD_LIST" "$FPRINTD_VERIFY" "$FPRINTD_DELETE"; do
+    if have "$tool"; then
+      printf 'tool %s: present\n' "$tool"
+    else
+      printf 'tool %s: MISSING (%s)\n' "$tool" "$INSTALL_HINT"
+    fi
+  done
+
+  if detect_reader_usb; then
+    printf 'usb reader: %s:%s (%s)\n' "$reader_vendor" "$reader_product" "$reader_name"
+  else
+    printf 'usb reader: none detected\n'
+  fi
+
+  local seen=0
+  fprintd_sees_device || seen=$?
+  case $seen in
+    0) printf 'fprintd device: available\n' ;;
+    1) printf 'fprintd device: none available\n' ;;
+    2) printf 'fprintd device: unknown (fprintd not installed)\n' ;;
+    3) printf 'fprintd device: error (%s)\n' "$FPRINTD_ERROR" ;;
+  esac
+
+  local fingers
+  fingers=
+  if (( seen == 0 )); then fingers=$(enrolled_fingers); fi
+  if [[ -n $fingers ]]; then
+    printf 'enrolled: %s\n' "$(tr '\n' ' ' <<<"$fingers" | sed 's/ $//')"
+  else
+    printf 'enrolled: none\n'
+  fi
+
+  printf 'hyprlock fingerprint: %s\n' "$(hyprlock_state)"
+  printf 'hyprlock config: %s\n' "$HYPRLOCK_CONF"
+  local service
+  for service in sudo doas greetd; do
+    if cmp -s -- "$TEMPLATE_DIR/$service" "$ETC_ROOT/pam.d/$service"; then
+      printf 'pam %s: configured\n' "$service"
+    else
+      printf 'pam %s: missing or differs from template\n' "$service"
+    fi
+  done
+
+  printf '\n'
+  if (( seen == 0 )); then
+    if [[ -n $fingers ]]; then
+      printf 'Next step: %s verify  (or %s enroll --finger left-index-finger)\n' \
+        "$PROGRAM" "$PROGRAM"
+    else
+      printf 'Next step: %s setup\n' "$PROGRAM"
+    fi
+  elif (( seen == 3 )); then
+    printf 'Next step: check fprintd.service and the system D-Bus, then retry.\n'
+  elif (( seen == 2 )) && [[ -n $reader_vendor ]]; then
+    printf 'Next step: %s setup  (installs fprintd first)\n' "$PROGRAM"
+  elif [[ -n $reader_vendor ]]; then
+    printf 'Next step: %s setup\n' "$PROGRAM"
+  else
+    printf 'No fingerprint reader on this host, so there is nothing to set up.\n'
+    printf 'This configuration is shared across machines; fingerprint sign-in\n'
+    printf 'applies only to laptops with a sensor.\n'
+  fi
+}
+
+# ------------------------------------------------------------------ actions ---
+
+do_enroll() {
+  local finger=$1
+  if [[ $DRY_RUN == true ]]; then
+    note "would enroll: $finger for $AUTH_USER"
+    return 0
+  fi
+  note "Place and lift $finger on the reader until enrollment completes."
+  "$FPRINTD_ENROLL" -f "$finger" "$AUTH_USER" \
+    || fail "enrollment failed for $finger; nothing else was changed.
+  If fprintd said 'Not Authorized: net.reactivated.fprint.device.enroll', no
+  polkit agent was running to ask for your password. Start one and try again:
+    systemctl --user start hyprpolkitagent.service"
+  note "Enrolled $finger."
+}
+
+while (($#)); do
+  case $1 in
+    status|setup|enroll|verify|delete)
+      [[ -z $ACTION ]] || fail "only one action may be given (already have '$ACTION')"
+      ACTION=$1
+      shift
+      ;;
+    --finger)
+      [[ ${2-} ]] || fail "--finger needs a value"
+      FINGER=$2
+      shift 2
+      ;;
+    --finger=*) FINGER=${1#*=}; shift ;;
+    --no-hyprlock) WIRE_HYPRLOCK=false; shift ;;
+    --no-pam) WIRE_PAM=false; shift ;;
+    --confirm-escalation-tested) CONFIRM_ESCALATION_TESTED=true; shift ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *) fail "unknown argument: $1" ;;
+  esac
+done
+
+[[ -n $ACTION ]] || { usage >&2; exit 2; }
+
+if [[ $ACTION == status ]]; then
+  show_status
+  exit 0
+fi
+
+if [[ $ACTION == setup || $ACTION == enroll ]]; then
+  printf '%s\n' "${VALID_FINGERS[@]}" | grep -qx -- "$FINGER" \
+    || fail "invalid finger '$FINGER' (expected one of: ${VALID_FINGERS[*]})"
+fi
+
+if [[ $ACTION == setup ]]; then
+  ensure_fprintd
+fi
+
+# A dry run that would install fprintd has no fprintd to ask about the reader.
+[[ $fprintd_pending == true ]] || require_reader
+
+case $ACTION in
+  verify)
+    have "$FPRINTD_VERIFY" || fail "required command not found: $FPRINTD_VERIFY"
+    [[ -n $(enrolled_fingers) ]] || fail "no fingerprints enrolled for $AUTH_USER; run '$PROGRAM setup'"
+    if [[ $DRY_RUN == true ]]; then
+      note "would verify: an enrolled finger for $AUTH_USER"
+      exit 0
+    fi
+    "$FPRINTD_VERIFY" "$AUTH_USER"
+    ;;
+  delete)
+    have "$FPRINTD_DELETE" || fail "required command not found: $FPRINTD_DELETE"
+    if [[ $DRY_RUN == true ]]; then
+      note "would delete: every enrolled fingerprint for $AUTH_USER"
+      exit 0
+    fi
+    "$FPRINTD_DELETE" "$AUTH_USER"
+    note "Deleted enrolled fingerprints for $AUTH_USER."
+    note "Hyprlock configuration was left untouched; it falls back to the password."
+    ;;
+  enroll)
+    have "$FPRINTD_ENROLL" || fail "required command not found: $FPRINTD_ENROLL"
+    do_enroll "$FINGER"
+    ;;
+  setup)
+    [[ $fprintd_pending == true ]] || have "$FPRINTD_ENROLL" \
+      || fail "required command not found: $FPRINTD_ENROLL"
+    printf 'action: setup\nuser: %s\nfinger: %s\nreader: %s\n' \
+      "$AUTH_USER" "$FINGER" "${reader_name:-reported by fprintd}"
+
+    if [[ $WIRE_HYPRLOCK == true ]]; then preflight_hyprlock; fi
+    if [[ $WIRE_PAM == true ]]; then preflight_pam; fi
+    existing=$(enrolled_fingers)
+    if [[ -n $existing ]] && grep -qx -- "$FINGER" <<<"$existing"; then
+      note "$FINGER is already enrolled; skipping enrollment."
+    else
+      do_enroll "$FINGER"
+    fi
+
+    if [[ $WIRE_PAM == true ]]; then deploy_pam; fi
+    if [[ $WIRE_HYPRLOCK == true ]]; then
+      enable_hyprlock_fingerprint
+    else
+      note "Skipping Hyprlock wiring (--no-hyprlock)."
+    fi
+
+    note ""
+    if [[ $DRY_RUN == true ]]; then
+      note "Dry run complete; no enrollment or configuration changes made."
+    else
+      note "Requested setup steps complete. Test authentication on this host before closing your session."
+    fi
+    ;;
+esac

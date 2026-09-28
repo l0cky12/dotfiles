@@ -8,7 +8,7 @@ rofi-wayland
 kitty
 swaync
 xdg-desktop-portal-hyprland
-polkit-kde-agent
+hyprpolkitagent
 pipewire
 wireplumber
 pavucontrol

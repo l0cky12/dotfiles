@@ -12,7 +12,7 @@ Usage: $PROGRAM [--agent NAME] [--] [AGENT_ARGS...]
 Launch the configured coding agent in the current directory.
 
 Supported agents:
-  claude    Claude Code (executable: claude)
+  claude    Claude Code through TeamClaude (executable: teamclaude)
   codex     Codex (executable: codex)
   opencode  OpenCode (executable: opencode)
   t3code    T3 Code (executable: t3code)
@@ -103,14 +103,14 @@ if [[ -z $selected_agent ]]; then
 fi
 
 case $selected_agent in
-  claude) executable=claude ;;
-  codex) executable=codex ;;
-  opencode) executable=opencode ;;
-  t3code) executable=t3code ;;
+  claude) executable=teamclaude; executable_args=(run --) ;;
+  codex) executable=codex; executable_args=() ;;
+  opencode) executable=opencode; executable_args=() ;;
+  t3code) executable=t3code; executable_args=() ;;
   *) fail "invalid agent '$selected_agent' (expected: claude, codex, opencode, or t3code)" ;;
 esac
 
 command -v "$executable" >/dev/null 2>&1 \
   || fail "agent '$selected_agent' is unavailable: executable '$executable' was not found on PATH"
 
-exec "$executable" "$@"
+exec "$executable" "${executable_args[@]}" "$@"

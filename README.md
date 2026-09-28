@@ -51,6 +51,7 @@ stow ai          # ~/.local/bin/ai-agent, ~/.config/ai-agent
 stow screensaver # screensaver commands, terminal configs, and editable logo
 stow modes       # ~/.local/bin/desktop-mode, temporary mode policy/config
 stow security    # ~/.local/bin/yubikey-auth, safe YubiKey PAM setup/addition;
+                 # ~/.local/bin/fingerprint-auth, laptop fingerprint sign-in;
                  # ~/.config/gnupg-conf gpg/gpg-agent examples
 stow ssh         # ~/.local/bin/sshpersist, SSH keepalive config fragment
 stow tmux        # ~/.config/tmux/tmux.conf for local tmux behavior
@@ -203,6 +204,34 @@ The command validates mappings, creates timestamped `/etc` backups, installs
 sudo first, and waits for explicit confirmation after key/password testing
 before installing Hyprlock PAM. See [installation and recovery](docs/installation.md#yubikey-authentication).
 
+## Fingerprint sign-in
+
+Separate from the YubiKey Bio, and only for laptops with their own sensor — the
+Goodix reader in a Framework 13 power button, for instance. `fingerprint-auth`
+ships in the same `security` package and is a no-op on desktops:
+
+```bash
+fingerprint-auth status                        # reader, tools, prints, wiring
+fingerprint-auth setup                         # install fprintd, enroll, configure Hyprlock and PAM
+fingerprint-auth enroll --finger left-thumb    # one more finger
+fingerprint-auth setup --dry-run               # inspect without changing anything
+```
+
+It is also the **Setup → Security → Fingerprint** entry in the Super+Shift+A
+menu, which only appears once the command is on `PATH`.
+
+Hyprlock unlock uses its own fprintd support (`auth:fingerprint:enabled`) so
+the scan runs alongside the password field. Setup also deploys fingerprint PAM
+templates for sudo, doas, and greetd. It asks you to test escalation before
+installing the greetd template; use `--no-pam` to leave system PAM alone.
+
+Enrollment needs `fprintd`, which is in the `optional` setup group. If it is
+missing and a reader is present, `setup` installs it with
+`doas pacman -S --needed fprintd`, or sudo when doas is absent. Pacman lists
+the packages and asks before installing anything. On a host with no reader
+every subcommand explains that and exits without installing or touching
+anything.
+
 **Wallpapers** deploy automatically with `dots deploy`/`dots update`. To stow
 them by hand (see the layout note in
 [installation](docs/installation.md#optional-packages) first):
@@ -246,9 +275,9 @@ recorded in `~/.local/state/dots/last-deployed`.
 
 ## AI Agent Launcher
 
-The standalone `ai` package provides one launcher for Claude Code, Codex,
-OpenCode, and T3 Code. It does not install or authenticate any agent and has no Omarchy
-dependency.
+The standalone `ai` package provides one launcher for Claude Code through
+TeamClaude, Codex, OpenCode, and T3 Code. It does not install or authenticate
+any agent and has no Omarchy dependency.
 
 The default is configured in `ai/.config/ai-agent/config`:
 
@@ -264,7 +293,7 @@ After stowing both `ai` and `zsh`, these commands are available in a new shell:
 
 ```bash
 ai                         # configured default
-ai-claude                  # Claude Code directly
+ai-claude                  # Claude Code through TeamClaude
 ai-codex                   # Codex directly
 ai-opencode                # OpenCode directly
 ai-t3code                  # T3 Code directly
@@ -274,7 +303,9 @@ ai-agent --agent codex -- --help  # pass --help to the selected agent
 
 The aliases are only defined when their names are otherwise unused. The
 launcher preserves the current working directory and passes agent arguments
-through unchanged.
+through unchanged. The Claude selection requires `teamclaude` on `PATH` and
+invokes `teamclaude run --` with those arguments. Install and configure
+TeamClaude before using `ai-claude`; the launcher does not install it.
 
 `SUPER + I` opens the configured default. T3 Code is assigned to workspace 4
 by its `t3code` window class. Change or remove that binding in
@@ -667,12 +698,18 @@ touch these:
 The metadata file is the ownership marker: an app is removable by this tool only
 if it is listed there, so an unrelated `.desktop` file can never be deleted.
 
+Each row in the manager has an edit (pencil) button that reopens the form with
+the app's name, URL and icon. Saving keeps the same id, so the launcher and any
+window rule written against it keep working.
+
 ### CLI
 
 ```bash
 webapp list                 # installed web apps
 webapp install --name "YouTube" --url https://youtube.com/
 webapp install --name "Local" --url localhost:8080/app --icon ~/pic.png
+webapp edit youtube --name "YT" --url https://youtube.com/feed
+webapp edit youtube --icon ~/pic.png   # or --reset-icon to find it again
 webapp remove youtube
 webapp doctor               # browser, tooling and orphan check
 webapp launch youtube       # what the .desktop file runs

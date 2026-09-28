@@ -14,7 +14,7 @@ bindings call by absolute path.
 | `transcode` | `hypr` | image and video conversion backend |
 | `toggle` | `hypr` | facade for the toggles menu |
 | `hypr-wallpaper-picker` | `hypr` | wallpaper panel and its index/search/apply backend |
-| `lmenu`, `lmenu-reminder`, `lmenu-toggle-ratio` | `menu` | the data-driven Rofi menu and countdown reminders |
+| `lmenu`, `lmenu-reminder`, `lmenu-toggle-ratio` | `menu` | the Quickshell menu, Rofi fallback, and countdown reminders |
 | `desktop-mode` | `modes` | temporary desktop modes and the expiry daemon |
 | `ascii-screensaver`, `ascii-screensaver-render`, `toggle-screensaver`, `screensaver-branding`, `screensaver-lock`, `transcode-ascii`, `install-ttfx` | `screensaver` | the ASCII screensaver suite |
 | `ai-agent` | `ai` | launch Claude Code, Codex, OpenCode, or T3 Code |
@@ -24,9 +24,14 @@ bindings call by absolute path.
 
 ## lmenu
 
-`SUPER+SHIFT+A`. A data-driven Rofi menu over
-`menu/.config/lmenu/menu.jsonc`: 235 entries in a nested tree, parsed by
-`lmenu-parse.py`.
+`SUPER+SHIFT+A` toggles a resident Quickshell menu built from
+`menu/.config/lmenu/menu.jsonc` by `lmenu-parse.py`. Search includes reachable
+submenus and shows breadcrumbs. An empty search shows the current menu's rows.
+Apps, fonts, and timezones are searched inside their own provider menus.
+
+Control the resident panel with `quickshell ipc call lmenu toggle`,
+`quickshell ipc call lmenu summon <route>`, or `quickshell ipc call lmenu close`.
+The standalone `lmenu` command retains the Rofi fallback:
 
 ```bash
 lmenu                      # toggle the root menu
@@ -39,12 +44,13 @@ lmenu --dry-run-display ROUTE
 lmenu parent ROUTE
 ```
 
-Inside the menu, Backspace goes up a level and closes lmenu at the root.
-`Shift+Backspace` and `Ctrl+H` still delete a character in the search box.
+In Quickshell, Backspace edits the query; with an empty query it goes up a
+level, or closes the root menu. In the Rofi fallback, Backspace navigates and
+`Shift+Backspace` or `Ctrl+H` deletes a character.
 
-A route is a dotted id (`style.theme`) or an alias (`themes`). Guards run
-batched — one bash process per render — inside the parser, which is what keeps
-a 206-entry tree responsive.
+A route is a dotted id (`style.theme`) or an alias (`themes`). The parser runs
+guards in parallel. Quickshell opens from its cached tree and refreshes in the
+background; Rofi streams rows and resolves selections against that same view.
 
 Top-level routes:
 
@@ -239,6 +245,8 @@ Honours `HYPR_WALLPAPER_DIR`, `HYPR_WALLPAPER_RUNTIME_DIR`, and
 webapp list
 webapp install --name "YouTube" --url https://youtube.com/
 webapp install --name "Local" --url localhost:8080/app --icon ~/pic.png
+webapp edit youtube --name "YT" --url https://youtube.com/feed
+webapp edit youtube --icon ~/pic.png
 webapp remove youtube
 webapp doctor
 webapp launch youtube
@@ -280,7 +288,8 @@ Codex, OpenCode, or T3 Code. Selection precedence: `--agent`, then
 `~/.config/ai-agent/config`, which sets `default_agent=t3code`).
 
 Invalid names and unavailable executables fail clearly. The launcher never
-silently switches to another agent.
+silently switches to another agent. Claude runs through `teamclaude run --`;
+install and configure TeamClaude first and make `teamclaude` available on `PATH`.
 
 After stowing `ai` and `zsh`:
 

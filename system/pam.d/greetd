@@ -1,0 +1,14 @@
+#%PAM-1.0
+
+# Preserve login restrictions before any sufficient authentication method.
+auth       required                    pam_securetty.so
+auth       requisite                   pam_nologin.so
+auth       required                    pam_shells.so
+
+# Host fingerprint first, then YubiKey Bio/PIN, then the login password stack.
+-auth      sufficient                  pam_fprintd.so      max-tries=1 timeout=10
+-auth      sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper pinverification=0 userverification=1
+-auth      sufficient                  pam_u2f.so          authfile=/etc/u2f_mappings cue origin=pam://Kelper appid=pam://Kelper pinverification=1 userverification=0
+auth       include                     system-local-login
+account    include                     system-local-login
+session    include                     system-local-login

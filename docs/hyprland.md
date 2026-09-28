@@ -182,3 +182,29 @@ Hyprsunset starts with an identity configuration. `SUPER+CTRL+N` runs
 shared `desktop-mode` state controller when the `modes` package is installed;
 otherwise it starts and controls Hyprsunset directly, so the Hypr binding does
 not depend on another Stow package.
+
+### Night-light schedule
+
+`SUPER+SHIFT+N`, or **Night light schedule…** under `SUPER+SHIFT+A` → Trigger →
+Toggle, opens a Quickshell panel with three modes: **Off**, **Set times**, and
+**Sunset to sunrise** (with 15-minute offsets). The panel is a front-end for
+`scripts/night-light-schedule.py`, which stores its settings and location in
+`$XDG_STATE_HOME/night-light/schedule.json`. That file is outside the repo
+because every click rewrites it. The weather widget reads its location from
+the same file, with `quickshell/weather.json` as the default.
+
+Sunset and sunrise are calculated offline, every day, from the saved location.
+**Detect** asks `ipinfo.io` once for an approximate location based on your IP
+address. Nothing else goes over the network.
+
+`night-light-schedule.timer` (in the `systemd` package) runs
+`night-light-schedule.py apply` every minute. Hyprland's autostart starts it;
+it is not enabled. `apply` only switches the light when a scheduled time has
+passed since the last run, so `SUPER+CTRL+N` holds until the next scheduled
+change, and the first run after a suspend catches up on anything it missed.
+
+```bash
+night-light-schedule.py status --json
+night-light-schedule.py set mode=sunset sunset_offset=-30 --dry-run
+night-light-schedule.py apply --dry-run
+```

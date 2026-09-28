@@ -81,6 +81,30 @@ thresholds must be strictly descending (`warnPercent` > `severePercent` >
 Changing a threshold live re-arms that level at the current percentage, unless
 an alert from a more-severe level has already fired in the same discharge cycle.
 
+Clicking the bar's battery icon opens `BatteryPanel.qml`, which replaces the
+icon's former hover tooltip. It reports the charge percentage, the supply line,
+and two figures taken straight from UPower: `POWER` is the instantaneous rate in
+watts, labelled `coming out` or `going in`; `CHARGE` is stored energy in watt
+hours against `energyCapacity`, which is UPower's `energy-full` rather than its
+design capacity. Layout and formatting live in `BatteryPanelContent.qml` so the
+smoke harness can assert on them without a `PopupWindow`.
+
+`POWER` measures flow through the battery, not what the machine consumes. On AC
+the charger carries the load directly, so a full or charge-limited battery
+reports `0.0 W` with `no flow` in place of a direction however hard the machine
+is working. The figure stays at an explicit zero rather than becoming a
+placeholder, because zero is a real reading there and not missing data. Reading
+whole-system draw would mean going to RAPL under `/sys/class/powercap`, whose
+`energy_uj` counters are `0400 root:root` under the PLATYPUS mitigation and so
+would need a privileged reader.
+
+The supply line reads `On battery`, `Charging`, `Plugged in · Fully charged`, or
+`Plugged in · Not charging`, and falls back to `estimating` when UPower has not
+yet produced a usable time estimate. That mapping lives in `supplyState`, kept
+separate from `powerState` on purpose: UPower reports the kernel's
+`Not charging` as `PendingCharge`, which `powerState` must keep treating as
+charging so alert re-arming still works, and which the readout must not.
+
 Run `bash tests/battery-alerts.test.sh` for configuration, wiring, and
 notification-policy checks; its Node coverage lives in
 `tests/battery-alerts.logic.test.js`. The optional Quickshell smoke fixture runs

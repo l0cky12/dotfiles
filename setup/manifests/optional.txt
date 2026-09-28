@@ -1,3 +1,8 @@
 obsidian
 mpv
 vlc
+
+# Fingerprint sign-in. Only useful on laptops with a reader (the Goodix sensor
+# in a Framework 13 power button, for example); `fingerprint-auth status` says
+# whether this host has one.
+fprintd

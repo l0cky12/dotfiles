@@ -291,6 +291,47 @@ Singleton {
   readonly property real menuSelectedAlpha: 0.08 // selected row bg: foreground @ 8%
   readonly property real menuBorderAlpha: 0.25   // selected row border
 
+  // --- rofi launcher tokens ---------------------------------------------------
+  // lmenu (Super+Shift+A) used to be a rofi menu and still looks like one. Each
+  // colour here is the same formula templates/rofi-theme.rasi applies to the
+  // same theme colours, and each size is the plain pixel value from
+  // comet-glass.rasi and rofi/lmenu.rasi, so the two stay identical in every
+  // theme. Alphas are rounded to whole percent, as rofi's rgba() writes them.
+  function pct(a) { return Math.round(Math.max(0, Math.min(1, a)) * 100) / 100 }
+  function withAlpha(c, a) { return Qt.rgba(c.r, c.g, c.b, root.pct(a)) }
+  function mixColor(a, b, t) {
+    function channel(x, y) { return Math.round((x + (y - x) * t) * 255) / 255 }
+    return Qt.rgba(channel(a.r, b.r), channel(a.g, b.g), channel(a.b, b.b), 1)
+  }
+  readonly property color launcherBg0: withAlpha(root.background, root.surfaceOpacity)
+  readonly property color launcherBg1:
+    withAlpha(root.backgroundAlt, Math.min(1.0, root.surfaceOpacity + 0.04))
+  readonly property color launcherFg0: root.foregroundBright
+  readonly property color launcherFg1: root.foreground
+  readonly property color launcherFg2: root.muted
+  readonly property color launcherWindowBorder: withAlpha(root.borderAccent, 0.45)
+  readonly property color launcherAltBg: mixColor(root.background, root.foreground, 0.06)
+  readonly property color launcherSelectedBg: withAlpha(root.accent, 0.16)
+  readonly property color launcherSelectedBorder: withAlpha(root.accent, 0.38)
+  readonly property color launcherUrgentBg: withAlpha(root.urgent, 0.10)
+  readonly property color launcherUrgentBorder: withAlpha(root.urgent, 0.18)
+  readonly property color launcherSelectedUrgentBg: withAlpha(root.urgent, 0.15)
+  readonly property color launcherSelectedUrgentBorder: withAlpha(root.urgent, 0.34)
+  readonly property int launcherRadiusWindow: Math.max(0, Math.round(root.hyprRounding * 1.4))
+  readonly property int launcherRadiusInput: Math.max(0, Math.round(root.hyprRounding * 1.1))
+  readonly property int launcherRadiusRow: Math.max(0, Math.round(root.hyprRounding * 0.9))
+  readonly property int launcherFontPoints: 13        // lmenu.rasi
+  readonly property int launcherWidth: 380            // lmenu.rasi window
+  readonly property int launcherPadding: 24           // comet-glass window
+  readonly property int launcherSpacing: 18           // comet-glass mainbox
+  readonly property int launcherInputPadV: 14         // comet-glass inputbar
+  readonly property int launcherInputPadH: 16
+  readonly property int launcherInputSpacing: 10      // lmenu.rasi inputbar
+  readonly property int launcherRowPadV: 11           // lmenu.rasi element
+  readonly property int launcherRowPadH: 14
+  readonly property int launcherRowSpacing: 4         // lmenu.rasi listview
+  readonly property int launcherLines: 10             // lmenu.rasi listview
+
   // --- theme picker (cover-flow carousel) -------------------------------------
   // Design-space geometry for the Super+Ctrl+Shift+Space carousel, in the units
   // the layout was designed at. These deliberately do NOT go through fs():
@@ -347,9 +388,38 @@ Singleton {
   readonly property int animFast: 130
 
   // Metrics that must track the font scale so text does not clip.
-  // 45px bar = ~33px inner widget area + ~6px padding above and below.
-  readonly property int barHeight: fs(45)
+  //
+  // The bar is a transparent strip; the only thing painted on it is a row of
+  // islands (BarIsland.qml). The reserved height is therefore a gap, one
+  // island, and a matching gap, so the capsules float clear of the screen edge
+  // instead of butting against it. barInner is the tallest chrome an island has
+  // to hold -- the 26 design-px workspace cell at the 1.25x bar scale.
   readonly property int barInner: fs(33)
+  readonly property int barGap: fs(5)
+  readonly property int barIslandHeight: barInner + fs(7)
+  readonly property int barHeight: barIslandHeight + barGap * 2
+  // Horizontal breathing room between an island's edge and its first module.
+  // Larger than the vertical padding because the capsule's rounded ends eat
+  // into the corners.
+  readonly property int barIslandPadding: fs(10)
+  // Gap from the screen's left/right edge to the outermost island.
+  readonly property int barSideMargin: fs(10)
+  // Gap between two islands on the same side.
+  readonly property int barIslandGap: fs(7)
+
+  // Bar content scale, by bar width. 1.25x is the ceiling: past that the
+  // chrome just looks oversized.
+  //
+  // The divisor matters on a rotated monitor. At 1.25x the three island groups
+  // measure ~394 + ~364 + ~337 px, which with margins and separators needs
+  // ~1130px -- more than the 1080 a portrait 1920x1080 output gives. A bar that
+  // cannot shrink below 1.0 (the old floor) has no way out of that, and the
+  // islands collide. 960 is that ~1130 plus headroom, so a 1080px bar lands
+  // near 1.12 and still fits once the record indicator and a mode pill appear.
+  // The 0.85 floor stops a very narrow bar from scaling itself unreadable.
+  function barScaleFor(w) {
+    return Math.max(0.85, Math.min(1.25, w / 960))
+  }
   readonly property int panelMargin: fs(16)
   readonly property int sectionSpacing: fs(14)
   readonly property int itemSpacing: fs(8)
