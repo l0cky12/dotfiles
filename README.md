@@ -717,15 +717,19 @@ webapp launch youtube       # what the .desktop file runs
 
 Notes worth knowing:
 
-- **Browser**: the launch helper uses `$WEBAPP_BROWSER` if set, else the first of
-  `brave`, `chromium`, `chromium-browser`, `google-chrome`,
-  `google-chrome-stable`, `helium-browser` on `PATH`. Web apps share the normal
-  browser profile, so existing logins just work.
+- **Browser**: the launch helper uses `$WEBAPP_BROWSER` if set, else the XDG
+  default browser (the `x-scheme-handler/https` entry in `mimeapps.list`) when
+  it is Chromium-family, else the first of `brave`, `chromium`,
+  `chromium-browser`, `google-chrome`, `google-chrome-stable`, `helium-browser`
+  on `PATH`. A Firefox default falls back to that list, because only Chromium
+  browsers have an `--app=` window mode. `webapp doctor` says which rule won.
+  Web apps share that browser's normal profile, so existing logins just work.
 - **Window class**: Brave ignores `--class` for app-mode windows and derives its
-  own, e.g. `brave-youtube.com__-Default`. That is recorded as `wm_class` in the
-  metadata and is what a per-app Hyprland rule has to match. Usefully it is never
-  plain `brave-browser`, so the `workspace 2 silent` rule in
-  `window_rules.lua` does not capture web apps.
+  own, e.g. `brave-youtube.com__-Default`; Helium and other derivatives keep
+  Chromium's prefix, e.g. `chrome-youtube.com__-Default`. That is recorded as
+  `wm_class` in the metadata and is what a per-app Hyprland rule has to match.
+  Usefully it is never plain `brave-browser`, so the `workspace 2 silent` rule
+  in `window_rules.lua` does not capture web apps.
 - **Icons** are normalised to PNG, because gdk-pixbuf here has no SVG or WebP
   loader and Rofi could not otherwise render them. Discovery prefers a declared
   `apple-touch-icon` or sized raster over an SVG favicon; if nothing is found, a

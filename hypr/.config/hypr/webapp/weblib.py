@@ -51,9 +51,10 @@ SCHEMA_VERSION = 1
 # stow symlink so the entry keeps working if the repo moves.
 LAUNCH_HELPER = Path.home() / ".local/bin/webapp-launch"
 
-# Chromium-family browsers, in preference order. $WEBAPP_BROWSER wins outright.
-# Only Chromium derivatives are listed because --app= is a Chromium switch;
-# Firefox has no equivalent single-site mode.
+# The browser order is: $WEBAPP_BROWSER, then the XDG default browser when it is
+# Chromium-family, then the first of these on PATH. Only Chromium derivatives
+# qualify because --app= is a Chromium switch; Firefox has no equivalent
+# single-site mode, so a Firefox default falls through to this list.
 BROWSER_CANDIDATES = (
     "brave",
     "chromium",
@@ -63,6 +64,19 @@ BROWSER_CANDIDATES = (
     "helium-browser",
 )
 
+# Executable names, as a desktop entry's Exec runs them, that accept --app=.
+CHROMIUM_EXECUTABLES = frozenset(BROWSER_CANDIDATES) | {
+    "brave-browser",
+    "helium",
+    "microsoft-edge",
+    "microsoft-edge-stable",
+    "vivaldi",
+    "vivaldi-stable",
+}
+
+# The handlers that name the default browser, most telling first.
+BROWSER_MIME_TYPES = ("x-scheme-handler/https", "x-scheme-handler/http")
+
 ALLOWED_SCHEMES = ("http", "https")
 
 # Chromium-family browsers build their own WM class for an app-mode window and
@@ -71,6 +85,10 @@ ALLOWED_SCHEMES = ("http", "https")
 # produces `brave-example.com__app-Default` -- host, then "__", then the path
 # with slashes folded to underscores, then the profile name. The query string is
 # dropped.
+#
+# The leading product is Brave's own name, but other derivatives keep Chromium's
+# `chrome`: verified on Helium, whose app windows are `chrome-<host>__-Default`
+# while its normal windows are `helium`.
 #
 # This is recorded rather than imposed: it is what Hyprland will actually see, so
 # it is what a per-app window rule has to match. It also means every web app has
@@ -86,7 +104,7 @@ def derived_wm_class(url: str, browser: str = "brave") -> str:
     Chromium-family browsers using the default profile.
     """
     parts = urlsplit(url)
-    product = Path(browser).name.split("-")[0].lower() or "brave"
+    product = "brave" if Path(browser).name.lower().startswith("brave") else "chrome"
     tail = parts.path.strip("/").replace("/", "_")
     return f"{product}-{parts.hostname or ''}__{tail}-{BROWSER_PROFILE}"
 
@@ -241,8 +259,79 @@ def name_from_url(url: str) -> str:
 
 # ── Browser ──────────────────────────────────────────────────────────────────
 
-def find_browser() -> str:
-    """The Chromium-family browser to launch web apps with.
+def _xdg_dirs(home: Path, var: str, default: str) -> list[Path]:
+    return [home] + [Path(d) for d in os.environ.get(var, default).split(":") if d]
+
+
+def _read_group(path: Path, group: str) -> dict[str, str]:
+    """One [group] of a desktop-style key file; {} when missing or unreadable.
+
+    Hand-parsed rather than through configparser: this runs on every launch,
+    and the files involved are a few lines of key=value.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return {}
+    values: dict[str, str] = {}
+    current = None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = line[1:-1]
+        elif current == group and "=" in line:
+            key, _, value = line.partition("=")
+            values.setdefault(key.strip(), value.strip())
+    return values
+
+
+def default_browser() -> tuple[str, Path] | None:
+    """(desktop id, desktop file) of the XDG default browser, or None.
+
+    Read straight from the mimeapps.list files in the order the XDG MIME
+    Applications spec gives -- per directory, a $desktop-mimeapps.list before
+    the plain one -- instead of asking xdg-settings, which costs ~100 ms a call.
+    A listed entry that is not installed is skipped, as the spec says.
+    """
+    desktops = [d.lower() for d in os.environ.get("XDG_CURRENT_DESKTOP", "").split(":") if d]
+    names = [f"{d}-mimeapps.list" for d in desktops] + ["mimeapps.list"]
+    app_dirs = [d / "applications"
+                for d in _xdg_dirs(DATA_HOME, "XDG_DATA_DIRS", "/usr/local/share:/usr/share")]
+    list_dirs = _xdg_dirs(CONFIG_HOME, "XDG_CONFIG_DIRS", "/etc/xdg") + app_dirs
+    defaults = [_read_group(d / n, "Default Applications") for d in list_dirs for n in names]
+
+    for mime in BROWSER_MIME_TYPES:
+        for group in defaults:
+            for desktop_id in group.get(mime, "").split(";"):
+                desktop_id = desktop_id.strip()
+                if not desktop_id or "/" in desktop_id:
+                    continue
+                for directory in app_dirs:
+                    if (directory / desktop_id).is_file():
+                        return desktop_id, directory / desktop_id
+    return None
+
+
+def _exec_program(desktop_file: Path) -> str | None:
+    """The program a desktop entry's main Exec runs, resolved on PATH."""
+    import shlex
+
+    try:
+        words = shlex.split(_read_group(desktop_file, "Desktop Entry").get("Exec", ""))
+    except ValueError:
+        return None
+    # `env VAR=value program …` is a common wrapper; the program is what counts.
+    if words and Path(words[0]).name == "env":
+        words = words[1:]
+        while words and ("=" in words[0] or words[0].startswith("-")):
+            words = words[1:]
+    return shutil.which(words[0]) if words else None
+
+
+def browser_choice() -> tuple[str, str]:
+    """(browser path, why it was picked) for launching web apps.
 
     $WEBAPP_BROWSER overrides everything so this is switchable without editing
     code. Raises rather than guessing, because a wrong browser here produces a
@@ -253,15 +342,34 @@ def find_browser() -> str:
         resolved = shutil.which(override)
         if not resolved:
             raise WebAppError(f"$WEBAPP_BROWSER is set to {override!r}, which is not on PATH")
-        return resolved
+        return resolved, "$WEBAPP_BROWSER"
+
+    default = default_browser()
+    if default is None:
+        reason = "no default browser is set"
+    else:
+        desktop_id, desktop_file = default
+        program = _exec_program(desktop_file)
+        if program is None:
+            reason = f"default browser {desktop_id} runs nothing on PATH"
+        elif Path(program).name in CHROMIUM_EXECUTABLES:
+            return program, f"default browser ({desktop_id})"
+        else:
+            reason = f"default browser {desktop_id} has no app mode"
+
     for candidate in BROWSER_CANDIDATES:
         resolved = shutil.which(candidate)
         if resolved:
-            return resolved
+            return resolved, f"fallback: {reason}"
     raise WebAppError(
-        "no Chromium-family browser found. Web apps need one of: "
+        f"no Chromium-family browser found ({reason}). Web apps need one of: "
         + ", ".join(BROWSER_CANDIDATES)
     )
+
+
+def find_browser() -> str:
+    """The Chromium-family browser to launch web apps with."""
+    return browser_choice()[0]
 
 
 # ── Model ────────────────────────────────────────────────────────────────────
