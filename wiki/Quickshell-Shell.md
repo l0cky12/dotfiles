@@ -173,7 +173,8 @@ dropdown.
 | Bar shell | `Bar.qml`, `WorkspacesModule.qml`, `IconButton.qml`, `Card.qml` |
 | Clock and calendar | `ClockState.qml`, `ClockWidget.qml`, `DesktopClock.qml`, `CalendarGrid.qml`, `CalendarPopup.qml`, `TimezonePopup.qml`, `DateTimeCard.qml` |
 | System metrics (unmounted since the dashboard drawer was removed) | `SysState.qml`, `MediaTab.qml`, `PerfTab.qml`, `WorkspacesTab.qml`, `WeatherTab.qml`, `MetricCard.qml`, `Gauge.qml`, `HeroGauge.qml`, `ProfileCard.qml` |
-| Network | `NetworkState/Icon/Panel.qml` |
+| Network | `NetworkState/Icon/Panel.qml`, `SpeedTestOverlay.qml`, `SpeedTestGauge.qml` |
+| Disk speed test | `DiskState.qml`, `DiskSpeedOverlay.qml` (reuses `SpeedTestGauge.qml`) |
 | Audio and media | `AudioState/Icon/Panel.qml`, `AudioPanelContent.qml`, `VolumeSlider.qml`, `MediaState/Icon/Panel.qml`, `MediaPreviewCard.qml`, `LyricsState.qml`, `LyricsView.qml` |
 | Visualiser | `CavaState.qml`, `CavaBars.qml`, `CavaEdgeVisualizer.qml`, `VisualizerState.qml` |
 | Bluetooth | `BluetoothState/Icon/Panel/HeroCard/DeviceRow/Battery.qml` |
@@ -204,7 +205,8 @@ QT_QPA_PLATFORM=offscreen quickshell -p quickshell/.config/quickshell/OmakubBarS
 Available: `OmakubBarSmoke`, `NotificationSmoke`, `BatterySmoke` (requires
 `BATTERY_SMOKE_TEST=1`), `BluetoothSmoke`,
 `NetworkSmoke`, `ModesSmoke`, `UpdatesSmoke`,
-`VideoDownloadSmoke`, `WindowsVmSmoke`, `ClockWidgetSmoke`, `AudioPanelSmoke`.
+`VideoDownloadSmoke`, `WindowsVmSmoke`, `ClockWidgetSmoke`, `AudioPanelSmoke`,
+`SpeedTestSmoke`, `DiskSpeedSmoke`.
 
 ## Reloading
 

@@ -38,6 +38,13 @@ Scope {
   }
 
   IpcHandler {
+    target: "disk"
+    function speedTest(): void {
+      DiskState.open(bar.focusedScreen())
+    }
+  }
+
+  IpcHandler {
     target: "audio"
     function toggle(): void {
       AudioState.togglePanel(bar.focusedScreen())
@@ -281,6 +288,15 @@ Scope {
     model: Quickshell.screens
 
     SpeedTestOverlay {
+      required property var modelData
+      output: modelData
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+
+    DiskSpeedOverlay {
       required property var modelData
       output: modelData
     }

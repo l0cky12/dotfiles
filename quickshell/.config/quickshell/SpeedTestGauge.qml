@@ -7,19 +7,25 @@ Item {
   property real peak: 0
   property bool active: false
   property string label: ""
+  // Defaults suit the network speed test; the disk speed test passes MB/s
+  // and its own steps. detail is an optional line under the label.
+  property string unit: "Mbps"
+  property var scaleSteps: [10, 25, 50, 100, 200, 400, 800, 1600, 3200, 6400]
+  property string detail: ""
   property int diameter: Theme.fs(280)
   property real shownValue: value
 
   implicitWidth: diameter
-  implicitHeight: diameter + Theme.fs(34)
+  implicitHeight: diameter + Theme.fs(34) + (detail === "" ? 0 : Theme.fs(18))
 
-  function scaleFor(mbps) {
-    const steps = [10, 25, 50, 100, 200, 400, 800, 1600, 3200, 6400]
-    const target = Math.max(0, Number(mbps) || 0)
+  function scaleFor(amount) {
+    const steps = scaleSteps
+    const target = Math.max(0, Number(amount) || 0)
     for (let i = 0; i < steps.length; i++)
       if (target <= steps[i])
         return steps[i]
-    return Math.ceil(target / 6400) * 6400
+    const last = steps[steps.length - 1]
+    return Math.ceil(target / last) * last
   }
 
   readonly property real scale: scaleFor(Math.max(value, peak))
@@ -119,7 +125,7 @@ Item {
     }
     Text {
       anchors.horizontalCenter: parent.horizontalCenter
-      text: "Mbps"
+      text: root.unit
       color: Theme.textMuted
       font.family: Theme.glyphFamily
       font.pixelSize: Theme.fs(12)
@@ -127,6 +133,7 @@ Item {
   }
 
   Text {
+    id: caption
     anchors.top: dial.bottom
     anchors.topMargin: Theme.fs(8)
     anchors.horizontalCenter: parent.horizontalCenter
@@ -135,5 +142,16 @@ Item {
     font.family: Theme.glyphFamily
     font.pixelSize: Theme.fs(12)
     font.letterSpacing: Theme.fs(2)
+  }
+
+  Text {
+    anchors.top: caption.bottom
+    anchors.topMargin: Theme.fs(4)
+    anchors.horizontalCenter: parent.horizontalCenter
+    visible: root.detail !== ""
+    text: root.detail
+    color: Theme.textMuted
+    font.family: Theme.glyphFamily
+    font.pixelSize: Theme.fs(11)
   }
 }

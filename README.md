@@ -179,6 +179,42 @@ The fast.com token is public and hardcoded. Netflix can rotate or restrict it,
 which may make the API return HTTP 403. That is a known fragility of the
 unofficial API, not a script failure.
 
+## Disk speed test
+
+`disk-speedtest` measures a disk's sequential write, sequential read, and
+random 4K read speed in MB/s. It writes a temporary file of up to 1 GiB on a
+mounted filesystem, runs each phase for eight seconds, and deletes the file
+afterwards. It never touches the raw device and never needs root. The
+Quickshell overlay fills three gauges in run order: Write, Read, and 4K
+Random. The 4K gauge also shows IOPS and average latency.
+
+Open it from lmenu (`SUPER+SHIFT+A`, Trigger → Disk Speed Test). It has no
+keybinding. With one testable disk the test starts at once. With more, the
+overlay lists them first and preselects the system disk; pick one with the
+arrow keys and Enter. The script mounts an unmounted drive with `udisksctl`
+and unmounts it when the test ends. The overlay greys out read-only, locked,
+and unwritable drives and says why. Escape stops the test and closes the
+overlay. Run again and Change disk appear once a test finishes.
+
+On the disk that holds your home directory the test file goes in
+`${XDG_CACHE_HOME:-~/.cache}/disk-speedtest/`. Other drives get a hidden
+`.disk-speedtest/` folder at their mount point. The script creates the file
+NOCOW, which turns off btrfs compression and checksums for it, then reads and
+writes it with direct I/O so the page cache cannot inflate the numbers. If a
+filesystem refuses direct I/O, the script falls back to buffered I/O and the
+overlay labels the result as cached. On a nearly full disk the test file
+shrinks to half the free space, and the overlay says so. Below 512 MiB free
+the test refuses to run.
+
+```bash
+disk-speedtest                  # test the system disk and print a summary
+disk-speedtest --list-json      # show every disk and why it can or cannot be tested
+disk-speedtest --disk sdc --dry-run   # plan a test of drive sdc without mounting or writing
+```
+
+It requires Python 3 and `lsblk`. Mounting unmounted drives also needs
+`udisksctl` from `udisks2`.
+
 ## YubiKey authentication
 
 The optional `security` package provides a guarded setup command for the
