@@ -117,6 +117,7 @@ Under `hypr/.config/hypr/scripts/`.
 | `clipboard-store.sh` | `wl-paste --watch` | filters secrets and excluded apps, then stores in cliphist |
 | `clipboard-wipe.sh` | manual | clears clipboard and history |
 | `run-if-deployed.sh` | used by bindings | see [below](#the-deployment-guard) |
+| `run-or-install` | used by bindings | see [below](#missing-programs) |
 | `shell-reload.sh` | manual, `dots deploy` | reloads Hyprland, then stops both Quickshell instances and relaunches them with `--daemonize` |
 | `bluetooth-control` | Quickshell | JSON adapter/device state and validated control commands |
 | `network-control` | Quickshell | `nmcli` wrapper: Wi-Fi, DNS, IPv4, QR |
@@ -149,6 +150,34 @@ undeployed package's entry point does nothing at all, with no diagnostic. The
 `SUPER+I` coding-agent binding, the four `desktop-mode` bindings, and the
 desktop-mode daemon autostart line all route through it. `hypridle.conf` guards
 its `condition_cmd` the same way, inline.
+
+### Missing programs
+
+```bash
+run-or-install [--dry-run] <command> [args...]
+```
+
+Bindings that launch a program by name go through this. When the command is on
+`PATH` it is run straight away, after one `command -v`. Otherwise the wrapper
+looks up the package that provides it:
+
+1. `hypr/.config/hypr/conf/install-map.tsv`: command, package, and `repo` or
+   `aur`, for AUR packages and names pacman cannot find
+2. `pacman -F /usr/bin/<command>`, which needs the files database
+   (`sudo pacman -Fy`)
+
+It then shows a notification. With a package, it offers **Install** and
+**Dismiss**; Install opens Kitty running `sudo pacman -S --needed <package>`,
+or `yay` (or `paru`) for the AUR, and starts the program with its original
+arguments once the install succeeds. You type the sudo password in that
+terminal; nothing is installed any other way. With no package, or an AUR
+package and no AUR helper, it only explains. A repeated press within 10 seconds
+does not prompt again.
+
+`--dry-run` prints the lookup result and the install command, and neither
+notifies nor installs nor runs anything. `RUN_OR_INSTALL_MAP`,
+`RUN_OR_INSTALL_TERMINAL`, and `RUN_OR_INSTALL_QUIET_SECONDS` override the map,
+the terminal, and the quiet window.
 
 ## Capture suite
 

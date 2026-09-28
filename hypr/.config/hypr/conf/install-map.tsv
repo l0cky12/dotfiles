@@ -1,0 +1,11 @@
+# Packages for commands run-or-install cannot find with pacman -F: AUR
+# packages, and names that differ from their package. Tab-separated:
+# command, package, source (repo or aur). Leave a command out rather than
+# guess: the AUR "hermes" is an unrelated program, so hermes is not listed.
+helium-browser	helium-browser-bin	aur
+spotify	spotify	aur
+localsend	localsend-bin	aur
+obsidian	obsidian	repo
+gnome-disks	gnome-disk-utility	repo
+nautilus	nautilus	repo
+kitty	kitty	repo

@@ -17,6 +17,7 @@ useful:
 bind(keys, description, dispatcher, flags)          -- native dispatcher
 exec(keys, description, command, flags)             -- shell command
 package_exec(keys, description, package, command)   -- command from another Stow package
+app_exec(keys, description, command, flags)         -- program launched by name
 ```
 
 `package_exec` routes through `scripts/run-if-deployed.sh`. Hyprland discards
@@ -25,11 +26,17 @@ otherwise do nothing at all, silently. The wrapper sends a desktop notification
 naming the package instead. The `SUPER+I` coding-agent binding and the four
 `desktop-mode` bindings use it.
 
+`app_exec` routes through `scripts/run-or-install`. An installed program starts
+at once; a missing one gets a notification naming its package with **Install**
+and **Dismiss**. See [Scripts and CLIs](Scripts-and-CLIs.md#missing-programs). The
+terminal, file manager, disks, browser, Spotify, Obsidian, Hermes, and LocalSend
+bindings use it.
+
 ## Session and general
 
 | Keys | Action | Behind it |
 | --- | --- | --- |
-| `SUPER+Return` | terminal | `kitty`, from `variables.lua` |
+| `SUPER+Return` | terminal | `kitty`, from `variables.lua`, via `run-or-install` |
 | `SUPER+SHIFT+Return` | drop-down terminal | `Dropterminal.sh kitty` — a Kitty scratchpad on a special workspace |
 | `SUPER+Q` | close window | `hl.dsp.window.close()` |
 | `CTRL+ALT+Delete` | close all windows | `close-all-windows.sh` |
@@ -48,19 +55,19 @@ naming the package instead. The `SUPER+I` coding-agent binding and the four
 | `SUPER+A` | application launcher | `quick-search.sh drun` |
 | `SUPER+SHIFT+A` | lmenu root menu | `lmenu toggle` |
 | `SUPER+ALT+A` | web-app manager | `quickshell ipc call webapps toggle` |
-| `SUPER+W` | browser | `helium-browser` |
+| `SUPER+W` | browser | `helium-browser`, via `run-or-install` |
 | `SUPER+SHIFT+ALT+W` | private browser window | `default-browser-private` |
 | `SUPER+ALT+W` | Windows VM | `windows-vm launch` |
 | `SUPER+CTRL+ALT+W` | stop Windows VM | `windows-vm stop` |
-| `SUPER+E`, `SUPER+SHIFT+E` | files | `nautilus`, from `variables.lua` |
+| `SUPER+E`, `SUPER+SHIFT+E` | files | `nautilus`, from `variables.lua`, via `run-or-install` |
 | `SUPER+SHIFT+ALT+F` | files at the terminal's cwd | `files-here.sh` |
-| `SUPER+SHIFT+D` | disks | `gnome-disks` |
+| `SUPER+SHIFT+D` | disks | `gnome-disks`, via `run-or-install` |
 | `SUPER+U` | eject removable drives | `eject-drive.sh` |
-| `SUPER+S` | Spotify | `spotify` |
-| `SUPER+O` | Obsidian | `obsidian` |
-| `SUPER+SHIFT+H` | Hermes | `hermes` |
+| `SUPER+S` | Spotify | `spotify`, via `run-or-install` |
+| `SUPER+O` | Obsidian | `obsidian`, via `run-or-install` |
+| `SUPER+SHIFT+H` | Hermes | `hermes`, via `run-or-install` |
 | `SUPER+R` | voice dictation | `voice-dictation toggle`, which resolves the microphone and then calls `hyprvoice toggle` |
-| `SUPER+CTRL+S` | LocalSend | `localsend`; its window is floated and centred by a rule |
+| `SUPER+CTRL+S` | LocalSend | `localsend`, via `run-or-install`; its window is floated and centred by a rule |
 
 `SUPER+W` calls `helium-browser` literally. The `browser` variable in
 `variables.lua` says `brave` and is not used by this binding — changing it alone

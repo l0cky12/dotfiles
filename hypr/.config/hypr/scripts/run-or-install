@@ -1,0 +1,203 @@
+#!/usr/bin/env bash
+# run-or-install — run a program, or offer to install it when it is missing.
+#
+#   run-or-install [--dry-run] <command> [args...]
+#
+# Hyprland discards exec output, so a bind for an uninstalled program does
+# nothing at all. This wrapper runs the program when it is on PATH, with one
+# `command -v` and an exec. Otherwise it finds the package that provides it and
+# shows a notification with Install and Dismiss actions. Install opens a
+# terminal that runs the install, where the user types their sudo password,
+# then starts the program if the install succeeded. Nothing is installed
+# without that terminal and that choice.
+#
+# Package lookup, in order:
+#   1. install-map.tsv beside conf/keybindings.lua: command, package, source
+#      (repo or aur), for names pacman cannot find or that live in the AUR
+#   2. pacman -F /usr/bin/<command>, which needs the files database
+#
+# --dry-run prints the lookup result and the install command, and neither
+# notifies nor installs nor runs anything.
+#
+# Environment (tests and overrides):
+#   RUN_OR_INSTALL_MAP        the package map (default ../conf/install-map.tsv)
+#   RUN_OR_INSTALL_TERMINAL   terminal that runs the install (default kitty)
+#   RUN_OR_INSTALL_QUIET_SECONDS
+#                             no second prompt for the same command within this
+#                             many seconds (default 10)
+set -uo pipefail
+
+if [[ ${1:-} != --dry-run ]] && (($# >= 1)) && command -v -- "$1" >/dev/null 2>&1; then
+  exec "$@"
+fi
+
+program=${0##*/}
+script_dir=${BASH_SOURCE[0]%/*}
+[[ $script_dir == "${BASH_SOURCE[0]}" ]] && script_dir=.
+map_file=${RUN_OR_INSTALL_MAP:-$script_dir/../conf/install-map.tsv}
+terminal=${RUN_OR_INSTALL_TERMINAL:-kitty}
+quiet_seconds=${RUN_OR_INSTALL_QUIET_SECONDS:-10}
+state_dir=${XDG_STATE_HOME:-$HOME/.local/state}/run-or-install
+
+dry_run=false
+if [[ ${1:-} == --dry-run ]]; then
+  dry_run=true
+  shift
+fi
+
+(($# >= 1)) || {
+  printf 'usage: %s [--dry-run] <command> [args...]\n' "$program" >&2
+  exit 2
+}
+
+command_name=$1
+
+# Arch package names: lowercase letters, digits and @._+-, not starting with - or .
+valid_package() {
+  [[ $1 =~ ^[a-z0-9@_+][a-z0-9@._+-]*$ ]]
+}
+
+package=
+source=
+files_db_missing=false
+
+lookup_map() {
+  local name pkg origin rest
+  [[ -r $map_file ]] || return 1
+  while IFS=$'\t' read -r name pkg origin rest || [[ -n $name ]]; do
+    [[ -z $name || $name == \#* ]] && continue
+    [[ $name == "$command_name" ]] || continue
+    valid_package "$pkg" || return 1
+    [[ $origin == repo || $origin == aur ]] || return 1
+    package=$pkg
+    source=$origin
+    return 0
+  done <"$map_file"
+  return 1
+}
+
+lookup_pacman() {
+  local output errors status
+  command -v pacman >/dev/null 2>&1 || return 1
+  errors=$(mktemp)
+  output=$(pacman -Fq -- "/usr/bin/$command_name" 2>"$errors")
+  status=$?
+  grep -q -- '-Fy' "$errors" && files_db_missing=true
+  rm -f -- "$errors"
+  ((status == 0)) || return 1
+  output=${output%%$'\n'*}
+  output=${output##*/}
+  valid_package "$output" || return 1
+  package=$output
+  source=repo
+}
+
+# A path is run as given; only a bare command name can be looked up.
+if [[ $command_name != */* ]]; then
+  lookup_map || lookup_pacman
+fi
+
+aur_helper=
+if [[ $source == aur ]]; then
+  for candidate in yay paru; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      aur_helper=$candidate
+      break
+    fi
+  done
+fi
+
+install_command=()
+if [[ $source == repo ]]; then
+  install_command=(sudo pacman -S --needed "$package")
+elif [[ -n $aur_helper ]]; then
+  install_command=("$aur_helper" -S --needed "$package")
+fi
+
+if $dry_run; then
+  if command -v -- "$command_name" >/dev/null 2>&1; then
+    printf 'command: %s\nstatus: installed\n' "$command_name"
+    exit 0
+  fi
+  printf 'command: %s\nstatus: missing\n' "$command_name"
+  if [[ -n $package ]]; then
+    printf 'package: %s\nsource: %s\n' "$package" "$source"
+    if ((${#install_command[@]})); then
+      printf 'install: %s\n' "${install_command[*]}"
+    else
+      printf 'install: none (no AUR helper: install yay or paru)\n'
+    fi
+  else
+    printf 'package: none\n'
+    $files_db_missing && printf 'hint: sudo pacman -Fy\n'
+  fi
+  exit 0
+fi
+
+notify() {
+  command -v notify-send >/dev/null 2>&1 || return 1
+  notify-send -a Hyprland "$@"
+}
+
+# One prompt per command per quiet window, so a held or repeated key does not
+# stack notifications.
+mkdir -p -- "$state_dir" 2>/dev/null
+stamp=$state_dir/${command_name//\//_}
+now=$(date +%s)
+if [[ -r $stamp ]]; then
+  last=$(<"$stamp")
+  if [[ $last =~ ^[0-9]+$ ]] && ((now - last < quiet_seconds)); then
+    exit 127
+  fi
+fi
+printf '%s\n' "$now" >"$stamp" 2>/dev/null
+
+printf '%s: %s is not installed\n' "$program" "$command_name" >&2
+
+if [[ -z $package ]]; then
+  body="$command_name is not installed and no package provides it."
+  $files_db_missing && body+=" Run 'sudo pacman -Fy' so packages can be looked up."
+  notify -u normal "Not installed: $command_name" "$body"
+  exit 127
+fi
+
+if ((${#install_command[@]} == 0)); then
+  notify -u normal "Not installed: $command_name" \
+    "$command_name comes from the AUR package $package. Install yay or paru to install it from here."
+  exit 127
+fi
+
+if [[ $source == aur ]]; then
+  where="from the AUR"
+else
+  where="from the Arch repositories"
+fi
+choice=$(notify -u normal --wait --action=install=Install --action=dismiss=Dismiss \
+  "Not installed: $command_name" "Install $package $where?")
+[[ $choice == install ]] || exit 127
+
+# The install runs in the terminal, with the package and the original command
+# passed as arguments rather than spliced into the script text.
+# shellcheck disable=SC2016
+installer='
+package=$1
+shift
+count=$1
+shift
+install_command=("${@:1:count}")
+shift "$count"
+printf "Installing %s:\n  %s\n\n" "$package" "${install_command[*]}"
+"${install_command[@]}"
+status=$?
+if ((status != 0)); then
+  printf "\nThe install failed (exit %d). Nothing was started.\n" "$status"
+elif ! command -v -- "$1" >/dev/null 2>&1; then
+  printf "\n%s is installed, but %s is still not on PATH.\n" "$package" "$1"
+else
+  printf "\nInstalled %s. Starting %s.\n" "$package" "$1"
+  setsid -f "$@" >/dev/null 2>&1 </dev/null
+fi
+read -rp "Press Enter to close."
+'
+exec "$terminal" --title "Install $package" -e bash -c "$installer" install \
+  "$package" "${#install_command[@]}" "${install_command[@]}" "$@"

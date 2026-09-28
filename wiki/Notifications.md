@@ -39,6 +39,10 @@ deterministically remapped to the current focused monitor.
 
 The bindings contain no notification logic — they call `notificationctl`.
 
+Pressing a binding for a program that is not installed sends a notification
+from `run-or-install` with **Install** and **Dismiss** action buttons. See
+[Scripts and CLIs](Scripts-and-CLIs.md#missing-programs).
+
 ```bash
 notificationctl dismiss-one
 notificationctl dismiss-all
