@@ -52,3 +52,14 @@ zsh/.oh-my-zsh/
 # Python bytecode from the theme generator
 __pycache__/
 *.pyc
+
+# ── Runtime and host-only state ───────────────────────────────────────────────
+# ~/.config/herdr is a folded Stow symlink into this repository, so herdr writes
+# its logs, live session, cached release notes, lock, and sockets straight into
+# the package. They describe one machine's running session, not configuration;
+# herdr recreates each of them on start. config.toml stays tracked.
+*.log
+*.sock
+herdr/.config/herdr/session.json
+herdr/.config/herdr/release-notes.json
+herdr/.config/herdr/.plugins.lock
