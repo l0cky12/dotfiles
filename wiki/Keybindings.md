@@ -105,11 +105,11 @@ already-running shell rather than starting a process.
 | `SUPER+CTRL+,` | toggle DND through `desktop-mode` |
 | `SUPER+ALT+,` | invoke the newest card's default action |
 | `SUPER+SHIFT+ALT+,` | replay notification history |
-| `SUPER+D` | toggle DND through `notificationctl` directly |
+| `SUPER+D` | toggle DND through `desktop-mode` (same as `SUPER+CTRL+,`) |
 
-`SUPER+CTRL+,` and `SUPER+D` reach the same state by different routes:
-`SUPER+CTRL+,` goes through `desktop-mode`, which can also apply a timer;
-`SUPER+D` calls `notificationctl dnd-toggle`.
+Every DND toggle, including the lmenu **Toggle → Do not disturb** row, goes
+through `desktop-mode`. Its daemon re-applies its own DND state every few
+seconds, so a `notificationctl dnd-toggle` call made on the side is reverted.
 
 ## Capture
 

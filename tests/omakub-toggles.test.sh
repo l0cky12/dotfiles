@@ -164,6 +164,14 @@ grep -Fq '+ loginctl lock-session' "$test_root/suspend.out" ||
 grep -Fq '+ systemctl suspend' "$test_root/suspend.out" ||
   fail 'suspend dry-run did not include suspend'
 
+# DND must go through desktop-mode: its daemon reverts changes made directly
+# through notificationctl.
+"$scripts/toggles-menu.sh" --dry-run dnd >"$test_root/dnd.out"
+grep -Fq "$DESKTOP_MODE_EXECUTABLE toggle do-not-disturb" "$test_root/dnd.out" ||
+  fail 'DND dry-run did not toggle through desktop-mode'
+! grep -Fq 'dnd-toggle' "$test_root/dnd.out" ||
+  fail 'DND dry-run still bypasses desktop-mode'
+
 "$scripts/toggles-menu.sh" --dry-run bar >"$test_root/bar.out"
 grep -Fq 'ipc call bar toggle' "$test_root/bar.out" ||
   fail 'bar dry-run did not call the Quickshell bar IPC'
