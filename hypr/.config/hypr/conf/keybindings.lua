@@ -62,6 +62,7 @@ exec(mod .. " + SHIFT + Backspace", "toggle window gaps on all workspaces", cfg.
 bind(mod .. " + CTRL + N", "night light", function()
     hl.dispatch(hl.dsp.exec_cmd(cfg.scripts_dir .. "/night-light.sh toggle"))
 end)
+exec(mod .. " + SHIFT + N", "night light schedule", "quickshell ipc call nightlight toggle")
 
 exec(mod .. " + comma", "dismiss newest notification", "$HOME/.local/bin/notificationctl dismiss-one")
 exec(mod .. " + SHIFT + comma", "dismiss all notifications", "$HOME/.local/bin/notificationctl dismiss-all")

@@ -147,6 +147,14 @@ Scope {
     }
   }
 
+  // Super+Shift+N and the lmenu "Night light schedule…" row.
+  IpcHandler {
+    target: "nightlight"
+    function toggle(): void {
+      NightLightState.togglePanel(bar.focusedScreen())
+    }
+  }
+
   // lmenu opens from a Hyprland global shortcut (hl.dsp.global("quickshell:lmenu")
   // in keybindings.lua) rather than `quickshell ipc call`, so the keypress
   // reaches the shell without starting a process. The IPC target is for scripts
@@ -244,6 +252,16 @@ Scope {
     model: Quickshell.screens
 
     ModesPanel {
+      required property var modelData
+      screen: modelData
+      ownerScreen: modelData.name
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+
+    NightLightPanel {
       required property var modelData
       screen: modelData
       ownerScreen: modelData.name

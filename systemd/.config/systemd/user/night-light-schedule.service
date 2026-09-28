@@ -1,0 +1,6 @@
+[Unit]
+Description=Apply the night-light schedule
+
+[Service]
+Type=oneshot
+ExecStart=%h/.config/hypr/scripts/night-light-schedule.py apply

@@ -75,7 +75,7 @@ PRIORITY = (
     r"^toggle media panel$", r"^toggle audio panel$",
     r"^toggle Bluetooth panel$", r"^manage Wi-Fi and network$",
     r"^power profile menu$", r"^toggle audio visualizer$",
-    r"^wallpaper picker$", r"^night light$", r"^spotify$",
+    r"^wallpaper picker$", r"^night light( schedule)?$", r"^spotify$",
     r"^(Windows VM|stop Windows VM)$", r"^default browser private window$",
     r"^(start )?Gaming VM$", r"^toggle window transparency",
     r"^toggle window gaps", r"^cycle window layout$",
