@@ -227,16 +227,18 @@ LMENU_MENU="$menu" LMENU_EXTENSIONS=/nonexistent LMENU_PARSER="$parser" \
 grep -Fq 'system.reboot' "$test_root/cli.out" ||
   fail 'the CLI dry run does not reach the System menu'
 
-# The ratio toggle reads its ratio live rather than hard-coding one.
-HYPRCTL="$test_root/fake-hyprctl" "$repo_root/menu/.local/bin/lmenu-toggle-ratio" status \
-  >"$test_root/ratio.out"
+# The ratio toggle reads its ratio live rather than hard-coding one. Its on/off
+# state lives under XDG_STATE_HOME, so both calls get a fresh directory;
+# otherwise a ratio the user has toggled on makes this report "1".
+XDG_STATE_HOME="$test_root/ratio-state" HYPRCTL="$test_root/fake-hyprctl" \
+  "$repo_root/menu/.local/bin/lmenu-toggle-ratio" status >"$test_root/ratio.out"
 grep -qx '0' "$test_root/ratio.out" || fail 'the ratio toggle does not report an off state'
 cat >"$test_root/fake-hyprctl" <<'FAKE'
 #!/usr/bin/env bash
 printf '{"float": 0.55}\n'
 FAKE
 chmod +x "$test_root/fake-hyprctl"
-HYPRCTL="$test_root/fake-hyprctl" \
+XDG_STATE_HOME="$test_root/ratio-state" HYPRCTL="$test_root/fake-hyprctl" \
   "$repo_root/menu/.local/bin/lmenu-toggle-ratio" --dry-run toggle >"$test_root/ratio2.out"
 grep -Fq 'save master:mfact=0.55' "$test_root/ratio2.out" ||
   fail 'the ratio toggle does not read the live ratio before overriding it'
