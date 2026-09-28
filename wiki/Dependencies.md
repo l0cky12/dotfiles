@@ -52,7 +52,7 @@ Also needed: a working Wayland session, a D-Bus user bus, a font stack, the
 | --- | --- |
 | `helium-browser` | `SUPER+W`, browser autostart, XDG HTTP/HTML default |
 | `brave` | the browser-extension tooling |
-| `nautilus` | `SUPER+E`, `files-here.sh` |
+| `nautilus` | `SUPER+E` fallback, `files-here.sh` |
 | `gnome-disks` | `SUPER+SHIFT+D` |
 | `spotify` | `SUPER+S`, autostart, workspace rule |
 | `obsidian` | `SUPER+O`, autostart, workspace rule |

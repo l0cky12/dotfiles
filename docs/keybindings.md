@@ -42,7 +42,7 @@ opened with `SUPER+K`.
 | `SUPER+O` | Obsidian | `obsidian`, via `run-or-install` |
 | `SUPER+R` | voice dictation | `voice-dictation toggle`, which resolves the microphone and then calls `hyprvoice toggle` |
 | `SUPER+SHIFT+H` | Hermes | `hermes`, via `run-or-install` |
-| `SUPER+E` | Files | `nautilus` through `file_manager` |
+| `SUPER+E` | Files | the Setup > Defaults file manager (`inode/directory` in `mimeapps.list`) through `file_manager`, else `nautilus` |
 | `SUPER+SHIFT+E` | Files | same as `SUPER+E` |
 | `SUPER+SHIFT+ALT+F` | Files at terminal directory | `files-here.sh` |
 | `SUPER+SHIFT+D` | Disks | `gnome-disks` through `disks`, via `run-or-install` |

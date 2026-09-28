@@ -29,6 +29,9 @@ done
 ln -s code-oss "$bin/code"
 # lmenu-parse.py runs the helper through its #!/usr/bin/env python3 line.
 ln -s "$python" "$bin/python3"
+# Records reloads instead of touching a compositor.
+printf '#!/bin/sh\necho "$*" >>"%s/hyprctl.log"\n' "$test_root" >"$bin/hyprctl"
+chmod +x "$bin/hyprctl"
 
 desktop() {
   local name=$1
@@ -75,7 +78,8 @@ ln -s "$repo/ai-config" "$config/ai-agent/config"
 run() {
   env -i HOME="$test_root" PATH="$bin" XDG_CONFIG_HOME="$config" \
     XDG_DATA_HOME="$test_root/share" XDG_DATA_DIRS="$test_root/none" \
-    XDG_CURRENT_DESKTOP=Hyprland DEFAULT_APPS_NO_NOTIFY=1 "$@"
+    XDG_CURRENT_DESKTOP=Hyprland HYPRLAND_INSTANCE_SIGNATURE=fixture \
+    DEFAULT_APPS_NO_NOTIFY=1 "$@"
 }
 helper() {
   run "$python" "$helper" "$@"
@@ -102,12 +106,15 @@ run DEFAULT_APPS_DRY_RUN=1 "$python" "$helper" set agent codex >/dev/null
 run DEFAULT_APPS_DRY_RUN=1 "$python" "$helper" set editor nvim >/dev/null
 [[ $(sha256sum "$repo/mimeapps.list" "$repo/ai-config") == "$before" ]] || fail 'dry run changed a file'
 [[ ! -e $config/default-apps ]] || fail 'dry run created the editor file'
+grep -Fxq 'dry-run: would run hyprctl reload' <<<"$out" || fail 'dry run did not report the reload'
+[[ ! -e $test_root/hyprctl.log ]] || fail 'dry run reloaded Hyprland'
 
 # Something not installed is refused.
 if helper set browser helium.desktop 2>"$test_root/err"; then
   fail 'an uninstalled browser was accepted'
 fi
 grep -Fq 'not an installed browser' "$test_root/err" || fail 'refusal did not explain itself'
+[[ ! -e $test_root/hyprctl.log ]] || fail 'a refused change reloaded Hyprland'
 
 # Browser: every handler in [Default Applications], duplicates folded, the rest kept.
 helper set browser firefox.desktop
@@ -128,12 +135,27 @@ text/html=brave-browser.desktop;
 EOF
 diff -u "$test_root/expected" "$repo/mimeapps.list" || fail 'browser rewrite of mimeapps.list is wrong'
 helper list browser | grep -Fxq $'firefox.desktop\tFirefox\t1' || fail 'firefox is not ticked'
+[[ $(<"$test_root/hyprctl.log") == reload ]] || fail 'a change did not reload Hyprland once'
+run DEFAULT_APPS_NO_RELOAD=1 "$python" "$helper" set browser firefox.desktop
+[[ $(wc -l <"$test_root/hyprctl.log") == 1 ]] || fail 'DEFAULT_APPS_NO_RELOAD still reloaded'
 
 # File manager replaces inode/directory in place.
 helper set file-manager thunar.desktop
 grep -Fxq 'inode/directory=thunar.desktop' "$repo/mimeapps.list" || fail 'inode/directory not set'
 grep -Fq 'Nautilus' "$repo/mimeapps.list" && fail 'the old file manager is still listed'
 grep -Fxq '# --- File manager ---' "$repo/mimeapps.list" || fail 'a comment was lost'
+
+# SUPER+E launches the folder handler variables.lua reads from mimeapps.list.
+file_manager() {
+  XDG_CONFIG_HOME=$1 lua -e "package.path = '$repo_root/hypr/.config/hypr/?.lua'
+    io.write(require('conf/variables').file_manager)"
+}
+if command -v lua >/dev/null; then
+  [[ $(file_manager "$config") == 'gtk-launch thunar' ]] ||
+    fail "SUPER+E does not follow the file manager: $(file_manager "$config")"
+  [[ $(file_manager "$test_root/none") == nautilus ]] ||
+    fail 'SUPER+E has no fallback without mimeapps.list'
+fi
 
 # A missing mimeapps.list is created with the section.
 rm "$config/mimeapps.list"

@@ -20,11 +20,14 @@ Where each choice is recorded:
                   $XDG_CONFIG_HOME/ai-agent/config, read by ai-agent
 
 Files are rewritten in place: a Stow symlink stays a symlink and its target in
-the repository takes the change. Nothing is reloaded.
+the repository takes the change. After every change Hyprland is reloaded, which
+is what makes SUPER+E follow the file manager: conf/variables.lua reads the
+folder handler from mimeapps.list when the config loads.
 
 Environment:
     DEFAULT_APPS_DRY_RUN=1     print what would be written, write nothing
     DEFAULT_APPS_NO_NOTIFY=1   skip the desktop notification after a change
+    DEFAULT_APPS_NO_RELOAD=1   skip the Hyprland reload after a change
 """
 
 from __future__ import annotations
@@ -428,6 +431,17 @@ def apply(kind: str, choice: str) -> str:
     return offered[choice]
 
 
+def reload_hyprland() -> None:
+    """Only inside a Hyprland session: hyprctl has nothing to talk to otherwise."""
+    if os.environ.get("DEFAULT_APPS_NO_RELOAD"):
+        return
+    if os.environ.get("DEFAULT_APPS_DRY_RUN"):
+        print("dry-run: would run hyprctl reload")
+        return
+    if os.environ.get("HYPRLAND_INSTANCE_SIGNATURE") and shutil.which("hyprctl"):
+        subprocess.run(["hyprctl", "reload"], stdout=subprocess.DEVNULL, check=False)
+
+
 def notify(summary: str, body: str) -> None:
     if os.environ.get("DEFAULT_APPS_DRY_RUN") or os.environ.get("DEFAULT_APPS_NO_NOTIFY"):
         return
@@ -453,6 +467,7 @@ def main(argv: list[str]) -> int:
             except (DefaultAppsError, OSError) as error:
                 notify("Default not changed", str(error))
                 raise
+            reload_hyprland()
             notify(f"Default {argv[1].replace('-', ' ')}", f"{label} is now the default.")
             return 0
     except (DefaultAppsError, OSError) as error:
