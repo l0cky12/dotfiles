@@ -35,9 +35,11 @@ deterministically remapped to the current focused monitor.
 | `SUPER+CTRL+,` | toggle persistent DND, through `desktop-mode` |
 | `SUPER+ALT+,` | invoke or focus the newest card |
 | `SUPER+SHIFT+ALT+,` | replay the newest 10 history entries |
-| `SUPER+D` | toggle DND directly, through `notificationctl` |
+| `SUPER+D` | toggle persistent DND, through `desktop-mode` |
 
-The bindings contain no notification logic — they call `notificationctl`.
+The bindings contain no notification logic — they call `notificationctl`, or
+`desktop-mode` for DND. The `desktop-mode` daemon re-applies its DND state every
+few seconds, so `notificationctl dnd-*` changes made outside it do not stick.
 
 ```bash
 notificationctl dismiss-one

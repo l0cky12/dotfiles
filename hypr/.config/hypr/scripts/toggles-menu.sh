@@ -149,7 +149,10 @@ toggle_item() {
       run "$script_dir/night-light.sh" toggle
       ;;
     dnd)
-      run "$notificationctl_command" dnd-toggle
+      # Through desktop-mode, not notificationctl: the desktop-mode daemon
+      # re-applies its own DND state every few seconds, so a change it did not
+      # make is reverted almost immediately.
+      run "$desktop_mode" toggle do-not-disturb
       ;;
     stay-awake)
       run "$desktop_mode" toggle stay-awake

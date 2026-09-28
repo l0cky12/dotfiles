@@ -54,7 +54,7 @@ opened with `SUPER+K`.
 | `SUPER+SHIFT+B` | power profile menu | Rofi picker over `powerprofilesctl` profiles |
 | `SUPER+CTRL+D` | display panel | Quickshell IPC |
 | `SUPER+CTRL+M` | media panel | Quickshell IPC |
-| `SUPER+D` | toggle do-not-disturb | `notificationctl dnd-toggle` |
+| `SUPER+D` | toggle do-not-disturb | `desktop-mode toggle do-not-disturb` |
 
 ## Sharing, clipboard, emoji, calculator, and transcoding
 

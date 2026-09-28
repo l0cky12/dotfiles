@@ -69,7 +69,9 @@ exec(mod .. " + SHIFT + comma", "dismiss all notifications", "$HOME/.local/bin/n
 package_exec(mod .. " + CTRL + comma", "toggle do not disturb", "modes", "desktop-mode toggle do-not-disturb")
 exec(mod .. " + ALT + comma", "invoke newest notification", "$HOME/.local/bin/notificationctl invoke-latest")
 exec(mod .. " + SHIFT + ALT + comma", "notification history", "$HOME/.local/bin/notificationctl history")
-exec(mod .. " + D", "toggle do not disturb", "$HOME/.local/bin/notificationctl dnd-toggle")
+-- Same route as SUPER+CTRL+comma. The desktop-mode daemon reverts DND changes
+-- that bypass it, so notificationctl dnd-toggle would not stick.
+package_exec(mod .. " + D", "toggle do not disturb", "modes", "desktop-mode toggle do-not-disturb")
 package_exec(mod .. " + ALT + M", "desktop modes", "modes", "desktop-mode menu")
 package_exec(mod .. " + SHIFT + I", "stay awake", "modes", "desktop-mode toggle stay-awake")
 -- Countdown reminders. Backed by transient systemd user timers, so they
