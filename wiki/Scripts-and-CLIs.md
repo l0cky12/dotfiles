@@ -266,13 +266,18 @@ if it is listed there, so an unrelated `.desktop` file can never be deleted.
 
 Worth knowing:
 
-- **Browser**: `$WEBAPP_BROWSER` if set, otherwise the first of `brave`,
-  `chromium`, `chromium-browser`, `google-chrome`, `google-chrome-stable`,
-  `helium-browser` on `PATH`. Web apps share the normal profile, so logins work.
+- **Browser**: `$WEBAPP_BROWSER` if set, otherwise the XDG default browser when
+  it is Chromium-family, otherwise the first of `brave`, `chromium`,
+  `chromium-browser`, `google-chrome`, `google-chrome-stable`, `helium-browser`
+  on `PATH`. A Firefox default falls back to that list, since only Chromium
+  browsers have an `--app=` mode; `webapp doctor` shows which rule won. Web apps
+  share that browser's normal profile, so logins work.
 - **Window class**: Brave ignores `--class` for app-mode windows and derives its
-  own, e.g. `brave-youtube.com__-Default`. That is recorded as `wm_class` in the
-  metadata and is what a per-app Hyprland rule must match. It is never plain
-  `brave-browser`, so the workspace-2 rule does not capture web apps.
+  own, e.g. `brave-youtube.com__-Default`; Helium and other derivatives keep
+  Chromium's prefix, e.g. `chrome-youtube.com__-Default`. That is recorded as
+  `wm_class` in the metadata and is what a per-app Hyprland rule must match. It
+  is never plain `brave-browser`, so the workspace-2 rule does not capture web
+  apps.
 - **Icons** are normalised to PNG, because gdk-pixbuf here has no SVG or WebP
   loader and Rofi could not otherwise render them. Discovery prefers a declared
   `apple-touch-icon` or a sized raster over an SVG favicon; with nothing found, a

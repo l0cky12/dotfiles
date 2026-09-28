@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import configparser
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -456,13 +455,10 @@ def cmd_launch(args: argparse.Namespace) -> int:
 def cmd_doctor(args: argparse.Namespace) -> int:
     print(BOLD("web app manager"))
     try:
-        browser = wl.find_browser()
-        print(f"  browser        {GREEN(browser)}")
+        browser, reason = wl.browser_choice()
+        print(f"  browser        {GREEN(browser)}  {DIM(reason)}")
     except wl.WebAppError as exc:
         print(f"  browser        {RED(str(exc))}")
-    override = os.environ.get("WEBAPP_BROWSER")
-    if override:
-        print(f"  $WEBAPP_BROWSER {override}")
 
     for label, tool, needed in (
         ("validator", "desktop-file-validate", "validating launchers"),

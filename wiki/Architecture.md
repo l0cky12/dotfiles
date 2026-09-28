@@ -180,5 +180,5 @@ Honoured by scripts:
 | `ASCII_SCREENSAVER_CONFIG`, `ASCII_SCREENSAVER_MONITORS_JSON` | screensaver config and fixture monitor data |
 | `SCREENSHOT_DIR`, `SCREENSHOT_EDITOR`, `SCREENRECORD_DIR`, `OCR_LANGS` | capture outputs and tooling |
 | `LMENU_PARSER`, `ROFI`, `SYSTEMCTL`, `SYSTEMD_RUN` | lmenu overrides, mostly for its tests |
-| `WEBAPP_BROWSER` | web-app launch browser, ahead of the built-in search order |
+| `WEBAPP_BROWSER` | web-app launch browser, ahead of the XDG default and the built-in search order |
 | `XDG_RUNTIME_DIR`, `XDG_STATE_HOME`, `XDG_CACHE_HOME` | locks, sockets, durable state, caches |
