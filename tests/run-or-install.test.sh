@@ -155,6 +155,13 @@ run FAKE_CHOICE=install "$wrapper" fixture-aur-app || true
 grep -Fq 'Install yay or paru' "$log/notify" || fail 'a missing AUR helper was not explained'
 grep -Fq -- '--action' "$log/notify" && fail 'an install was offered without an AUR helper'
 
+# No installation terminal: explain the manual command without offering Install.
+rm -f "$bin/kitty" "$log/notify" "$log/install"
+run RUN_OR_INSTALL_QUIET_SECONDS=0 FAKE_CHOICE=install "$wrapper" fixture-repo-app || true
+grep -Fq 'sudo pacman -S --needed fixture-repo-pkg' "$log/notify" || fail 'missing terminal has no recovery command'
+grep -Fq -- '--action' "$log/notify" && fail 'an install was offered without a terminal'
+[[ ! -e $log/install ]] || fail 'installation ran without a terminal'
+
 # The shipped map parses: every entry has a valid package and source.
 while IFS=$'\t' read -r name package origin rest; do
   [[ -z $name || $name == \#* ]] && continue

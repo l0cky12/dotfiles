@@ -59,7 +59,7 @@ bindings use it.
 | `SUPER+SHIFT+ALT+W` | private browser window | `default-browser-private` |
 | `SUPER+ALT+W` | Windows VM | `windows-vm launch` |
 | `SUPER+CTRL+ALT+W` | stop Windows VM | `windows-vm stop` |
-| `SUPER+E`, `SUPER+SHIFT+E` | files | `nautilus`, from `variables.lua`, via `run-or-install` |
+| `SUPER+E`, `SUPER+SHIFT+E` | files | selected file manager from `mimeapps.list`, falling back to `nautilus`, via `run-or-install` |
 | `SUPER+SHIFT+ALT+F` | files at the terminal's cwd | `files-here.sh` |
 | `SUPER+SHIFT+D` | disks | `gnome-disks`, via `run-or-install` |
 | `SUPER+U` | eject removable drives | `eject-drive.sh` |

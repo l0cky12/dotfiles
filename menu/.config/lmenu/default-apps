@@ -218,9 +218,24 @@ def read_lines(path: Path) -> list[str]:
 # mimeapps.list
 
 
+def mime_paths() -> list[Path]:
+    """Existing desktop-specific overrides, then the generic user defaults."""
+    paths = [CONFIG_HOME / f"{desktop.lower()}-mimeapps.list"
+             for desktop in os.environ.get("XDG_CURRENT_DESKTOP", "").split(":") if desktop]
+    return list(dict.fromkeys([path for path in paths if path.exists()] + [MIMEAPPS]))
+
+
 def mime_default(mime_type: str) -> str:
+    for path in mime_paths():
+        value = mime_default_in(path, mime_type)
+        if value:
+            return value
+    return ""
+
+
+def mime_default_in(path: Path, mime_type: str) -> str:
     in_defaults = False
-    for line in read_lines(MIMEAPPS):
+    for line in read_lines(path):
         stripped = line.strip()
         if stripped.startswith("["):
             in_defaults = stripped == DEFAULTS_SECTION
@@ -231,10 +246,10 @@ def mime_default(mime_type: str) -> str:
     return ""
 
 
-def set_mime_defaults(mime_types: tuple[str, ...], desktop_id: str) -> None:
+def set_mime_defaults(mime_types: tuple[str, ...], desktop_id: str, path: Path) -> None:
     """Point each type at desktop_id inside [Default Applications], keeping
     every comment, other entry and section where it was."""
-    lines = read_lines(MIMEAPPS)
+    lines = read_lines(path)
     wanted = {mime_type: f"{mime_type}={desktop_id}" for mime_type in mime_types}
     written: set[str] = set()
     output: list[str] = []
@@ -273,7 +288,7 @@ def set_mime_defaults(mime_types: tuple[str, ...], desktop_id: str) -> None:
         at = last_written if last_written is not None else section_end
         output[at:at] = missing
 
-    write_text(MIMEAPPS, "\n".join(output) + "\n")
+    write_text(path, "\n".join(output) + "\n")
 
 
 # --------------------------------------------------------------------------
@@ -418,10 +433,10 @@ def apply(kind: str, choice: str) -> str:
     offered = {row[0]: row[1] for row in candidates(kind)}
     if choice not in offered:
         raise DefaultAppsError(f"{choice!r} is not an installed {kind}")
-    if kind == "browser":
-        set_mime_defaults(BROWSER_TYPES, choice)
-    elif kind == "file-manager":
-        set_mime_defaults(FILE_MANAGER_TYPES, choice)
+    if kind in ("browser", "file-manager"):
+        mime_types = BROWSER_TYPES if kind == "browser" else FILE_MANAGER_TYPES
+        for path in mime_paths():
+            set_mime_defaults(mime_types, choice, path)
     elif kind == "terminal":
         set_terminal(choice)
     elif kind == "editor":

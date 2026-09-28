@@ -205,4 +205,28 @@ grep -Pq '\tCodex\t\td\.agent#codex\t' <<<"$rows" || fail 'the provider did not 
   "$python" "$parser" resolve d.agent 'd.agent#codex') == "leaf	$helper set agent codex" ]] ||
   fail 'the provider row does not resolve to the helper'
 
+# Desktop-specific defaults must agree with the menu and web-app launcher.
+printf '[Default Applications]\nx-scheme-handler/https=firefox.desktop\n' >"$config/hyprland-mimeapps.list"
+helper list browser | grep -Fxq $'firefox.desktop\tFirefox\t1' || fail 'desktop-specific default was not read'
+helper set browser brave-browser.desktop
+grep -Fxq 'x-scheme-handler/https=brave-browser.desktop' "$config/hyprland-mimeapps.list" ||
+  fail 'desktop-specific default overrides the selected browser'
+run "$python" - "$repo_root/hypr/.config/hypr/webapp" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import weblib
+assert weblib.default_browser()[0] == "brave-browser.desktop"
+PY
+printf 'inode/directory=stale.desktop\n' >>"$config/hyprland-mimeapps.list"
+helper set file-manager thunar.desktop
+if command -v lua >/dev/null; then
+  [[ $(XDG_CURRENT_DESKTOP=Hyprland file_manager "$config") == 'gtk-launch thunar' ]] ||
+    fail 'SUPER+E ignored the selected desktop-specific file manager'
+fi
+
+# Evaluate only the editor source line, avoiding the rest of the live shell setup.
+editor_source=$(grep 'source .*default-apps/editor.zsh' "$repo_root/zsh/.zshrc")
+[[ $(run "$(command -v zsh)" -fc "$editor_source; print -r -- \"\$VISUAL\"") == 'code --wait' ]] ||
+  fail 'zsh ignores the editor selected under XDG_CONFIG_HOME'
+
 printf 'ok: default-apps\n'

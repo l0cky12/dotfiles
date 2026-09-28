@@ -129,11 +129,12 @@ defaults "$sys_config/mimeapps.list" '' sys-chromium.desktop
 printf 'ok: system lists, the http handler and env wrappers are understood\n'
 
 # ── a default whose program is missing falls back ───────────────────────────
+rm "$sys_config/mimeapps.list"
 entry "$data/applications" vivaldi.desktop 'vivaldi-stable %U'
 defaults "$config/mimeapps.list" vivaldi.desktop
 [[ $(chosen) == brave ]] || fail 'a default with no installed program was used'
-webapp doctor 2>&1 | grep -Fq 'runs nothing on PATH' ||
-  fail 'doctor did not explain the missing program'
+webapp doctor 2>&1 | grep -Fq 'no default browser is set' ||
+  fail 'doctor did not explain the lack of a usable default'
 printf 'ok: a default whose program is not installed falls back\n'
 
 # ── $WEBAPP_BROWSER still wins ──────────────────────────────────────────────
@@ -141,5 +142,17 @@ defaults "$config/mimeapps.list" helium.desktop
 [[ $(chosen WEBAPP_BROWSER=chromium) == chromium ]] ||
   fail '$WEBAPP_BROWSER did not override the default browser'
 printf 'ok: $WEBAPP_BROWSER overrides the default browser\n'
+
+# Existing but unusable entries must not hide the next valid default.
+entry "$data/applications" gone.desktop 'missing-browser %U'
+defaults "$config/mimeapps.list" 'gone.desktop;helium.desktop;'
+[[ $(chosen) == helium-browser ]] || fail 'a stale desktop file hid the next default'
+entry "$data/applications" gone.desktop 'chromium %U'
+printf '\n[Desktop Entry]\nHidden=true\nExec=chromium %%U\n' >"$data/applications/gone.desktop"
+entry "$sys_data/applications" gone.desktop 'chromium %U'
+[[ $(chosen) == helium-browser ]] || fail 'a hidden user entry did not mask the system entry'
+entry "$data/applications" gone.desktop 'chromium %U'
+sed -i '/Type=Application/a TryExec=missing-browser' "$data/applications/gone.desktop"
+[[ $(chosen) == helium-browser ]] || fail 'an unavailable TryExec hid the next default'
 
 printf 'all webapp default browser tests passed\n'

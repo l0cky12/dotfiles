@@ -3,21 +3,28 @@
 -- that menu reloads Hyprland after a change.
 local function folder_handler()
     local config_home = os.getenv("XDG_CONFIG_HOME") or ((os.getenv("HOME") or "") .. "/.config")
-    local file = io.open(config_home .. "/mimeapps.list", "r")
-    if not file then
-        return nil
+    local names = {}
+    for desktop in (os.getenv("XDG_CURRENT_DESKTOP") or ""):gmatch("[^:]+") do
+        names[#names + 1] = desktop:lower() .. "-mimeapps.list"
     end
-    local in_defaults, handler = false, nil
-    for line in file:lines() do
-        local section = line:match("^%s*(%[.-%])%s*$")
-        if section then
-            in_defaults = section == "[Default Applications]"
-        elseif in_defaults and not handler then
-            handler = line:match("^%s*inode/directory%s*=%s*([%w._-]+)%.desktop")
+    names[#names + 1] = "mimeapps.list"
+    for _, name in ipairs(names) do
+        local file = io.open(config_home .. "/" .. name, "r")
+        if file then
+            local in_defaults, handler = false, nil
+            for line in file:lines() do
+                local section = line:match("^%s*(%[.-%])%s*$")
+                if section then
+                    in_defaults = section == "[Default Applications]"
+                elseif in_defaults and not handler then
+                    handler = line:match("^%s*inode/directory%s*=%s*([%w._-]+)%.desktop")
+                end
+            end
+            file:close()
+            if handler then return "gtk-launch " .. handler end
         end
     end
-    file:close()
-    return handler and ("gtk-launch " .. handler) or nil
+    return nil
 end
 
 return {

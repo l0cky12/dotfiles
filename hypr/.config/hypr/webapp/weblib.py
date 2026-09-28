@@ -308,8 +308,12 @@ def default_browser() -> tuple[str, Path] | None:
                 if not desktop_id or "/" in desktop_id:
                     continue
                 for directory in app_dirs:
-                    if (directory / desktop_id).is_file():
-                        return desktop_id, directory / desktop_id
+                    path = directory / desktop_id
+                    if path.is_file():
+                        if _exec_program(path):
+                            return desktop_id, path
+                        # A user entry masks the system entry even when disabled.
+                        break
     return None
 
 
@@ -317,8 +321,13 @@ def _exec_program(desktop_file: Path) -> str | None:
     """The program a desktop entry's main Exec runs, resolved on PATH."""
     import shlex
 
+    fields = _read_group(desktop_file, "Desktop Entry")
+    if fields.get("Hidden", "").lower() == "true":
+        return None
+    if fields.get("TryExec") and not shutil.which(fields["TryExec"]):
+        return None
     try:
-        words = shlex.split(_read_group(desktop_file, "Desktop Entry").get("Exec", ""))
+        words = shlex.split(fields.get("Exec", ""))
     except ValueError:
         return None
     # `env VAR=value program …` is a common wrapper; the program is what counts.

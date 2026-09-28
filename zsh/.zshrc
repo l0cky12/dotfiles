@@ -84,7 +84,7 @@ if [[ -o interactive ]]; then
 fi
 
 # EDITOR and VISUAL chosen in lmenu under Setup > Defaults > Editor.
-[[ -r ~/.config/default-apps/editor.zsh ]] && source ~/.config/default-apps/editor.zsh
+[[ -r ${XDG_CONFIG_HOME:-$HOME/.config}/default-apps/editor.zsh ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/default-apps/editor.zsh"
 
 # Standalone coding-agent launchers from the `ai` Stow package.
 [[ -r ~/.config/ai-agent/shell.zsh ]] && source ~/.config/ai-agent/shell.zsh

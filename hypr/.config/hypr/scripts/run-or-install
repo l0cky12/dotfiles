@@ -167,6 +167,12 @@ if ((${#install_command[@]} == 0)); then
   exit 127
 fi
 
+if ! command -v -- "$terminal" >/dev/null 2>&1; then
+  notify -u normal "Not installed: $command_name" \
+    "Installation terminal $terminal is unavailable. Run ${install_command[*]} in another terminal or a TTY."
+  exit 127
+fi
+
 if [[ $source == aur ]]; then
   where="from the AUR"
 else

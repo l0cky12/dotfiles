@@ -97,6 +97,10 @@ manager: `conf/variables.lua` reads the `inode/directory` handler from
 `mimeapps.list` at load and runs it through `gtk-launch`, falling back to
 `nautilus`. `SUPER+Return` still runs `kitty`.
 
+Existing desktop-specific files such as `hyprland-mimeapps.list` take precedence
+when reading defaults. Browser and file-manager changes update these overrides
+as well as the generic file, so the menu and launchers agree.
+
 ## Hyprland helpers
 
 Under `hypr/.config/hypr/scripts/`.
@@ -183,6 +187,9 @@ arguments once the install succeeds. You type the sudo password in that
 terminal; nothing is installed any other way. With no package, or an AUR
 package and no AUR helper, it only explains. A repeated press within 10 seconds
 does not prompt again.
+
+If the installation terminal is missing, the notification gives the install
+command to run in another terminal or a TTY, without an Install button.
 
 `--dry-run` prints the lookup result and the install command, and neither
 notifies nor installs nor runs anything. `RUN_OR_INSTALL_MAP`,
