@@ -81,8 +81,7 @@ binding explained in plain English, see the [Keybindings guide](Keybindings-Guid
    (`hyprctl binds`) when it opens, so it always matches what is actually
    bound.
 3. **Open the menu** with `Super+Shift+A` and browse. The *Learn* section links
-   the Hyprland and Arch wikis; *Trigger* holds screenshots, reminders, and
-   sharing; *Style* holds themes and wallpapers.
+   the Hyprland and Arch wikis; *Trigger* holds screenshots and sharing; *Style* holds themes and wallpapers.
 4. **Change the wallpaper** with `Super+Shift+W` (the wallpaper picker).
 5. **Pick a theme** with `Super+Ctrl+Shift+Space`. The theme picker is a
    fullscreen cover-flow: type to filter, arrows to browse, and it only

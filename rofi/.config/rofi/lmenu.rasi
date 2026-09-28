@@ -26,8 +26,8 @@ mainbox {
 }
 
 /* The prompt widget is what renders rofi's -p text, so lmenu can name the view
- * you are in ("Capture", "System") and lmenu-reminder can label its fields
- * ("Name", "Time"). Leave it out and every prompt silently reads "Search…". */
+ * you are in ("Capture", "System"). Leave it out and every prompt silently
+ * reads "Search…". */
 inputbar {
     children: [ "prompt", "entry" ];
     spacing:  10px;

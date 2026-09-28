@@ -146,37 +146,6 @@
     "action": "~/.config/hypr/scripts/RofiEmoji.sh"
   },
 
-  // Countdown reminders, backed by transient systemd user timers.
-  {
-    "id": "trigger.reminder",
-    "icon": "󰀠",
-    "label": "Reminder",
-    "title": "Reminder",
-    "aliases": ["timer", "alarm", "remind"]
-  },
-  {
-    "id": "trigger.reminder.set",
-    "icon": "󰃭",
-    "label": "Set a reminder",
-    "aliases": ["new reminder", "countdown"],
-    "action": "~/.local/bin/lmenu-reminder set"
-  },
-  {
-    "id": "trigger.reminder.show",
-    "icon": "󰋚",
-    "label": "Show reminders",
-    "aliases": ["pending", "list reminders"],
-    "action": "~/.local/bin/lmenu-reminder list"
-  },
-  {
-    "id": "trigger.reminder.clear",
-    "icon": "󰅚",
-    "label": "Clear all reminders",
-    "aliases": ["cancel reminders"],
-    "when": "[[ $(~/.local/bin/lmenu-reminder count) -gt 0 ]]",
-    "action": "~/.local/bin/lmenu-reminder clear"
-  },
-
   {
     "id": "trigger.capture",
     "icon": "󰄄",

@@ -15,7 +15,7 @@ bindings call by absolute path.
 | `disk-speedtest` | `hypr` | disk write, read, and random 4K benchmark behind the lmenu Disk Speed Test overlay |
 | `toggle` | `hypr` | facade for the toggles menu |
 | `hypr-wallpaper-picker` | `hypr` | wallpaper panel and its index/search/apply backend |
-| `lmenu`, `lmenu-reminder`, `lmenu-toggle-ratio` | `menu` | the Quickshell menu, Rofi fallback, and countdown reminders |
+| `lmenu`, `lmenu-toggle-ratio` | `menu` | the Quickshell menu and Rofi fallback |
 | `desktop-mode` | `modes` | temporary desktop modes and the expiry daemon |
 | `ascii-screensaver`, `ascii-screensaver-render`, `toggle-screensaver`, `screensaver-branding`, `screensaver-lock`, `transcode-ascii`, `install-ttfx` | `screensaver` | the ASCII screensaver suite |
 | `ai-agent` | `ai` | launch Claude Code, Codex, OpenCode, or T3 Code |
@@ -60,32 +60,13 @@ Top-level routes:
 | `apps` | installed applications |
 | `development` | Docker dev environments: MySQL, PostgreSQL, MariaDB, Redis, info, stop-all |
 | `learn` | keybindings, Hyprland, Arch, Neovim, Bash |
-| `trigger` | emoji, reminders, capture, transcode, share, toggles, speed test, disk speed test, calculator, clipboard, hardware |
+| `trigger` | emoji, capture, transcode, share, toggles, speed test, disk speed test, calculator, clipboard, hardware |
 | `style` | theme, background, font, gaps, transparency, Hyprland settings, bar position/toggle/transparency |
 | `system` | lock, logout, suspend, hibernate, reboot, shutdown, screensaver, screensaver branding |
 | `install`, `remove`, `update`, `setup`, `about` | package and system management entries |
 
 `lmenu` falls back to the repo-relative parser path when the config is not
 stowed yet, so it works before the first `stow`.
-
-### Reminders
-
-```bash
-lmenu-reminder set [DURATION MESSAGE...]   # prompts if given no arguments
-lmenu-reminder list
-lmenu-reminder clear
-lmenu-reminder count
-lmenu-reminder menu
-lmenu-reminder fire NAME                   # what the timers call
-```
-
-`DURATION` is `45s`, `10m`, `2h`, `1h30m`, or a bare number meaning minutes.
-
-Each reminder is a **transient systemd user timer**, so it survives the script
-exiting and systemd cancels it. No state file is needed: the unit name carries
-the due time and the unit description carries the message.
-
-Bound to `SUPER+CTRL+R`, `SUPER+CTRL+ALT+R`, and `SUPER+CTRL+SHIFT+R`.
 
 ## Hyprland helpers
 
