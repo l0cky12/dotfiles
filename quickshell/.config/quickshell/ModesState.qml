@@ -20,7 +20,9 @@ Singleton {
 
   readonly property var metadata: ({
     "night-light": { label: "Night light", glyph: String.fromCodePoint(0xf0594), detail: root.warmTemperature + "K warm display" },
-    "do-not-disturb": { label: "Do not disturb", glyph: String.fromCodePoint(0xf0a91), detail: "Hide toasts, preserve history" },
+    // badge is optional short text drawn beside the glyph in the bar pill.
+    // DND carries one because the bell glyph alone is easy to miss.
+    "do-not-disturb": { label: "Do not disturb", glyph: String.fromCodePoint(0xf0a91), badge: "DND", detail: "Hide toasts, preserve history" },
     "stay-awake": { label: "Stay awake", glyph: String.fromCodePoint(0xf0f2e), detail: "Skip idle screensaver and lock" },
     "screensaver-auto": { label: "Automatic screensaver", glyph: String.fromCodePoint(0xf06a9), detail: "Run after configured inactivity" }
   })

@@ -20,18 +20,33 @@ Item {
     Repeater {
       model: root.activeModes
       Rectangle {
+        id: pill
         required property var modelData
-        width: glyph.implicitWidth + root.s(14)
-        height: glyph.implicitHeight + root.s(6)
+        readonly property var meta: ModesState.metadata[modelData.name]
+        width: content.implicitWidth + root.s(14)
+        height: content.implicitHeight + root.s(6)
         radius: Theme.radiusCell
         color: modelData.error ? Theme.critical : Theme.accent
-        Text {
-          id: glyph
+        Row {
+          id: content
           anchors.centerIn: parent
-          text: ModesState.metadata[modelData.name].glyph
-          font.family: Theme.glyphFamily
-          font.pixelSize: root.s(15)
-          color: Theme.onAccent
+          spacing: root.s(4)
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: pill.meta.glyph
+            font.family: Theme.glyphFamily
+            font.pixelSize: root.s(15)
+            color: Theme.onAccent
+          }
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: text !== ""
+            text: pill.meta.badge || ""
+            font.family: Theme.uiFamily
+            font.bold: true
+            font.pixelSize: root.s(12)
+            color: Theme.onAccent
+          }
         }
       }
     }
