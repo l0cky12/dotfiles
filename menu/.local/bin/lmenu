@@ -57,14 +57,22 @@ parse() {
 }
 
 running_pid() {
-  local pid
+  local pid script
+  local -a argv
   [[ -f $pid_file ]] || return 1
   pid=$(<"$pid_file")
   [[ $pid =~ ^[0-9]+$ ]] || return 1
+  [[ $pid != 0 && $pid != 1 && $pid != 0* ]] || return 1
   kill -0 "$pid" 2>/dev/null || return 1
   # The pid file outlives a crash or a reboot, and the number can be handed to
   # an unrelated process by then. Only an lmenu process is ours to close.
-  [[ $(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null) == *lmenu* ]] || return 1
+  [[ -O /proc/$pid ]] || return 1
+  mapfile -d '' -t argv <"/proc/$pid/cmdline" 2>/dev/null || return 1
+  [[ ${#argv[@]} -ge 2 ]] || return 1
+  [[ ${argv[0]##*/} == bash ]] || return 1
+  script=${argv[1]}
+  [[ $script == /* ]] || script=/proc/$pid/cwd/$script
+  [[ $(readlink -f -- "$script") == "$(readlink -f -- "${BASH_SOURCE[0]}")" ]] || return 1
   printf '%s' "$pid"
 }
 

@@ -586,7 +586,7 @@ toggle() {
   HOLD_PID="$test_root/hold.pid" \
   XDG_STATE_HOME="$test_root/toggle-state" ROFI="$hold_rofi" \
   LMENU_MENU="$menu" LMENU_EXTENSIONS=/nonexistent LMENU_PARSER="$parser" \
-    "$cli" toggle "$@"
+    "$cli" toggle
 }
 
 rm -f -- "$test_root/hold.pid"
@@ -609,7 +609,8 @@ wait "$first" 2>/dev/null || true
 
 # A stale pid file naming a live process that is not lmenu is ignored, not
 # killed: the toggle opens the menu instead of "closing" a stranger.
-sleep 30 &
+# Its command line contains lmenu, but it is not the menu script.
+bash -c 'sleep 30 & wait' unrelated-lmenu-task &
 stranger=$!
 mkdir -p "$test_root/toggle-state/lmenu"
 printf '%s' "$stranger" >"$test_root/toggle-state/lmenu/instance.pid"
@@ -622,6 +623,7 @@ kill -0 "$stranger" 2>/dev/null || fail 'a stale pid file got an unrelated proce
 [[ -s $test_root/hold.pid ]] || fail 'a stale pid file stopped the menu from opening'
 toggle >/dev/null 2>&1 || true
 wait "$second" 2>/dev/null || true
+pkill -P "$stranger" 2>/dev/null || true
 kill "$stranger" 2>/dev/null || true
 printf 'ok: toggling closes rofi with the menu, and a stale pid is left alone\n'
 

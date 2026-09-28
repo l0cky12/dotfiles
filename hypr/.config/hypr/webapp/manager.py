@@ -23,6 +23,7 @@ half-installed app behind.
 from __future__ import annotations
 
 import argparse
+import configparser
 import json
 import os
 import shutil
@@ -270,10 +271,17 @@ def assert_owned_launcher(app: wl.WebApp, verb: str) -> None:
     """Second ownership check, independent of the metadata directory: the
     launcher must carry our marker with this id. A .desktop file that does not
     is not ours to rewrite or delete, however the metadata got edited."""
-    desktop = Path(app.desktop_file)
+    desktop = wl.assert_managed(Path(app.desktop_file), wl.DESKTOP_DIR)
     if desktop.is_file():
-        text = desktop.read_text(errors="replace")
-        if f"{wl.MARKER_ID_KEY}={app.id}" not in text:
+        entry = configparser.ConfigParser(interpolation=None, delimiters=("=",))
+        entry.optionxform = str
+        try:
+            entry.read_string(desktop.read_text(errors="replace"))
+            entry.defaults().clear()
+            owned = entry.get("Desktop Entry", wl.MARKER_ID_KEY, fallback=None) == app.id
+        except configparser.Error:
+            owned = False
+        if not owned:
             raise wl.WebAppError(
                 f"{desktop} is not marked as web app {app.id!r} -- refusing to "
                 f"{verb} it. Fix the metadata by hand if this is intentional."

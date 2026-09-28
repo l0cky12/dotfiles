@@ -103,10 +103,18 @@ Singleton {
   // app being edited already has.
   property string iconState: ""
   property string editingId: ""
+  property int iconGeneration: 0
+
+  function invalidateIcon() {
+    root.iconGeneration++
+    iconDebounce.stop()
+    iconProc.running = false
+  }
   property bool installing: false
   property string formError: ""
 
   function resetForm() {
+    root.invalidateIcon()
     root.formName = ""
     root.formUrl = ""
     root.iconPath = ""
@@ -118,7 +126,7 @@ Singleton {
   // Loads an installed app into the form. Its icon counts as picked, so editing
   // the URL does not silently replace it; "Auto" looks one up again.
   function startEdit(app) {
-    iconDebounce.stop()
+    root.invalidateIcon()
     root.formName = app.name
     root.formUrl = app.url
     root.iconPath = app.icon || ""
@@ -168,6 +176,7 @@ Singleton {
     // to a single icon lookup instead of two.
     if (text === root.formUrl)
       return
+    root.invalidateIcon()
     root.formUrl = text
     root.formError = ""
     if (root.iconState !== "chosen" && root.iconState !== "current") {
@@ -184,15 +193,17 @@ Singleton {
     if (!root.urlValid)
       return
     root.iconState = "searching"
+    iconProc.generation = root.iconGeneration
     iconProc.command = ["python3", root.manager, "discover-icon", root.formUrl.trim()]
     iconProc.running = true
   }
 
   Process {
     id: iconProc
+    property int generation: -1
     stdout: StdioCollector {
       onTextChanged: {
-        if (text.trim() === "")
+        if (text.trim() === "" || iconProc.generation !== root.iconGeneration)
           return
         try {
           const d = JSON.parse(text)
@@ -216,7 +227,7 @@ Singleton {
     }
     stderr: StdioCollector {}
     onExited: function (code) {
-      if (code !== 0 && root.iconState === "searching")
+      if (iconProc.generation === root.iconGeneration && code !== 0 && root.iconState === "searching")
         root.iconState = "none"
     }
   }
@@ -276,6 +287,7 @@ Singleton {
   // -- discover-icon reports the backend's own host-derived suggestion and
   // iconProc fills it in, so that rule stays in one place.
   function prefillUrl(url) {
+    root.invalidateIcon()
     const clean = String(url || "").trim()
     root.formUrl = clean
     root.formError = ""
@@ -289,6 +301,7 @@ Singleton {
   function chooseIcon(path) {
     if (!path)
       return
+    root.invalidateIcon()
     root.iconPath = path
     root.iconState = "chosen"
   }

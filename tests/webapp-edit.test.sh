@@ -104,6 +104,21 @@ if webapp edit nope --name X 2>"$test_root/unknown.err"; then
 fi
 grep -Fq 'no web app' "$test_root/unknown.err" || fail 'an unknown id did not explain itself'
 
+# Exact ownership is required: prefixes, comments and another desktop group
+# must never authorize rewriting a launcher.
+cp "$launcher" "$test_root/owned.desktop"
+for marker in 'X-Hypr-WebApp-ID=tube-other' '#X-Hypr-WebApp-ID=tube' $'[Desktop Action Other]\nX-Hypr-WebApp-ID=tube' $'[DEFAULT]\nX-Hypr-WebApp-ID=tube'; do
+  sed '/^X-Hypr-WebApp-ID=/d' "$test_root/owned.desktop" >"$launcher"
+  printf '%s\n' "$marker" >>"$launcher"
+  cp "$launcher" "$test_root/before.desktop"
+  if webapp edit tube --name Other 2>/dev/null; then
+    fail 'an inexact ownership marker allowed an edit'
+  fi
+  cmp -s "$launcher" "$test_root/before.desktop" || fail 'refused edit changed launcher'
+  [[ $(cat "$apps/tube.toml") == "$before" ]] || fail 'refused edit changed metadata'
+done
+cp "$test_root/owned.desktop" "$launcher"
+
 sed -i '/^X-Hypr-WebApp-ID=/d' "$launcher"
 if webapp edit tube --name Other 2>"$test_root/owner.err"; then
   fail 'a launcher without our marker was rewritten'
