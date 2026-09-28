@@ -16,7 +16,6 @@ for component in \
   'ModeIndicators {' \
   'BatteryIcon {' \
   'AppLauncher {' \
-  'AgentIcon {' \
   'BluetoothIcon {' \
   'NetworkIcon {' \
   'AudioIcon {' \
@@ -26,7 +25,7 @@ for component in \
 done
 
 for removed in 'UpdatesIcon {' 'KeyboardLayoutWidget {' 'WeatherForecastPopup {' \
-               'ClipboardIcon {' 'DisplayIcon {'; do
+               'ClipboardIcon {' 'DisplayIcon {' 'AgentIcon {'; do
   ! grep -Fq "$removed" "$bar" || fail "bar still mounts $removed"
 done
 

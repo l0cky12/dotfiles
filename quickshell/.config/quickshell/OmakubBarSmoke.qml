@@ -31,7 +31,6 @@ FloatingWindow {
       anchors.verticalCenter: parent.verticalCenter
 
       AppLauncher {}
-      AgentIcon {}
       WindowsVmIcon {}
       BluetoothIcon { screenName: "fixture" }
       NetworkIcon { screenName: "fixture" }

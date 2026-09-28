@@ -76,8 +76,9 @@ it does not nudge the time. The clock opens the calendar.
 
 The `MediaPanel` anchors to the clock and opens through the `media` IPC target.
 
-**Right** — `AppLauncher`, `AgentIcon`, `WindowsVmIcon`, `BluetoothIcon`,
-`NetworkIcon`, `AudioIcon`, `BatteryIcon` when present, then the power button.
+**Right** — `AppLauncher`, `WindowsVmIcon`, `BluetoothIcon`, `NetworkIcon`,
+`AudioIcon`, `BatteryIcon` when present, then the power button. The coding
+agent has no bar icon; `SUPER+I` opens it.
 
 `tests/omakub-bar-layout.test.sh` asserts the bar still mounts this component
 set, so adding or removing a widget means updating that list. It also asserts
@@ -191,7 +192,7 @@ dropdown.
 | Video download | `VideoDownloadRoot/State/Overlay/Card.qml` |
 | Windows VM | `WindowsVmState.qml`, `WindowsVmIcon.qml` |
 | Keybindings | `KeybindsState.qml`, `KeybindsPanel.qml` |
-| Misc | `SystemTrayWidget.qml`, `KeyboardLayoutWidget.qml`, `AgentIcon.qml`, `WeatherState.qml`, `WeatherMiniCard.qml` |
+| Misc | `SystemTrayWidget.qml`, `KeyboardLayoutWidget.qml`, `WeatherState.qml`, `WeatherMiniCard.qml` |
 
 ## Smoke tests
 
