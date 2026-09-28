@@ -20,6 +20,7 @@ fail() {
 
 grep -Fq 'exec(mod .. " + SHIFT + N", "night light schedule", "quickshell ipc call nightlight toggle")' \
   "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Super+Shift+N does not open the schedule panel'
+# shellcheck disable=SC2016 # Literal Hyprland variable.
 grep -Fq 'bindd = $mainMod SHIFT, N, night light schedule, exec, quickshell ipc call nightlight toggle' \
   "$repo_root/hypr/.config/hypr/conf/keybinding.conf" || fail 'legacy keybinding.conf lacks Super+Shift+N'
 grep -Fq 'target: "nightlight"' "$qs_root/Bar.qml" || fail 'the bar has no nightlight IPC target'
@@ -46,6 +47,7 @@ PY
 mkdir -p "$test_root/bin"
 cat >"$test_root/bin/night-light" <<'SH'
 #!/usr/bin/env bash
+[[ -z ${FIXTURE_FAIL:-} || $1 == status ]] || exit 1
 case $1 in
   status) [[ -f $FIXTURE_LIT ]] && echo 'night-light: on (screen shader)' || echo 'night-light: off' ;;
   on) touch "$FIXTURE_LIT"; echo on >>"$FIXTURE_CALLS" ;;
@@ -203,6 +205,45 @@ dry_output=$(at 2026-09-27T19:00 set mode=sunset --dry-run)
 [[ ! -e $NIGHT_LIGHT_SCHEDULE_DIR ]] || fail 'dry-run wrote state'
 [[ "$(<"$FIXTURE_CALLS")" == "$before_calls" && ! -e $FIXTURE_LIT ]] || fail 'dry-run switched the light'
 
+# --- review regressions: midnight offsets, concurrent updates and failures -----
+
+reset review
+python3 - "$schedule" <<'PYTEST' || fail 'schedule review regressions'
+import importlib.util, os, time
+from datetime import date, timedelta
+from unittest.mock import patch
+spec = importlib.util.spec_from_file_location("schedule", __import__("sys").argv[1])
+m = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(m)
+os.environ["TZ"] = "Europe/Oslo"
+time.tzset()
+settings = dict(m.DEFAULTS, mode="sunset", sunrise_offset=-180,
+                location={"latitude": 69.65, "longitude": 18.96})
+when, light = next(e for e in m.events_for_day(date(2026, 5, 5), settings) if not e[1])
+assert when.date() == date(2026, 5, 4)
+assert m.desired_state(when + timedelta(seconds=1), settings) is False
+
+# Simulate another caller changing the time during the network lookup.
+assert m.main(["set", "on=21:00"]) == 0
+def detection():
+    assert m.main(["set", "on=22:00"]) == 0
+    return {"latitude": 40.7, "longitude": -74.0}
+with patch.object(m, "detect_location", side_effect=detection):
+    assert m.main(["detect-location"]) == 0
+assert m.load_settings()["on"] == "22:00"
+
+# Failure must preserve the last check, return failure, and retry the event.
+os.environ["NIGHT_LIGHT_SCHEDULE_NOW"] = "2026-09-27T20:00"
+assert m.main(["set", "mode=fixed", "on=21:00", "off=07:00"]) == 0
+before = m.last_check_path().read_text()
+os.environ["NIGHT_LIGHT_SCHEDULE_NOW"] = "2026-09-27T21:01"
+with patch.dict(os.environ, {"FIXTURE_FAIL": "1"}):
+    assert m.main(["apply"]) == 1
+assert m.last_check_path().read_text() == before
+assert m.main(["apply"]) == 0
+assert m.light_is_on()
+PYTEST
+
 # --- Quickshell panel -----------------------------------------------------------
 
 if command -v quickshell >/dev/null 2>&1; then
@@ -224,8 +265,9 @@ SH
   fi
   grep -Fq 'ok: NightLightState logic' "$smoke_log" ||
     { sed -n '1,80p' "$smoke_log" >&2; fail 'NightLightSmoke.qml did not parse and run'; }
-  grep -Fxq 'set off=00:03' "$FIXTURE_CALLS" && grep -Fxq 'set on=23:57' "$FIXTURE_CALLS" ||
+  if ! grep -Fxq 'set off=00:03' "$FIXTURE_CALLS" || ! grep -Fxq 'set on=23:57' "$FIXTURE_CALLS"; then
     fail "the panel did not send its time changes: $(<"$FIXTURE_CALLS")"
+  fi
   # PanelWindow needs a Wayland backend; the fixture never shows the panel.
   if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
     panel_log="$test_root/panel.log"

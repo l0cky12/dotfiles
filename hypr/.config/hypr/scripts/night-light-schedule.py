@@ -26,6 +26,7 @@ location is known. Only `detect-location` touches the network.
 from __future__ import annotations
 
 import json
+import fcntl
 import math
 import os
 import re
@@ -34,6 +35,7 @@ import sys
 import tempfile
 import urllib.request
 from datetime import date, datetime, time, timedelta
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -106,6 +108,17 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
         json.dump(value, handle, indent=2)
         handle.write("\n")
     os.replace(temporary, path)
+
+
+@contextmanager
+def settings_lock(read_only: bool):
+    if read_only:
+        yield
+        return
+    state_dir().mkdir(parents=True, exist_ok=True)
+    with (state_dir() / "lock").open("a") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        yield
 
 
 def parse_clock(value: str) -> time:
@@ -244,7 +257,7 @@ def desired_state(moment: datetime, settings: dict[str, Any]) -> bool | None:
             if kind != "normal":
                 return kind == "polar-night"
     latest: tuple[datetime, bool] | None = None
-    for offset in range(-2, 1):
+    for offset in range(-2, 2):
         for when, light in events_for_day(moment.date() + timedelta(days=offset), settings):
             if when <= moment and (latest is None or when > latest[0]):
                 latest = (when, light)
@@ -284,8 +297,7 @@ def set_light(on: bool, dry_run: bool) -> None:
     # reload (no compositor yet) still takes effect at the next Hyprland start.
     result = subprocess.run(argv, text=True, capture_output=True, check=False)
     if result.returncode:
-        print(f"night-light-schedule: {' '.join(argv)} failed: {result.stderr.strip()}",
-              file=sys.stderr)
+        raise ScheduleError(f"{' '.join(argv)} failed: {result.stderr.strip()}")
 
 
 def read_last_check() -> datetime | None:
@@ -307,9 +319,12 @@ def apply(settings: dict[str, Any], force: bool, dry_run: bool) -> str:
     """Switch the light if the schedule says so. Returns what happened."""
     moment = now()
     previous = read_last_check()
-    write_last_check(moment, dry_run)
+    def completed(message: str) -> str:
+        write_last_check(moment, dry_run)
+        return message
+
     if settings["mode"] == "off":
-        return "schedule off"
+        return completed("schedule off")
     if force:
         due = True
     elif previous is None or previous > moment:
@@ -319,14 +334,14 @@ def apply(settings: dict[str, Any], force: bool, dry_run: bool) -> str:
     else:
         due = bool(events_between(previous, moment, settings))
     if not due:
-        return "no change due"
+        return completed("no change due")
     wanted = desired_state(moment, settings)
     if wanted is None:
-        return "no scheduled state"
+        return completed("no scheduled state")
     if light_is_on() == wanted:
-        return "already " + ("on" if wanted else "off")
+        return completed("already " + ("on" if wanted else "off"))
     set_light(wanted, dry_run)
-    return "switched " + ("on" if wanted else "off")
+    return completed("switched " + ("on" if wanted else "off"))
 
 
 # --- commands -----------------------------------------------------------------
@@ -421,36 +436,40 @@ def main(argv: list[str]) -> int:
         print(usage())
         return 0 if args else 2
     command, rest = args[0], args[1:]
-    settings = load_settings()
     try:
-        if command == "status":
-            value = status(settings)
-            if as_json:
-                print(json.dumps(value))
-            else:
-                print(f"mode: {value['mode']}")
-                print(f"light: {'on' if value['light'] else 'off'}")
-                if value["next"]:
-                    print(f"next: {'on' if value['next']['light'] else 'off'} at {value['next']['at']}")
-            return 0
-        if command == "apply":
-            print(apply(settings, force, dry_run))
-            return 0
-        if command in ("set", "set-location", "detect-location"):
-            if command == "set":
-                updated = command_set(settings, rest)
-            elif command == "set-location":
-                if len(rest) not in (2, 3):
-                    raise ScheduleError("usage: set-location LAT LON [PLACE]")
-                updated = dict(settings, location=parse_location(*rest[:2], rest[2] if len(rest) == 3 else None))
-            else:
-                updated = dict(settings, location=detect_location())
-            if dry_run:
-                print("+ write " + str(settings_path()) + ": " + json.dumps(stored_settings(updated)))
-            else:
-                write_json(settings_path(), stored_settings(updated))
-            print(apply(updated, force=True, dry_run=dry_run))
-            return 0
+        # Network lookup must finish before taking the lock and loading the
+        # latest settings, so it cannot overwrite edits made during the lookup.
+        detected = detect_location() if command == "detect-location" else None
+        with settings_lock(dry_run or command == "status"):
+            settings = load_settings()
+            if command == "status":
+                value = status(settings)
+                if as_json:
+                    print(json.dumps(value))
+                else:
+                    print(f"mode: {value['mode']}")
+                    print(f"light: {'on' if value['light'] else 'off'}")
+                    if value["next"]:
+                        print(f"next: {'on' if value['next']['light'] else 'off'} at {value['next']['at']}")
+                return 0
+            if command == "apply":
+                print(apply(settings, force, dry_run))
+                return 0
+            if command in ("set", "set-location", "detect-location"):
+                if command == "set":
+                    updated = command_set(settings, rest)
+                elif command == "set-location":
+                    if len(rest) not in (2, 3):
+                        raise ScheduleError("usage: set-location LAT LON [PLACE]")
+                    updated = dict(settings, location=parse_location(*rest[:2], rest[2] if len(rest) == 3 else None))
+                else:
+                    updated = dict(settings, location=detected)
+                if dry_run:
+                    print("+ write " + str(settings_path()) + ": " + json.dumps(stored_settings(updated)))
+                else:
+                    write_json(settings_path(), stored_settings(updated))
+                print(apply(updated, force=True, dry_run=dry_run))
+                return 0
     except ScheduleError as error:
         print(f"night-light-schedule: {error}", file=sys.stderr)
         return 1

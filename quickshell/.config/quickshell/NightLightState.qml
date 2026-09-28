@@ -115,10 +115,10 @@ Singleton {
   }
 
   function detectLocation() {
-    if (detectProc.running)
+    if (root.detecting)
       return
     root.detecting = true
-    detectProc.running = true
+    root.invoke([root.executable, "detect-location"])
   }
 
   // --- formatting -------------------------------------------------------------
@@ -197,6 +197,7 @@ Singleton {
       onTextChanged: if (text.trim() !== "") root.lastError = text.trim()
     }
     onExited: (code, status) => {
+      if (actionProc.command[1] === "detect-location") root.detecting = false
       root.actionBusy = false
       if (code === 0) root.lastError = ""
       if (root.pendingCommands.length > 0) {
@@ -205,20 +206,6 @@ Singleton {
         root.invoke(command)
         return
       }
-      root.refresh()
-    }
-  }
-
-  Process {
-    id: detectProc
-    command: [root.executable, "detect-location"]
-    stdout: StdioCollector {}
-    stderr: StdioCollector {
-      onTextChanged: if (text.trim() !== "") root.lastError = text.trim()
-    }
-    onExited: (code, status) => {
-      root.detecting = false
-      if (code === 0) root.lastError = ""
       root.refresh()
     }
   }
