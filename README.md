@@ -706,10 +706,13 @@ node quickshell/.config/quickshell/notifications/tests/notification_logic.test.j
 theme validate --all
 ```
 
-For rollback, stop Quickshell, start `swaync.service`, and restore the two former
-comma bindings to `~/.config/hypr/scripts/dnd.sh`. The SwayNC package and theme
-template remain in the repository; no notification data is shared between the
-two backends.
+The `systemd` package masks `swaync.service` so D-Bus cannot start SwayNC at
+login and take the notification service before Quickshell registers. For
+rollback, remove that mask (`rm ~/.config/systemd/user/swaync.service`, then
+`systemctl --user daemon-reload`), stop Quickshell, start `swaync.service`, and
+restore the two former comma bindings to `~/.config/hypr/scripts/dnd.sh`. The
+SwayNC package and theme template remain in the repository; no notification
+data is shared between the two backends.
 
 ---
 
