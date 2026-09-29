@@ -17,7 +17,8 @@ Where each choice is recorded:
     editor        EDITOR and VISUAL in $XDG_CONFIG_HOME/default-apps/editor.zsh,
                   which ~/.zshrc sources, so new shells pick it up
     agent         default_agent in $AI_AGENT_CONFIG or
-                  $XDG_CONFIG_HOME/ai-agent/config, read by ai-agent
+                  $XDG_CONFIG_HOME/ai-agent/config, read by ai-agent. Installed
+                  web apps are offered too, as webapp:<id>
 
 Files are rewritten in place: a Stow symlink stays a symlink and its target in
 the repository takes the change. After every change Hyprland is reloaded, which
@@ -33,11 +34,13 @@ Environment:
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 PROGRAM = "default-apps"
@@ -49,6 +52,11 @@ EDITOR_FILE = CONFIG_HOME / "default-apps" / "editor.zsh"
 AGENT_CONFIG = Path(
     os.environ.get("AI_AGENT_CONFIG") or CONFIG_HOME / "ai-agent" / "config"
 )
+# Web apps made with `webapp install`: one <id>.toml each, see
+# hypr/.config/hypr/webapp/weblib.py.
+WEBAPPS_DIR = Path(
+    os.environ.get("XDG_DATA_HOME") or Path.home() / ".local/share"
+) / "webapps" / "apps"
 
 DEFAULTS_SECTION = "[Default Applications]"
 
@@ -87,6 +95,12 @@ AGENTS = (
     ("opencode", "OpenCode", "opencode"),
     ("t3code", "T3 Code", "t3code"),
 )
+
+# A web app agent is stored as webapp:<id> and launched by ai-agent through
+# webapp-launch. The id rule matches weblib.slugify.
+WEBAPP_AGENT_PREFIX = "webapp:"
+WEBAPP_LAUNCHER = "webapp-launch"
+WEBAPP_ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 
 KINDS = ("browser", "terminal", "file-manager", "editor", "agent")
 
@@ -379,8 +393,32 @@ def set_editor(command: str) -> None:
     ))
 
 
+def webapp_agent_rows() -> list[tuple[str, str]]:
+    """Installed web apps, sorted by name. A metadata file that does not parse,
+    has no name, or whose id is not a valid slug matching its file name is
+    skipped rather than offered."""
+    if not shutil.which(WEBAPP_LAUNCHER):
+        return []
+    rows = []
+    for path in sorted(WEBAPPS_DIR.glob("*.toml")):
+        try:
+            with path.open("rb") as fh:
+                meta = tomllib.load(fh)
+        except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+            continue
+        app_id, name = meta.get("id"), meta.get("name")
+        if (not isinstance(app_id, str) or app_id != path.stem
+                or not WEBAPP_ID.fullmatch(app_id)
+                or not isinstance(name, str) or not name.strip()
+                or any(ord(ch) < 0x20 or ord(ch) == 0x7f for ch in name)):
+            continue
+        rows.append((WEBAPP_AGENT_PREFIX + app_id, f"{name.strip()} (web app)"))
+    return sorted(rows, key=lambda row: row[1].casefold())
+
+
 def agent_rows() -> list[tuple[str, str]]:
-    return [(name, label) for name, label, program in AGENTS if shutil.which(program)]
+    installed = [(name, label) for name, label, program in AGENTS if shutil.which(program)]
+    return installed + webapp_agent_rows()
 
 
 def current_agent() -> str:

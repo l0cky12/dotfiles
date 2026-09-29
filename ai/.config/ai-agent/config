@@ -1,2 +1,3 @@
-# Supported values: claude, codex, opencode, t3code
+# Supported values: claude, codex, opencode, t3code, or webapp:ID for a web app
+# installed with `webapp install` (for example webapp:chatgpt)
 default_agent=t3code

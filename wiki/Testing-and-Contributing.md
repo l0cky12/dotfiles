@@ -65,7 +65,8 @@ python3 -m unittest tests.test_theme_generator
 | `browser-native-tools.test.sh` | both native hosts, with mocked clipboard, downloader, notification, player, and OSD commands |
 | `capture-screenshot-editor.test.sh`, `webcam-resize.test.sh` | capture behaviours |
 | `lmenu.test.sh`, `lmenu-quickshell.test.sh` | nested search, resident Quickshell state, invisible panel geometry, and Rofi fallback |
-| `default-apps.test.sh` | installed-only default choices from fixture desktop entries and `PATH`, in-place rewrites through Stow symlinks, dry runs, and the Setup > Defaults providers |
+| `default-apps.test.sh` | installed-only default choices from fixture desktop entries, web app metadata and `PATH`, in-place rewrites through Stow symlinks, dry runs, and the Setup > Defaults providers |
+| `ai-agent.test.sh` | agent selection precedence, web app agents launched through a stub `webapp-launch`, and refusal of invalid ids and arguments |
 | `windows-vm.test.sh` | the VM controller |
 | `yubikey-auth.test.sh` | the guarded PAM helper |
 | `dots-deploy.test.sh` | changed-package deployment, manual-package safeguards, system-file safety, and deployment-state handling |

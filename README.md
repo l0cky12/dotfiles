@@ -323,7 +323,9 @@ default_agent=t3code
 
 Selection priority is `--agent`, then `AI_AGENT_DEFAULT`, then the config file.
 Setup > Defaults > Coding agent in lmenu rewrites that file, offering only the
-agents that are installed. The same menu sets the default browser, editor,
+agents that are installed, plus every installed [web app](#web-apps). A web app
+is stored as `default_agent=webapp:<id>` (for example `webapp:chatgpt`) and
+opens in its own window through `webapp-launch`; it takes no agent arguments. The same menu sets the default browser, editor,
 terminal, and file manager.
 Invalid names and unavailable executables fail clearly; the launcher never
 silently switches to another agent.

@@ -16,6 +16,8 @@ Supported agents:
   codex     Codex (executable: codex)
   opencode  OpenCode (executable: opencode)
   t3code    T3 Code (executable: t3code)
+  webapp:ID A web app installed with "webapp install", opened in its own
+            window (executable: webapp-launch). Takes no AGENT_ARGS.
 
 Selection precedence:
   1. --agent NAME
@@ -33,6 +35,7 @@ Examples:
   $PROGRAM --agent claude
   $PROGRAM --agent codex -- --help
   $PROGRAM --agent t3code
+  $PROGRAM --agent webapp:chatgpt
 EOF
 }
 
@@ -107,7 +110,16 @@ case $selected_agent in
   codex) executable=codex; executable_args=() ;;
   opencode) executable=opencode; executable_args=() ;;
   t3code) executable=t3code; executable_args=() ;;
-  *) fail "invalid agent '$selected_agent' (expected: claude, codex, opencode, or t3code)" ;;
+  webapp:*)
+    webapp_id=${selected_agent#webapp:}
+    # Same id rule as the web app manager: lowercase letters, digits, dashes.
+    [[ $webapp_id =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]] \
+      || fail "invalid web app id '$webapp_id' (expected lowercase letters, digits and dashes)"
+    (( $# == 0 )) || fail "web app agents take no arguments"
+    executable=webapp-launch
+    executable_args=("$webapp_id")
+    ;;
+  *) fail "invalid agent '$selected_agent' (expected: claude, codex, opencode, t3code, or webapp:ID)" ;;
 esac
 
 command -v "$executable" >/dev/null 2>&1 \
