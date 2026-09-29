@@ -86,6 +86,38 @@
     "when": "~/.config/hypr/scripts/docker-dev-env list 2>/dev/null | grep -q running",
     "action": "~/.config/hypr/scripts/docker-dev-env stop-all"
   },
+  {
+    "id": "development.vms",
+    "icon": "󰍹",
+    "label": "Virtual machines",
+    "title": "Virtual machines",
+    "aliases": ["vm", "vms", "libvirt", "qemu"],
+    "when": "command -v virt-install >/dev/null && command -v virsh >/dev/null"
+  },
+  {
+    "id": "development.vms.debian13",
+    "icon": "",
+    "label": "Debian 13",
+    "aliases": ["debian", "trixie"],
+    "description": "Blank Debian 13 server, installed unattended",
+    "action": "~/.config/hypr/scripts/vm-preset create debian13"
+  },
+  {
+    "id": "development.vms.debian13-docker",
+    "icon": "",
+    "label": "Debian 13 + Docker",
+    "aliases": ["debian docker", "trixie docker"],
+    "description": "Debian 13 with Docker Engine and the Compose plugin",
+    "action": "~/.config/hypr/scripts/vm-preset create debian13-docker"
+  },
+  {
+    "id": "development.vms.manager",
+    "icon": "󰒓",
+    "label": "Open Virtual Machine Manager",
+    "aliases": ["virt-manager"],
+    "when": "command -v virt-manager >/dev/null",
+    "action": "virt-manager --connect qemu:///system"
+  },
 
   // --------------------------------------------------------------- Learn ---
   {

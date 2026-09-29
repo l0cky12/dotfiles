@@ -84,6 +84,11 @@ their command is unavailable (a `when` guard), so the menu reflects your
 machine. You can extend it from
 `~/.config/lmenu/extensions/menu.jsonc` without touching the repo.
 
+Development → Virtual machines creates a blank Debian 13 VM, with or without
+Docker, in one pick. It asks for a name and a password, and the VM's user is
+named after you. The install runs on its own while the console shows progress
+in virt-manager.
+
 → Deep dive: [Scripts and CLIs § lmenu](Scripts-and-CLIs.md)
 
 ## Scripts on your PATH

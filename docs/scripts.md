@@ -10,6 +10,7 @@ These scripts are below `hypr/.config/hypr/scripts/`.
 | `calculator.sh` | `SUPER+CTRL+Q`, `SUPER+SHIFT+C` | evaluates a `qalc` expression and copies the selected answer | Rofi, `qalc`, `wl-copy` |
 | `quick-search.sh` | `SUPER+A`, `SUPER+SHIFT+A` | starts in apps or an Omakub-style root menu and uses `Tab` to cycle windows, apps, and commands; `quick-search-everything.sh` supplies category navigation plus confirmed reboot and shutdown | Rofi, `systemctl` |
 | `docker-dev-env` | `SUPER+SHIFT+A` → Development → Docker environments | starts, stops, inspects, and tails logs for local MySQL, PostgreSQL, MariaDB, and Redis services | Docker Engine, Docker Compose, OpenSSL; optional notifications and Kitty |
+| `vm-preset` | `SUPER+SHIFT+A` → Development → Virtual machines | creates a blank Debian 13 or Debian 13 + Docker VM with an unattended install; the guest user is the host user, and the prompted password is kept only as a hash | libvirt, `virt-install`, `virsh`, Rofi, OpenSSL, curl; optional virt-manager and GnuPG |
 | `transcode-menu.sh` | `SUPER+CTRL+.` | fuzzy media/format/size picker; delegates conversion and clipboard work to `transcode` | Rofi, `file`, `transcode` |
 | `RofiEmoji.sh` | `SUPER+ALT+E` | fuzzy-searches emoji data with the active application-menu theme and copies the chosen glyph | Rofi, `wl-copy` |
 | `universal-clipboard.sh` | `SUPER+C/X/V` | detects terminal classes and sends the correct copy/cut/paste shortcut | `hyprctl` |
