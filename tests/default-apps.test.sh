@@ -202,6 +202,8 @@ printf 'id = "other"\nname = "Mismatch"\n' >"$webapps/mismatch.toml"
 printf 'id = "Bad_Id"\nname = "Bad"\n' >"$webapps/Bad_Id.toml"
 printf 'id = "noname"\n' >"$webapps/noname.toml"
 printf 'not toml [\n' >"$webapps/broken.toml"
+printf '\377' >"$webapps/invalid-utf8.toml"
+printf 'id = "bad-label"\nname = "Bad\\tlabel\\nrow"\n' >"$webapps/bad-label.toml"
 [[ $(helper list agent) == $'claude\tClaude Code\t1\ncodex\tCodex\t0' ]] ||
   fail 'web apps were offered without webapp-launch on PATH'
 printf '#!/bin/sh\n' >"$bin/webapp-launch"

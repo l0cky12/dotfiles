@@ -404,12 +404,13 @@ def webapp_agent_rows() -> list[tuple[str, str]]:
         try:
             with path.open("rb") as fh:
                 meta = tomllib.load(fh)
-        except (OSError, tomllib.TOMLDecodeError):
+        except (OSError, UnicodeError, tomllib.TOMLDecodeError):
             continue
         app_id, name = meta.get("id"), meta.get("name")
         if (not isinstance(app_id, str) or app_id != path.stem
                 or not WEBAPP_ID.fullmatch(app_id)
-                or not isinstance(name, str) or not name.strip()):
+                or not isinstance(name, str) or not name.strip()
+                or any(ord(ch) < 0x20 or ord(ch) == 0x7f for ch in name)):
             continue
         rows.append((WEBAPP_AGENT_PREFIX + app_id, f"{name.strip()} (web app)"))
     return sorted(rows, key=lambda row: row[1].casefold())
