@@ -58,6 +58,13 @@ grep -Fq 'case UPowerDeviceState.PendingCharge: return "idle"' "$state" \
 grep -Fq 'powerState: root.powerState' "$state" \
   || fail 'alert engine no longer receives powerState'
 
+# The profile selector talks to power-profiles-daemon through Quickshell's
+# binding, and the smoke harness must be able to swap that out for a fake.
+grep -Fq 'property var profiles: PowerProfiles' "$panel_content" \
+  || fail 'battery panel does not bind the power profile selector to PowerProfiles'
+grep -Fq 'profiles: fakeProfiles' "$smoke" \
+  || fail 'BatterySmoke.qml does not isolate the panel from the real power profile'
+
 if grep -nE '"#[0-9a-fA-F]{3,8}"' "$state" "$icon" "$smoke" "$panel" \
      "$panel_content" "$metric"; then
   fail 'battery QML contains a hardcoded color'
