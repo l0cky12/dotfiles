@@ -49,6 +49,21 @@ if output=$(PATH="$fixture" "$repo_root/hypr/.config/hypr/scripts/arch-updates" 
 fi
 [[ -z $output ]]
 
+# pacman without pacman-contrib has no checkupdates. Counting that as zero repo
+# updates hid hundreds of pending packages, so it has to be an error too.
+mv "$fixture/checkupdates" "$fixture/checkupdates.off"
+printf '#!/bin/sh\nexit 0\n' > "$fixture/pacman"
+printf '#!/bin/sh\nprintf "aur-one 1 -> 2\\n"\n' > "$fixture/yay"
+chmod +x "$fixture/pacman"
+if output=$(PATH="$fixture" "$repo_root/hypr/.config/hypr/scripts/arch-updates" 2>"$fixture/err"); then
+  printf 'FAIL: missing checkupdates reported success: %s\n' "$output" >&2
+  exit 1
+fi
+[[ -z $output ]]
+grep -Fq 'pacman-contrib' "$fixture/err"
+rm "$fixture/pacman" "$fixture/err"
+mv "$fixture/checkupdates.off" "$fixture/checkupdates"
+
 # --- update path -------------------------------------------------------------
 # The terminal stub records its argv instead of launching anything, so the
 # composed upgrade command can be asserted on a host that has neither an AUR

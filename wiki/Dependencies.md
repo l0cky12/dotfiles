@@ -153,7 +153,8 @@ membership is effectively root-equivalent.
 ### Update indicator
 
 `checkupdates` from `pacman-contrib` for repository packages, and either `yay` or
-`paru` for AUR packages.
+`paru` for AUR packages. Without `pacman-contrib` the count fails with an error
+rather than reporting zero repository updates.
 
 ## Shell
 

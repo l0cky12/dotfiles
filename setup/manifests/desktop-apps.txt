@@ -4,6 +4,7 @@ thunar
 file-roller
 fastfetch
 btop
+pacman-contrib
 ripgrep
 fd
 fzf
