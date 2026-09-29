@@ -24,6 +24,8 @@ SH
 cat > "$test_root/bin/mpv" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$WEBCAM_MPV_CALLS"
+mkdir -p "$CAPTURE_PROC_ROOT/$$"
+printf 'mpv\0--title=capture-webcam\0' > "$CAPTURE_PROC_ROOT/$$/cmdline"
 exec sleep 30
 SH
 cat > "$test_root/bin/notify-send" <<'SH'
@@ -34,6 +36,9 @@ chmod +x "$test_root/bin/webcam-ipc-fixture" "$test_root/bin/hyprctl-fixture" \
   "$test_root/bin/mpv" "$test_root/bin/notify-send"
 
 capture_runtime="$test_root/runtime/hypr-capture"
+export CAPTURE_PROC_ROOT="$test_root/proc"
+mkdir -p "$CAPTURE_PROC_ROOT/$$"
+printf 'mpv\0--title=capture-webcam\0' > "$CAPTURE_PROC_ROOT/$$/cmdline"
 printf '%s\n' "$$" > "$capture_runtime/record.pid"
 printf '%s\n' "$$" > "$capture_runtime/webcam.pid"
 printf '%s\n' medium > "$capture_runtime/webcam.size"
@@ -45,7 +50,7 @@ export WEBCAM_HYPRCTL="$test_root/bin/hyprctl-fixture"
 export WEBCAM_HYPRCTL_CALLS="$test_root/hyprctl-calls"
 export WEBCAM_MPV_CALLS="$test_root/mpv-calls"
 export WEBCAM_DEVICE="$test_root/video0"
-export WEBCAM_STARTUP_DELAY=0
+export WEBCAM_STARTUP_DELAY=0.01
 export PATH="$test_root/bin:$PATH"
 
 "$record" webcam-size smaller

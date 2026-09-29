@@ -81,7 +81,7 @@ separate desks you can spread your work across.
 | `Super+Ctrl+Tab` | Back to the workspace you just left. | The "oops, take me back" key. |
 | `Super+mouse wheel` | Scroll through workspaces. | Without leaving the mouse. |
 | `Super+Shift+1` … `Super+Shift+0` | Move this window to workspace 1–10 and follow it. | Tidying up, then going with it. |
-| `Super+Ctrl+1` … `Super+Ctrl+0` | Move this window to workspace 1–10 but stay here. | Stashing a window out of sight. |
+| `Super+Shift+Ctrl+1` … `Super+Shift+Ctrl+0` | Move this window to workspace 1–10 but stay here. | Stashing a window out of sight. |
 | `Super+Shift+Alt+1` … `+4` | The same, silently, for workspaces 1–4. | Quick stashing. |
 | `Super+Shift+[` / `Super+Shift+]` | Move this window to the previous / next workspace, following it. | Neighbour desks. |
 | `Super+Ctrl+[` / `Super+Ctrl+]` | Same, but you stay put. | Same, without moving yourself. |

@@ -10,9 +10,13 @@
 #          ./Dropdown.sh "kitty -e zsh"
 #          ./Dropdown.sh "alacritty --working-directory /home/user"
 
+set -uo pipefail
+
 DEBUG=false
 SPECIAL_WS="special:scratchpad"
-ADDR_FILE="${DROPTERMINAL_ADDR_FILE:-/tmp/dropdown_terminal_addr}"
+ADDR_FILE="${DROPTERMINAL_ADDR_FILE:-${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dropdown_terminal_addr}"
+umask 077
+mkdir -p -- "${ADDR_FILE%/*}" || exit 1
 
 # Dropdown size and position configuration (percentages)
 WIDTH_PERCENT=65  # Width as percentage of screen width
@@ -20,17 +24,15 @@ HEIGHT_PERCENT=65 # Height as percentage of screen height
 Y_PERCENT=10      # Y position as percentage from top (X is auto-centered)
 
 # Animation settings
-ANIMATION_DURATION=100 # milliseconds
 SLIDE_STEPS=5
-SLIDE_DELAY=5 # milliseconds between steps
 
 # Parse arguments
-if [ "$1" = "-d" ]; then
+if [ "${1:-}" = "-d" ]; then
   DEBUG=true
   shift
 fi
 
-TERMINAL_CMD="$1"
+TERMINAL_CMD="${1:-}"
 
 # Cached client list, fetched lazily (at most one hyprctl clients -j per phase)
 CLIENTS=""
@@ -168,9 +170,7 @@ get_monitor_info() {
 # Function to calculate dropdown position with proper scaling and centering
 calculate_dropdown_position() {
   local monitor_info
-  monitor_info=$(get_monitor_info)
-
-  if [ $? -ne 0 ] || [ -z "$monitor_info" ]; then
+  if ! monitor_info=$(get_monitor_info) || [ -z "$monitor_info" ]; then
     debug_echo "Error: Failed to get monitor info, using fallback values"
     echo "100 100 800 600 fallback-monitor"
     return 1
@@ -268,8 +268,7 @@ spawn_terminal() {
 
   # Calculate dropdown position for later use
   local pos_info
-  pos_info=$(calculate_dropdown_position)
-  if [ $? -ne 0 ]; then
+  if ! pos_info=$(calculate_dropdown_position); then
     debug_echo "Warning: Using fallback positioning"
   fi
 
@@ -281,35 +280,20 @@ spawn_terminal() {
   # Get window count before spawning
   local windows_before
   windows_before=$(hyprctl clients -j)
-  local count_before
-  count_before=$(jq 'length' <<<"$windows_before")
 
   # Launch terminal directly in special workspace to avoid visible spawn
   hyprctl dispatch "hl.dsp.exec_cmd($(lua_string "$TERMINAL_CMD"), { float = true, size = { $width, $height }, workspace = \"special:scratchpad silent\" })"
 
-  # Wait for window to appear
-  sleep 0.1
-
-  # Get windows after spawning
-  local windows_after
-  windows_after=$(hyprctl clients -j)
-  local count_after
-  count_after=$(jq 'length' <<<"$windows_after")
-
+  # A slow terminal must never make us move an unrelated existing window.
   local new_addr=""
-
-  if [ "$count_after" -gt "$count_before" ]; then
-    # Find the new window by comparing before/after lists
-    new_addr=$(comm -13 \
-      <(jq -r '.[].address' <<<"$windows_before" | sort) \
-      <(jq -r '.[].address' <<<"$windows_after" | sort) |
-      head -1)
-  fi
-
-  # Fallback: try to find by the most recently mapped window
-  if [ -z "$new_addr" ] || [ "$new_addr" = "null" ]; then
-    new_addr=$(hyprctl clients -j | jq -r 'sort_by(.focusHistoryID) | .[-1] | .address')
-  fi
+  for _ in {1..40}; do
+    new_addr=$(hyprctl clients -j | jq -r --argjson before "$windows_before" '
+      [.[] | select(.workspace.name == "special:scratchpad") |
+       select(.address as $addr | all($before[]; .address != $addr))] |
+      if length == 1 then .[0].address else empty end')
+    [[ -z $new_addr ]] || break
+    sleep 0.05
+  done
 
   if [ -n "$new_addr" ] && [ "$new_addr" != "null" ]; then
     # Store the address and monitor name

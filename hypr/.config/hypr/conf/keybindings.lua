@@ -116,7 +116,7 @@ end
 for workspace = 1, 10 do
     bind(mod .. " + SHIFT + " .. number_row_keys[workspace], "move to workspace " .. workspace,
         move_active_window_dispatcher(workspace, true))
-    bind(mod .. " + CTRL + " .. number_row_keys[workspace], "move silently to workspace " .. workspace,
+    bind(mod .. " + SHIFT + CTRL + " .. number_row_keys[workspace], "move silently to workspace " .. workspace,
         move_active_window_dispatcher(workspace, false))
 end
 bind(mod .. " + SHIFT + bracketleft", "move to previous workspace", hl.dsp.window.move({ workspace = "-1", follow = true }))
@@ -184,14 +184,10 @@ exec(mod .. " + ALT + mouse_up", "Zoom out", [[hyprctl -q eval "hl.config({ curs
 exec(mod .. " + ALT + SHIFT + mouse_down", "Reset zoom", [[hyprctl -q eval 'hl.config({ cursor = { zoom_factor = 1 } })']])
 exec(mod .. " + ALT + SHIFT + mouse_up", "Reset zoom", [[hyprctl -q eval 'hl.config({ cursor = { zoom_factor = 1 } })']])
 
--- Audio, media, and brightness. Duplicate pactl bindings intentionally remain
--- after the primary wpctl bindings to preserve registration order.
-exec("XF86AudioRaiseVolume", "volume up", "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+", { repeating = true })
-exec("XF86AudioLowerVolume", "volume down", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-", { repeating = true })
-exec("XF86AudioMute", "mute", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle")
-exec("XF86AudioRaiseVolume", "volume up (pactl)", "pactl set-sink-volume @DEFAULT_SINK@ +5%", { repeating = true, locked = true })
-exec("XF86AudioLowerVolume", "volume down (pactl)", "pactl set-sink-volume @DEFAULT_SINK@ -5%", { repeating = true, locked = true })
-exec("XF86AudioMute", "mute (pactl)", "pactl set-sink-mute @DEFAULT_SINK@ toggle", { locked = true })
+-- Audio, media, and brightness. One action per key, including while locked.
+exec("XF86AudioRaiseVolume", "volume up", "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+", { repeating = true, locked = true })
+exec("XF86AudioLowerVolume", "volume down", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-", { repeating = true, locked = true })
+exec("XF86AudioMute", "mute", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", { locked = true })
 exec("XF86AudioPlay", "play / pause", "playerctl play-pause")
 exec("XF86AudioPause", "pause", "playerctl pause")
 exec("XF86AudioNext", "next track", "playerctl next")

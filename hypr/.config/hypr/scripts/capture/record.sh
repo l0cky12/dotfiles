@@ -23,7 +23,7 @@
 set -euo pipefail
 
 _dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-# shellcheck source=select.sh
+# shellcheck source=hypr/.config/hypr/scripts/capture/select.sh
 source "$_dir/select.sh"
 
 PIDFILE="$CAPTURE_RUNTIME/record.pid"
@@ -35,8 +35,18 @@ WEBCAM_LOG="$CAPTURE_RUNTIME/webcam.log"
 THUMB="$CAPTURE_RUNTIME/record-thumb.png"
 
 RECORDER=gpu-screen-recorder
+proc_root=${CAPTURE_PROC_ROOT:-/proc}
 
 # --- state -------------------------------------------------------------------
+
+capture_process_matches() {
+  local pid=$1 executable=$2
+  local -a argv=()
+  [[ $pid =~ ^[1-9][0-9]*$ && -O $proc_root/$pid ]] || return 1
+  mapfile -d '' -t argv <"$proc_root/$pid/cmdline" 2>/dev/null || return 1
+  [[ ${argv[0]:-} == "$executable" || ${argv[0]:-} == */"$executable" ]] || return 1
+  [[ $executable != mpv || " ${argv[*]} " == *' --title=capture-webcam '* ]]
+}
 
 # Prints the live recorder pid, or nothing. Clears a stale pidfile as a side
 # effect so the next toggle starts cleanly instead of refusing forever.
@@ -44,7 +54,7 @@ record_pid() {
   [ -f "$PIDFILE" ] || return 1
   local pid
   pid=$(cat "$PIDFILE" 2>/dev/null || true)
-  if [ -n "$pid" ] && [ -d "/proc/$pid" ]; then
+  if capture_process_matches "$pid" "$RECORDER"; then
     printf '%s' "$pid"
     return 0
   fi
@@ -134,7 +144,7 @@ webcam_live_pid() {
   [ -f "$WEBCAM_PIDFILE" ] || return 1
   local pid
   pid=$(cat "$WEBCAM_PIDFILE" 2>/dev/null || true)
-  if [ -n "$pid" ] && [ -d "/proc/$pid" ]; then
+  if capture_process_matches "$pid" mpv; then
     printf '%s' "$pid"
     return 0
   fi
@@ -248,16 +258,18 @@ webcam_start() {
 webcam_stop() {
   [ -f "$WEBCAM_PIDFILE" ] || return 0
   local pid
-  pid=$(cat "$WEBCAM_PIDFILE" 2>/dev/null || true)
-  [ -n "$pid" ] && kill "$pid" 2>/dev/null || true
+  if pid=$(webcam_live_pid); then
+    kill "$pid" 2>/dev/null || true
+  fi
   rm -f "$WEBCAM_PIDFILE" "$WEBCAM_SIZEFILE" "$WEBCAM_SOCKET"
 }
 
 webcam_wait_until_ready() {
-  local attempt=0 attempts=${WEBCAM_STARTUP_ATTEMPTS:-20}
+  local attempt=0 attempts=${WEBCAM_STARTUP_ATTEMPTS:-20} pid
+  pid=$(<"$WEBCAM_PIDFILE")
   while [ "$attempt" -lt "$attempts" ]; do
-    webcam_live_pid >/dev/null || return 1
-    if [ -n "${WEBCAM_IPC_HELPER:-}" ] || [ -S "$WEBCAM_SOCKET" ]; then
+    if capture_process_matches "$pid" mpv &&
+      { [ -n "${WEBCAM_IPC_HELPER:-}" ] || [ -S "$WEBCAM_SOCKET" ]; }; then
       return 0
     fi
     sleep "${WEBCAM_STARTUP_DELAY:-0.1}"
@@ -415,13 +427,13 @@ record_stop() {
   kill -INT "$pid" 2>/dev/null || true
 
   local waited=0
-  while [ -d "/proc/$pid" ] && [ "$waited" -lt 50 ]; do
+  while capture_process_matches "$pid" "$RECORDER" && [ "$waited" -lt 50 ]; do
     sleep 0.1
     waited=$((waited + 1))
   done
 
   local incomplete=0
-  if [ -d "/proc/$pid" ]; then
+  if capture_process_matches "$pid" "$RECORDER"; then
     kill -TERM "$pid" 2>/dev/null || true
     sleep 0.5
     incomplete=1
@@ -502,6 +514,7 @@ record_notify_saved() {
   [ -f "$THUMB" ] && nargs+=(-i "$THUMB" -h "string:image-path:$THUMB")
 
   if has notify-send; then
+    # shellcheck disable=SC2016 # Expanded in the detached notification shell.
     setsid --fork bash -c '
       file="$1"; player="$2"; body="$3"; shift 3
       choice=$(notify-send "$@" -A "open=Open" "Screen recording saved" "$body" 2>/dev/null) || exit 0

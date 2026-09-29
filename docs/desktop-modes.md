@@ -8,7 +8,7 @@ copying another distribution's commands, paths, state flags, UI, or branding.
 
 | Control | Effect | Persistence |
 | --- | --- | --- |
-| `night-light` | sets Hyprsunset to the configured warm or normal temperature | current login |
+| `night-light` | enables or disables the compositor's warm screen shader | persistent shader state; timer lasts the current login |
 | `do-not-disturb` | suppresses Quickshell notification toasts; history is retained | current login |
 | `stay-awake` | defers idle screensaver and idle lock listeners only | current login |
 | `screensaver-auto` | permits the ASCII scheduler's idle launch | persistent user override |
@@ -27,9 +27,9 @@ stow modes screensaver hypr quickshell
 ```
 
 A new login starts `desktop-mode daemon`; the primary Hypridle process owns the
-screensaver timeout. Nothing
-in the package installs software, writes system files, reloads Hyprland, or
-restarts services.
+screensaver timeout. Night-light changes call `night-light.sh`, which reloads
+Hyprland to apply the shader. The controller does not install software, write
+system files, or restart services.
 
 | Shortcut | Action |
 | --- | --- |
@@ -68,8 +68,10 @@ one-hour presets and reject durations over 24 hours.
 Private atomic state lives at
 `$XDG_RUNTIME_DIR/hyprland-desktop/modes/state.json`. It survives a compositor
 or Quickshell restart in the same login and disappears with the login runtime
-directory. The daemon supervises expiry and restores desired night-light/DND
-state after a backend restart. Status reports desired and observed values
+directory. The daemon supervises expiry and restores desired DND state after
+a backend restart. Night light follows the shader helper's persistent state.
+A later helper request cancels an earlier mode timer, so its expiry cannot
+undo a manual or scheduled change. Status reports desired and observed values
 separately; the bar uses observed values and shows errors instead of false
 success.
 
@@ -85,9 +87,11 @@ before-sleep lock are unchanged and have no mode condition.
 
 ## Configuration
 
-Edit `modes/.config/desktop-mode/config.toml`. It defines temperatures,
+Edit `modes/.config/desktop-mode/config.toml`. It defines
 maximum duration, panel presets, reconciliation interval, and argv arrays for
-`notificationctl` and `ascii-screensaver`. Unknown keys, invalid bounds, empty
+`notificationctl`, `ascii-screensaver`, and `night_light_command`. The retained
+temperature settings are for compatibility; the shader uses fixed coefficients.
+Unknown keys, invalid bounds, empty
 commands, and NUL bytes are rejected. `DESKTOP_MODE_CONFIG` and
 `DESKTOP_MODE_RUNTIME_DIR` provide fixture or user-local overrides.
 
@@ -106,7 +110,7 @@ screensaver-lock --dry-run
 ```
 
 - `available=false` for DND means Quickshell IPC is not reachable.
-- A night-light error means Hyprsunset or its Hyprland IPC is unavailable.
+- A night-light error means the shader helper or its Hyprland reload failed.
 - A daemon warning means untimed operations work, but timed expiry is not
   supervised. Start `desktop-mode daemon` once for the current login.
 - `desktop-mode reset --all` disables transient modes and restores automatic
@@ -117,4 +121,4 @@ screensaver-lock --dry-run
 
 Rollback consists of removing the mode-specific autostart, keybinding, and
 Hypridle condition lines and unstowing `modes`. Existing lock, DPMS, suspend,
-notifications, and Hyprsunset remain independently usable.
+notifications, and the night-light shader helper remain independently usable.

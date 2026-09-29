@@ -17,7 +17,9 @@ while IFS='|' read -r artist title album arturl; do
       icon="${arturl#file://}"
       ;;
     http://*|https://*)
-      if curl -L -s "$arturl" -o "$tmpfile"; then
+      if curl --fail --location --silent --show-error \
+        --proto '=http,https' --proto-redir '=http,https' \
+        --connect-timeout 3 --max-time 5 "$arturl" -o "$tmpfile"; then
         icon="$tmpfile"
       fi
       ;;

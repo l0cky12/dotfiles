@@ -99,12 +99,12 @@ if [[ $command_name == update ]]; then
   exec "$repo/dots/.local/bin/dots" deploy
 fi
 
-head_sha=$(git -C "$repo" rev-parse --verify HEAD^{commit}) ||
+head_sha=$(git -C "$repo" rev-parse --verify 'HEAD^{commit}') ||
   fail "cannot resolve HEAD in $repo"
 
 is_excluded() {
   case $1 in
-    docs|wiki|tests|system|dotfiles|neovim|obsidian) return 0 ;;
+    docs|wiki|tests|system|setup|dotfiles|neovim|obsidian) return 0 ;;
     *) return 1 ;;
   esac
 }

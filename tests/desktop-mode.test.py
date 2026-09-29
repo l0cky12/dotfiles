@@ -26,6 +26,9 @@ class DesktopModeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = Path(tempfile.mkdtemp(prefix="desktop-mode-test."))
         self.addCleanup(shutil.rmtree, self.temp, True)
+        environment = mock.patch.dict(os.environ, NIGHT_LIGHT_STATE_FILE=str(self.temp / "shader"))
+        environment.start()
+        self.addCleanup(environment.stop)
         self.config_path = self.temp / "config.toml"
         self.config_path.write_text(
             'warm_temperature = 1000\nnormal_temperature = 6500\n'
@@ -105,15 +108,54 @@ class DesktopModeTests(unittest.TestCase):
         self.assertTrue(item["desired"])
         self.assertEqual(item["error"], "fixture failure")
 
-    def test_stopped_hyprsunset_is_off_not_an_error(self) -> None:
+    def test_shader_status_and_external_changes(self) -> None:
+        calls = []
         def runner(argv, **_kwargs):
-            return subprocess.CompletedProcess(argv, 1, "", "")  # pgrep: no match
+            calls.append(argv)
+            return subprocess.CompletedProcess(argv, 0, "night-light: off\n", "")
         controller = Controller(self.config, self.store, runner)
-        with mock.patch("desktop_mode.shutil.which", return_value="/usr/bin/fixture"):
-            item = controller.status_one("night-light")
+        item = controller.status_one("night-light")
         self.assertTrue(item["available"])
         self.assertFalse(item["observed"])
         self.assertIsNone(item["error"])
+        controller.set("night-light", True, "15m")
+        self.assertIn([*self.config.night_light_command, "on"], calls)
+        calls.clear()
+        controller.reconcile()
+        self.assertNotIn([*self.config.night_light_command, "on"], calls)
+        self.assertFalse(controller.status_one("night-light")["desired"])
+        self.store.update(lambda value: value["modes"]["night-light"].update(
+            expires_at=time.time() - 1))
+        controller.expire()
+        self.assertNotIn([*self.config.night_light_command, "off"], calls)
+
+    def test_shader_expiry_preserves_later_requests(self) -> None:
+        shader = self.temp / "shader"
+        calls = []
+        def runner(argv, **_kwargs):
+            calls.append(argv[-1])
+            if argv[-1] == "on":
+                replacement = shader.with_suffix(".tmp")
+                replacement.write_text("enabled\n")
+                replacement.replace(shader)
+            elif argv[-1] == "off":
+                shader.unlink(missing_ok=True)
+            status = "on" if shader.exists() else "off"
+            return subprocess.CompletedProcess(argv, 0, f"night-light: {status}\n", "")
+        with mock.patch.dict(os.environ, NIGHT_LIGHT_STATE_FILE=str(shader)):
+            controller = Controller(self.config, self.store, runner)
+            for external in (None, "on", "off"):
+                controller.set("night-light", True, "15m")
+                if external:
+                    runner([external])
+                calls.clear()
+                self.store.update(lambda value: value["modes"]["night-light"].update(
+                    expires_at=time.time() - 1))
+                # Ownership survives a controller restart through stored state.
+                Controller(self.config, self.store, runner).expire()
+                self.assertEqual(calls.count("off"), 0 if external else 1)
+                self.assertEqual(shader.exists(), external == "on")
+                self.assertIsNone(self.store.read()["modes"]["night-light"]["expires_at"])
 
     def test_probed_mode_error_clears_when_backend_recovers(self) -> None:
         def runner(argv, **_kwargs):
