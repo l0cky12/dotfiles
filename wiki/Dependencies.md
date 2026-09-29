@@ -134,6 +134,14 @@ FFmpeg with `libx264`, ImageMagick, `libheif` for HEIC/HEIF, `file`, Rofi,
 
 Docker Engine, Docker Compose, and OpenSSL.
 
+### Virtual machine presets
+
+libvirt with QEMU, `virt-install`, `virsh`, Rofi, OpenSSL, curl, `sha512sum`,
+and `flock`; optionally virt-manager and GnuPG. The user must be in the
+`libvirt` group, the `default` network must be active, and `libvirtd` or both
+`virtqemud` and `virtstoraged` must be running. `libvirt-qemu` needs search
+permission on your home directory to read the cached ISO.
+
 ### Windows VM
 
 Docker Engine, Docker Compose, FreeRDP 3, KVM, `jq`, `flock`, and `timeout`. It

@@ -72,6 +72,7 @@ python3 -m unittest tests.test_theme_generator
 | `eject-drive.test.sh` | drive ejection, with `--fixture` implying `--dry-run` |
 | `disk-speedtest.test.sh` | disk discovery and eligibility from an lsblk fixture, a tiny real benchmark in a scratch directory, the udisksctl mount round trip, and SIGTERM cleanup |
 | `docker-dev-env.test.sh` | the development stack |
+| `vm-preset.test.sh` | VM presets through fake libvirt, Rofi, curl, and gpg: dry-run commands and rendered preseeds, the password never reaching disk or output, prerequisites, name collisions, failure cleanup, the lock, and ISO checksum and signature checks |
 | `run-or-install.test.sh` | installed programs run directly; repo, AUR, and unknown lookups from a fake `pacman -F` and the map; the Install, failed-install, and Dismiss paths through fake `sudo`, `yay`, Kitty, and `notify-send`; the quiet window; and that the wrapped bindings keep their descriptions |
 | `hypr-wallpaper-picker.test.sh` | index, search, apply |
 | `calculator.test.sh`, `emoji-picker.test.sh`, `quick-search.test.sh`, `power-menu.test.sh`, `power-profile.test.sh`, `night-light.test.sh`, `transcode.test.sh`, `window-width.test.sh`, `close-all-windows.test.sh`, `default-browser-private.test.sh` | the remaining helpers |

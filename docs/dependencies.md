@@ -146,6 +146,26 @@ MariaDB 3307, and Redis 6379. The first start writes generated credentials to
 `$XDG_STATE_HOME/docker-dev-env/environment.env` with mode 0600. Stopping a
 service or the whole stack keeps its named volume.
 
+### Virtual machine presets
+
+Development → Virtual machines requires libvirt with QEMU, `virt-install`,
+`virsh`, Rofi, OpenSSL, curl, `sha512sum`, and `flock`. virt-manager opens the
+console, and GnuPG checks the ISO signature when the Debian CD signing key is in
+your keyring; both are optional. The submenu hides itself unless `virt-install`
+and `virsh` are installed.
+
+`vm-preset` uses `qemu:///system`, so the user must be in the `libvirt` group,
+the `default` network must be active, and both the QEMU and storage drivers must
+be running: either `libvirtd`, or the modular `virtqemud` and `virtstoraged`
+sockets. The helper names whatever is missing but never runs sudo. On this host
+`virtstoraged.socket` is enabled but was not running; start it once with
+`sudo systemctl start virtstoraged.socket`.
+
+Install ISOs are cached in `$XDG_CACHE_HOME/vm-presets/`, which QEMU reads as
+the `libvirt-qemu` user, so that user needs search permission on your home
+directory (`setfacl -m u:libvirt-qemu:x ~`). Disks go in libvirt's `default`
+pool, `/var/lib/libvirt/images`.
+
 ### Windows VM
 
 The optional `windows` Stow package requires Docker Engine, Docker Compose,

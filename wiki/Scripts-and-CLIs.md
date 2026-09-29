@@ -112,6 +112,7 @@ Under `hypr/.config/hypr/scripts/`.
 | `quick-search.sh` | `SUPER+A` | apps view; `Tab` cycles windows, apps, commands |
 | `quick-search-everything.sh` | — | category navigation plus confirmed reboot and shutdown |
 | `docker-dev-env` | lmenu → Development | start, stop, inspect, and tail local MySQL, PostgreSQL, MariaDB, Redis |
+| `vm-preset` | lmenu → Development | create a blank Debian 13 or Debian 13 + Docker VM, installed unattended |
 | `transcode-menu.sh` | `SUPER+CTRL+.` | fuzzy media/format/size picker; delegates to `transcode` |
 | `RofiEmoji.sh` | `SUPER+ALT+E` | fuzzy emoji search, copies the glyph |
 | `universal-clipboard.sh` | `SUPER+C/X/V` | detects terminal classes, sends the right shortcut |
@@ -434,6 +435,45 @@ The Compose stack binds only to `127.0.0.1`: MySQL 3306, PostgreSQL 5432,
 MariaDB 3307, Redis 6379. The first start writes generated credentials to
 `$XDG_STATE_HOME/docker-dev-env/environment.env`, mode 0600. Stopping a service
 or the whole stack keeps its named volume.
+
+## Virtual machine presets
+
+`SUPER+SHIFT+A` → Development → Virtual machines, backed by `scripts/vm-preset`
+and the answer-file templates in `hypr/.config/hypr/vm-presets/`. Each preset
+creates a new VM on `qemu:///system` and installs it without manual steps.
+
+| Preset | Guest |
+| --- | --- |
+| `debian13` | Debian 13 server: standard utilities, OpenSSH, `qemu-guest-agent`, `sudo` |
+| `debian13-docker` | the same, plus Docker Engine, Buildx, and the Compose plugin from Docker's apt repository, with the user in the `docker` group |
+
+Each VM gets 2 vCPUs, 4 GiB of RAM, a 60 GiB qcow2 disk in the `default` pool,
+and the `default` NAT network. `VM_PRESET_VCPUS`, `VM_PRESET_MEMORY` (MiB), and
+`VM_PRESET_DISK_GB` override them.
+
+1. Prerequisites are checked, and anything missing is listed in one
+   notification.
+2. Rofi asks for the VM name, pre-filled with the next free `<preset>-N`; the
+   guest password, twice; and, when `~/.ssh/id_rsa.pub` exists, whether to
+   install it. Installing the key turns off SSH password login in the guest.
+3. The newest Debian 13 netinst in `$XDG_CACHE_HOME/vm-presets/` is reused.
+   Otherwise it is downloaded and checked against `SHA512SUMS`, and against its
+   signature when the Debian CD key is in your keyring.
+   `vm-preset refresh-iso debian13` fetches a newer point release.
+4. `virt-install` starts the install and the console opens in virt-manager.
+   Closing the console does not stop the install; a notification says when it
+   finishes.
+
+The guest username is the host `$USER`. The root account stays locked and the
+user gets sudo. The password is hashed with `openssl passwd -6` as soon as it is
+read; only the hash reaches the preseed, which lives in a mode 0700 temporary
+directory that is removed once the install starts. If `virt-install` fails, the
+VM and its disk are removed. Each VM's creation log is
+`$XDG_STATE_HOME/vm-presets/<name>.log`.
+
+`vm-preset --dry-run create PRESET [--name NAME]` prints the `virt-install`
+command and the rendered answer files, with the hash redacted, without calling
+libvirt or the network.
 
 ## Power menu
 

@@ -163,7 +163,8 @@ terminal applications.
 Rofi is active. `SUPER+A` starts in the installed-applications view, while
 `SUPER+SHIFT+A` opens a root menu for windows, applications, commands, reboot,
 shutdown, and local development services. Its Development section can start or
-stop MySQL, PostgreSQL, MariaDB, and Redis through Docker Compose. `Tab` and
+stop MySQL, PostgreSQL, MariaDB, and Redis through Docker Compose, and create
+blank Debian 13 VMs through libvirt. `Tab` and
 `Shift+Tab` cycle the searchable modes, and
 `SUPER+ALT+A` opens the separate web-app manager. Both Rofi views use generated
 `rofi/.config/rofi/current-theme.rasi`, which imports the main Comet Glass layout

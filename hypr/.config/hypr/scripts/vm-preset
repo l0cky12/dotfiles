@@ -1,0 +1,576 @@
+#!/usr/bin/env bash
+# vm-preset - create a blank libvirt VM from a preset, installed unattended.
+#
+#   vm-preset list
+#   vm-preset [--dry-run] create PRESET [--name NAME]
+#   vm-preset [--dry-run] refresh-iso PRESET
+#
+# create checks prerequisites, then asks through rofi for the VM name, the guest
+# password (twice), and whether to install ~/.ssh/id_rsa.pub. It finds or
+# downloads the install ISO, runs virt-install against qemu:///system, and opens
+# the console in virt-manager. The guest user is the host $USER.
+#
+# The password is hashed with openssl as soon as it is read and is never written
+# anywhere. Only the SHA-512 crypt hash reaches the preseed, which lives in a
+# mode 0700 temporary directory that is removed once the install has started.
+#
+# --dry-run prints the virt-install command and the rendered answer files, with
+# the hash redacted, and never calls virsh, virt-install, or the network.
+set -euo pipefail
+
+virsh_command=${VIRSH:-virsh}
+virt_install_command=${VIRT_INSTALL:-virt-install}
+virt_manager_command=${VIRT_MANAGER:-virt-manager}
+rofi_command=${ROFI:-rofi}
+notify_command=${NOTIFY_SEND:-notify-send}
+curl_command=${CURL:-curl}
+gpg_command=${GPG:-gpg}
+systemctl_command=${SYSTEMCTL:-systemctl}
+id_command=${ID_COMMAND:-id}
+connection=qemu:///system
+config_home=${XDG_CONFIG_HOME:-$HOME/.config}
+cache_root=${XDG_CACHE_HOME:-$HOME/.cache}/vm-presets
+state_root=${XDG_STATE_HOME:-$HOME/.local/state}/vm-presets
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+template_dir=${VM_PRESET_TEMPLATES:-$config_home/hypr/vm-presets}
+ssh_key=$HOME/.ssh/id_rsa.pub
+debian_cd=${VM_PRESET_DEBIAN_CD:-https://cdimage.debian.org/debian-cd/current/amd64/iso-cd}
+vcpus=${VM_PRESET_VCPUS:-2}
+memory=${VM_PRESET_MEMORY:-4096}
+disk_gb=${VM_PRESET_DISK_GB:-60}
+poll_interval=${VM_PRESET_POLL_INTERVAL:-1}
+dry_run=false
+log_file=
+fetched_iso=
+cleanup_paths=()
+
+if [[ ! -d $template_dir ]]; then
+  template_dir=$script_dir/../vm-presets
+fi
+
+presets=(debian13 debian13-docker)
+
+# Primary-key fingerprints of the Debian CD signing keys that sign release
+# SHA512SUMS files (https://www.debian.org/CD/verify).
+debian_cd_keys=(
+  DF9B9C49EAA9298432589D76DA87E80D6294BE9B
+  10460DAD76165AD81FBC0CE9988021A964E6EA7D
+)
+
+usage() {
+  cat >&2 <<'EOF'
+usage: vm-preset [--dry-run] COMMAND [PRESET] [--name NAME]
+
+Commands:
+  list                  show the presets
+  create PRESET         prompt for a name and password, then install a new VM
+  refresh-iso PRESET    download the newest install ISO into the cache
+
+Presets: debian13, debian13-docker
+EOF
+  exit 2
+}
+
+cleanup() {
+  ((${#cleanup_paths[@]})) && rm -rf -- "${cleanup_paths[@]}"
+  return 0
+}
+trap cleanup EXIT
+
+notify() {
+  local urgency=$1 body=$2
+  "$dry_run" && return 0
+  command -v "$notify_command" >/dev/null 2>&1 || return 0
+  "$notify_command" --urgency="$urgency" "Virtual machines" "$body" >/dev/null 2>&1 || true
+}
+
+log() {
+  printf '%s\n' "$*" >&2
+  [[ -z $log_file ]] || printf '%s %s\n' "$(date '+%F %T')" "$*" >>"$log_file"
+}
+
+die() {
+  log "vm-preset: $*"
+  notify critical "$*"
+  exit 1
+}
+
+valid_preset() {
+  local candidate=$1 preset
+  for preset in "${presets[@]}"; do
+    [[ $candidate == "$preset" ]] && return 0
+  done
+  printf 'Unknown preset: %s\n' "$candidate" >&2
+  exit 2
+}
+
+preset_label() {
+  case $1 in
+    debian13) printf 'Debian 13' ;;
+    debian13-docker) printf 'Debian 13 + Docker' ;;
+  esac
+}
+
+virsh_system() {
+  "$virsh_command" -c "$connection" "$@"
+}
+
+domain_exists() {
+  virsh_system dominfo "$1" >/dev/null 2>&1
+}
+
+unit_active() {
+  local unit
+  for unit; do
+    "$systemctl_command" is-active --quiet "$unit" 2>/dev/null && return 0
+  done
+  return 1
+}
+
+check_prerequisites() {
+  local missing=() command message groups network
+  for command in "$virt_install_command" "$virsh_command" "$rofi_command" openssl \
+    "$curl_command" sha512sum flock; do
+    command -v "$command" >/dev/null 2>&1 || missing+=("${command##*/}")
+  done
+  groups=$("$id_command" -nG 2>/dev/null) || true
+  [[ " $groups " == *" libvirt "* ]] || missing+=("membership in the libvirt group")
+  # The monolithic libvirtd carries every driver; the modular daemons split
+  # them, and virt-install needs the storage one to create the disk.
+  if ! unit_active libvirtd.service libvirtd.socket; then
+    unit_active virtqemud.service virtqemud.socket ||
+      missing+=("virtqemud (sudo systemctl start virtqemud.socket)")
+    unit_active virtstoraged.service virtstoraged.socket ||
+      missing+=("virtstoraged (sudo systemctl start virtstoraged.socket)")
+  fi
+  if ((${#missing[@]} == 0)); then
+    network=$(virsh_system net-info default 2>/dev/null) || true
+    [[ $network =~ (^|$'\n')Active:\ +yes ]] ||
+      missing+=("the libvirt default network (sudo virsh net-start default)")
+  fi
+  ((${#missing[@]} == 0)) && return 0
+
+  message=$(printf '%s, ' "${missing[@]}")
+  die "Cannot create a VM. Missing: ${message%, }."
+}
+
+acquire_lock() {
+  mkdir -p -- "$state_root"
+  exec 9>"$state_root/lock"
+  if ! flock -n 9; then
+    notify normal "VM creation already in progress."
+    printf 'vm-preset: VM creation already in progress.\n' >&2
+    exit 1
+  fi
+}
+
+theme_file() {
+  local theme
+  for theme in "$config_home/rofi/lmenu.rasi" "$config_home/rofi/current-theme.rasi"; do
+    [[ -f $theme ]] && { printf '%s' "$theme"; return 0; }
+  done
+  return 0
+}
+
+# rofi_prompt PROMPT MESSAGE [ROFI ARGS...] - rows come from stdin.
+rofi_prompt() {
+  local prompt=$1 message=$2 theme
+  shift 2
+  local args=(-dmenu -p "$prompt" -mesg "$message")
+  theme=$(theme_file)
+  [[ -z $theme ]] || args+=(-theme "$theme")
+  "$rofi_command" "${args[@]}" "$@"
+}
+
+cancelled() {
+  log "Cancelled; nothing was created."
+  exit 0
+}
+
+next_name() {
+  local preset=$1 number=1
+  while domain_exists "$preset-$number"; do
+    number=$((number + 1))
+  done
+  printf '%s-%s' "$preset" "$number"
+}
+
+valid_name() {
+  [[ $1 =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$ ]]
+}
+
+# VM names may contain "." and "_"; hostnames may not.
+hostname_for() {
+  local hostname=${1,,}
+  hostname=${hostname//[._]/-}
+  while [[ $hostname == *- ]]; do hostname=${hostname%-}; done
+  printf '%s' "${hostname:0:63}"
+}
+
+guest_user() {
+  local user=${USER:-$("$id_command" -un)}
+  [[ $user =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] ||
+    die "The host username '$user' is not a valid Debian username."
+  printf '%s' "$user"
+}
+
+host_locale() {
+  local value=${VM_PRESET_LOCALE:-${LANG:-}}
+  value=${value/%.utf8/.UTF-8}
+  [[ $value =~ ^[a-z]{2,3}_[A-Z]{2}\.UTF-8$ ]] || value=en_US.UTF-8
+  printf '%s' "$value"
+}
+
+host_keymap() {
+  local value=${VM_PRESET_KEYMAP:-}
+  if [[ -z $value ]] && command -v localectl >/dev/null 2>&1; then
+    value=$(localectl status 2>/dev/null |
+      sed -n 's/^ *X11 Layout: *//p; s/^ *VC Keymap: *//p' | head -n 1) || true
+  fi
+  value=${value%%,*}
+  [[ $value =~ ^[a-z][a-z0-9_-]*$ ]] || value=us
+  printf '%s' "$value"
+}
+
+host_timezone() {
+  local value=${VM_PRESET_TIMEZONE:-}
+  if [[ -z $value ]] && command -v timedatectl >/dev/null 2>&1; then
+    value=$(timedatectl show --property=Timezone --value 2>/dev/null) || true
+  fi
+  if [[ -z $value && -L /etc/localtime ]]; then
+    value=$(readlink /etc/localtime)
+    value=${value#*zoneinfo/}
+  fi
+  [[ $value =~ ^[A-Za-z0-9_+-]+(/[A-Za-z0-9_+-]+)*$ ]] || value=UTC
+  printf '%s' "$value"
+}
+
+# ------------------------------------------------------------------ ISO ---
+
+cached_iso() {
+  local files
+  shopt -s nullglob
+  files=("$cache_root"/debian-13.*-amd64-netinst.iso)
+  shopt -u nullglob
+  ((${#files[@]})) || return 1
+  printf '%s\n' "${files[@]}" | sort -V | tail -n 1
+}
+
+verify_signature() {
+  local directory=$1 status key
+  if ! command -v "$gpg_command" >/dev/null 2>&1 || [[ ! -s $directory/SHA512SUMS.sign ]]; then
+    log "warning: the SHA512SUMS signature was not checked (gpg or the signature is missing)."
+    notify normal "Could not check the Debian ISO signature. Continuing with the SHA-512 checksum only."
+    return 0
+  fi
+  status=$("$gpg_command" --batch --status-fd 1 --verify \
+    "$directory/SHA512SUMS.sign" "$directory/SHA512SUMS" 2>/dev/null) || true
+  if grep -q '^\[GNUPG:\] BADSIG' <<<"$status"; then
+    die "The Debian SHA512SUMS signature is bad. The ISO was not downloaded."
+  fi
+  for key in "${debian_cd_keys[@]}"; do
+    if grep -Eq "^\[GNUPG:\] VALIDSIG .*$key" <<<"$status"; then
+      log "SHA512SUMS is signed by the Debian CD signing key $key."
+      return 0
+    fi
+  done
+  log "warning: SHA512SUMS could not be verified; the Debian CD signing key is not in your keyring."
+  notify normal "Could not verify the Debian ISO signature (the Debian CD key is not in your keyring). Continuing with the SHA-512 checksum only."
+}
+
+# Download the newest Debian 13 netinst into the cache and set fetched_iso to
+# its path. A file under its final name in the cache has always passed its
+# checksum. Not run in a command substitution, so the EXIT trap still removes
+# the download directory when a step fails.
+fetch_iso() {
+  local work line iso_name
+  mkdir -p -- "$cache_root"
+  # qemu, running as its own user, must read the ISO.
+  chmod 755 -- "$cache_root"
+  work=$(mktemp -d "$cache_root/.download.XXXXXX")
+  cleanup_paths+=("$work")
+
+  "$curl_command" -fsSL --retry 3 -o "$work/SHA512SUMS" "$debian_cd/SHA512SUMS" ||
+    die "Could not download SHA512SUMS from $debian_cd."
+  line=$(grep -m 1 -E '^[0-9a-f]{128}  debian-13\.[0-9.]+-amd64-netinst\.iso$' \
+    "$work/SHA512SUMS") || die "No Debian 13 netinst ISO is listed at $debian_cd."
+  iso_name=${line##* }
+
+  if [[ -f $cache_root/$iso_name ]]; then
+    log "$iso_name is already cached."
+    fetched_iso=$cache_root/$iso_name
+    return 0
+  fi
+
+  "$curl_command" -fsSL --retry 3 -o "$work/SHA512SUMS.sign" "$debian_cd/SHA512SUMS.sign" ||
+    : >"$work/SHA512SUMS.sign"
+  verify_signature "$work"
+
+  notify normal "Downloading $iso_name…"
+  log "Downloading $debian_cd/$iso_name"
+  "$curl_command" -fsSL --retry 3 -o "$work/$iso_name" "$debian_cd/$iso_name" ||
+    die "Could not download $iso_name."
+  (cd -- "$work" && printf '%s\n' "$line" | sha512sum --check --status) ||
+    die "$iso_name failed its SHA-512 check and was discarded."
+
+  chmod 644 -- "$work/$iso_name"
+  mv -- "$work/$iso_name" "$cache_root/$iso_name"
+  log "Cached $cache_root/$iso_name"
+  fetched_iso=$cache_root/$iso_name
+}
+
+# ------------------------------------------------------------- Answers ---
+
+# render TEMPLATE KEY=VALUE... - print TEMPLATE with each @KEY@ replaced.
+render() {
+  local template=$1 content pair key
+  shift
+  [[ -f $template ]] || die "Template not found: $template"
+  content=$(<"$template")
+  for pair; do
+    key=${pair%%=*}
+    content=${content//"@$key@"/"${pair#*=}"}
+  done
+  if [[ $content =~ @[A-Z_]+@ ]]; then
+    die "Template $template has an unfilled placeholder ${BASH_REMATCH[0]}."
+  fi
+  printf '%s\n' "$content"
+}
+
+# write_answers DIR PRESET HOSTNAME USER HASH WITH_KEY
+write_answers() {
+  local directory=$1 preset=$2 hostname=$3 user=$4 hash=$5 with_key=$6 steps
+  case $preset in
+    debian13-docker) steps=$(<"$template_dir/docker.late.sh") ;;
+    *) steps='# No extra steps for this preset.' ;;
+  esac
+  (
+    umask 077
+    render "$template_dir/debian13.preseed.cfg" \
+      "LOCALE=$(host_locale)" "KEYMAP=$(host_keymap)" "TIMEZONE=$(host_timezone)" \
+      "HOSTNAME=$hostname" "USERNAME=$user" "PASSWORD_HASH=$hash" \
+      >"$directory/preseed.cfg"
+    render "$template_dir/late-command.sh" "USERNAME=$user" "PRESET_STEPS=$steps" \
+      >"$directory/vm-preset-late.sh"
+    if "$with_key"; then
+      cp -- "$ssh_key" "$directory/vm-preset-authorized_keys"
+    fi
+  )
+}
+
+install_command() {
+  local name=$1 iso=$2 answers=$3 with_key=$4
+  # shellcheck disable=SC2054 # Commas separate virt-install sub-options.
+  install_args=(
+    --connect "$connection"
+    --name "$name"
+    --osinfo debian13
+    --vcpus "$vcpus"
+    --memory "$memory"
+    --disk "size=$disk_gb,format=qcow2,bus=virtio"
+    --network network=default,model=virtio
+    --location "$iso"
+    --initrd-inject "$answers/preseed.cfg"
+    --initrd-inject "$answers/vm-preset-late.sh"
+  )
+  if "$with_key"; then
+    install_args+=(--initrd-inject "$answers/vm-preset-authorized_keys")
+  fi
+  install_args+=(--extra-args "priority=critical" --noautoconsole --wait -1)
+}
+
+# Undefine a domain this run created, with its disks but not the install ISO.
+remove_domain() {
+  local name=$1 disks
+  domain_exists "$name" || return 0
+  disks=$(virsh_system domblklist --details "$name" 2>/dev/null |
+    awk '$1 == "file" && $2 == "disk" { print $4 }' | paste -sd, -) || true
+  virsh_system destroy "$name" >/dev/null 2>&1 || true
+  local args=(undefine "$name" --nvram)
+  [[ -z $disks ]] || args+=(--storage "$disks")
+  if virsh_system "${args[@]}" >>"$log_file" 2>&1; then
+    log "Removed the partly created VM $name."
+  else
+    log "warning: could not remove $name; delete it in virt-manager."
+  fi
+}
+
+check_resources() {
+  local value
+  for value in "$vcpus" "$memory" "$disk_gb"; do
+    [[ $value =~ ^[1-9][0-9]*$ ]] || die "VM_PRESET_VCPUS, VM_PRESET_MEMORY and VM_PRESET_DISK_GB must be positive integers."
+  done
+}
+
+dry_run_create() {
+  local preset=$1 name=${2:-$1-1} user answers iso with_key=false
+  valid_name "$name" || die "Invalid VM name: $name"
+  user=$(guest_user)
+  [[ -f $ssh_key ]] && with_key=true
+  iso=$(cached_iso) || iso="$cache_root/debian-13.<latest>-amd64-netinst.iso"
+  answers=$(mktemp -d -t vm-preset.XXXXXX)
+  cleanup_paths+=("$answers")
+  write_answers "$answers" "$preset" "$(hostname_for "$name")" "$user" '<redacted-hash>' "$with_key"
+  install_command "$name" "$iso" "$answers" "$with_key"
+
+  if [[ -f $iso ]]; then
+    printf '# ISO: %s (cached)\n' "$iso"
+  else
+    printf '# ISO: download the newest Debian 13 netinst from %s\n' "$debian_cd"
+  fi
+  printf '%q ' "$virt_install_command" "${install_args[@]}"
+  printf '\n'
+  printf '\n# ---- preseed.cfg ----\n'
+  cat -- "$answers/preseed.cfg"
+  printf '\n# ---- vm-preset-late.sh ----\n'
+  cat -- "$answers/vm-preset-late.sh"
+  if "$with_key"; then
+    printf '\n# ---- vm-preset-authorized_keys (from %s) ----\n' "$ssh_key"
+    cat -- "$answers/vm-preset-authorized_keys"
+  fi
+}
+
+create_vm() {
+  local preset=$1 requested_name=${2:-} label name user password confirm password_hash
+  local with_key=false choice iso answers install_pid status=0
+  label=$(preset_label "$preset")
+  check_resources
+
+  if "$dry_run"; then
+    dry_run_create "$preset" "$requested_name"
+    return 0
+  fi
+
+  check_prerequisites
+  acquire_lock
+  user=$(guest_user)
+
+  if [[ -n $requested_name ]]; then
+    name=$requested_name
+  else
+    name=$(printf '' | rofi_prompt 'VM name' "New $label VM" -l 0 -filter "$(next_name "$preset")") ||
+      cancelled
+  fi
+  valid_name "$name" || die "Invalid VM name '$name'. Use letters, digits, '.', '_' and '-'."
+  domain_exists "$name" && die "A VM named $name already exists. Nothing was created."
+
+  password=$(printf '' | rofi_prompt 'Password' "Guest password for $user on $name" -l 0 -password) ||
+    cancelled
+  confirm=$(printf '' | rofi_prompt 'Confirm' "Type the password again" -l 0 -password) ||
+    cancelled
+  if [[ -z $password ]]; then
+    unset password confirm
+    die "The password cannot be empty. Nothing was created."
+  fi
+  if [[ $password != "$confirm" ]]; then
+    unset password confirm
+    die "The passwords did not match. Nothing was created."
+  fi
+  password_hash=$(printf '%s\n' "$password" | openssl passwd -6 -stdin)
+  unset password confirm
+
+  if [[ -f $ssh_key ]]; then
+    # shellcheck disable=SC2088 # The tilde is display text.
+    choice=$(printf 'Yes\nNo\n' | rofi_prompt 'Install host SSH key?' \
+      "~/.ssh/id_rsa.pub. Password SSH login is turned off when it is installed." -no-custom) ||
+      cancelled
+    [[ $choice == Yes ]] && with_key=true
+  fi
+
+  mkdir -p -- "$state_root"
+  log_file=$state_root/$name.log
+  : >"$log_file"
+  log "Creating $name from the $preset preset as $user."
+
+  if ! iso=$(cached_iso); then
+    fetch_iso
+    iso=$fetched_iso
+  fi
+  log "Using $iso"
+
+  answers=$(mktemp -d -t vm-preset.XXXXXX)
+  cleanup_paths+=("$answers")
+  write_answers "$answers" "$preset" "$(hostname_for "$name")" "$user" "$password_hash" "$with_key"
+  install_command "$name" "$iso" "$answers" "$with_key"
+
+  notify normal "Creating $name ($label)…"
+  log "Running $(printf '%q ' "$virt_install_command" "${install_args[@]}")"
+  "$virt_install_command" "${install_args[@]}" >>"$log_file" 2>&1 9>&- &
+  install_pid=$!
+
+  until domain_exists "$name"; do
+    kill -0 "$install_pid" 2>/dev/null || break
+    sleep "$poll_interval"
+  done
+
+  if domain_exists "$name"; then
+    # The install initrd is built by now, so the answer files can go, and
+    # another VM can be created while this one installs.
+    rm -rf -- "$answers"
+    exec 9>&-
+    if command -v "$virt_manager_command" >/dev/null 2>&1; then
+      setsid "$virt_manager_command" --connect "$connection" --show-domain-console "$name" \
+        </dev/null >/dev/null 2>&1 &
+    fi
+    notify normal "Installing $label in $name. The console is open in virt-manager; closing it does not stop the install."
+  fi
+
+  wait "$install_pid" || status=$?
+  if ((status == 0)); then
+    log "$name is installed."
+    notify normal "$name is installed. Log in as $user."
+    return 0
+  fi
+
+  log "virt-install exited with status $status."
+  remove_domain "$name"
+  die "Creating $name failed. See $log_file."
+}
+
+refresh_iso() {
+  if "$dry_run"; then
+    printf '# Download the newest Debian 13 netinst from %s into %s\n' "$debian_cd" "$cache_root"
+    return 0
+  fi
+  command -v "$curl_command" >/dev/null 2>&1 || die "curl is required to download the ISO."
+  acquire_lock
+  fetch_iso
+  notify normal "Debian 13 ISO ready: ${fetched_iso##*/}"
+  printf '%s\n' "$fetched_iso"
+}
+
+while (($#)); do
+  case $1 in
+    --dry-run) dry_run=true; shift ;;
+    --help|-h) usage ;;
+    --) shift; break ;;
+    -*) usage ;;
+    *) break ;;
+  esac
+done
+
+command=${1:-}
+preset=${2:-}
+case $command in
+  list)
+    for preset in "${presets[@]}"; do
+      printf '%-16s %s\n' "$preset" "$(preset_label "$preset")"
+    done
+    ;;
+  create)
+    [[ -n $preset ]] || usage
+    valid_preset "$preset"
+    name=
+    if (($# > 2)); then
+      [[ $3 == --name && -n ${4:-} && $# -eq 4 ]] || usage
+      name=$4
+    fi
+    create_vm "$preset" "$name"
+    ;;
+  refresh-iso)
+    [[ -n $preset && $# -eq 2 ]] || usage
+    valid_preset "$preset"
+    refresh_iso
+    ;;
+  *) usage ;;
+esac
