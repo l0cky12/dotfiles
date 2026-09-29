@@ -124,6 +124,8 @@ path.write_text(json.dumps(rules))
         # Bootstrap runs as a different user after a root-owned mktemp. The
         # parent, not just yay/, must be transferred, and passed as an argv.
         (self.bin / "yay").unlink()
+        # Force the bootstrap branch even when the host has yay installed.
+        script.write_text(source.replace("if command -v yay >/dev/null; then", "if false; then"))
         self.stub("git", "assert sys.argv[1] == 'clone'\nPath(sys.argv[-1]).mkdir()\n")
         self.stub("chown", "(root / 'chowned').write_text(sys.argv[-1])\n")
         self.stub("runuser", '''

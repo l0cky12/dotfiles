@@ -58,7 +58,9 @@ after=$(find "$t" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort)
 # Safety-sensitive commands remain mandatory where requested; optional failures
 # are warnings, and logging never contains secret/key material.
 grep -q 'run sshd -t' "$s"
-grep -q 'WARN: yay bootstrap declined' "$t/decline.out"
+if ! command -v yay >/dev/null; then
+  grep -q 'WARN: yay bootstrap declined' "$t/decline.out"
+fi
 if grep -Eqi 'BEGIN (OPENSSH|RSA) PRIVATE KEY|authorized_keys' "$t/decline.out"; then exit 1; fi
 if command -v shellcheck >/dev/null 2>&1; then shellcheck "$s"; else printf 'shellcheck unavailable (not installed); skipped\n'; fi
 printf 'setup tests passed\n'

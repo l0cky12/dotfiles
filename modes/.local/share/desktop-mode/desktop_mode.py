@@ -195,6 +195,10 @@ def _validate_state(value: Any) -> dict[str, Any]:
         clean["modes"][name]["expires_at"] = float(expires) if isinstance(expires, (int, float)) else None
         error = item.get("error")
         clean["modes"][name]["error"] = str(error)[:500] if error else None
+        if name == "night-light":
+            revision = item.get("shader_revision")
+            if isinstance(revision, str):
+                clean["modes"][name]["shader_revision"] = revision
     return clean
 
 
@@ -259,6 +263,18 @@ class Controller:
         available = result.returncode == 0
         return available, result.stdout.startswith("night-light: on"), (
             None if available else result.stderr.strip() or "night light unavailable")
+
+    def _shader_revision(self) -> str | None:
+        # Every helper 'on' atomically replaces this file, including requests
+        # from keybinds and the schedule. A timer owns only its own write.
+        path = Path(os.environ.get("NIGHT_LIGHT_STATE_FILE",
+            str(Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
+                / "hyprland-desktop/night-light-shader")))
+        try:
+            stat = path.stat()
+            return f"{stat.st_dev}:{stat.st_ino}:{stat.st_mtime_ns}"
+        except OSError:
+            return None
 
     def _dnd_status(self) -> tuple[bool, bool, str | None]:
         result = self._command([*self.config.notification_command, "status", "--json"])
@@ -327,6 +343,8 @@ class Controller:
         if name in TRANSIENT:
             def mutate(state: dict[str, Any]) -> None:
                 state["modes"][name] = {"desired": enabled, "expires_at": expiry, "error": error}
+                if name == "night-light" and enabled and not error:
+                    state["modes"][name]["shader_revision"] = self._shader_revision()
             self.store.update(mutate)
         signal_daemon(self.store.root)
         if error:
@@ -341,6 +359,11 @@ class Controller:
         state = self.store.read()
         for name in TRANSIENT:
             item = state["modes"][name]
+            if name == "night-light" and item["expires_at"] is not None:
+                revision = item.get("shader_revision")
+                if revision is None or revision != self._shader_revision():
+                    self.store.update(lambda value: value["modes"]["night-light"].update(expires_at=None))
+                    continue
             if item["desired"] and item["expires_at"] is not None and item["expires_at"] <= now:
                 try:
                     self.set(name, False)
