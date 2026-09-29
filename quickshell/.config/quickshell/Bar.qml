@@ -411,17 +411,62 @@ Scope {
           color: Theme.bgDeep
         }
 
-        Text {
+        // Time over date, then the current conditions. One item, so the
+        // centring and collision maths above treat the whole block as the clock.
+        Row {
           id: clockLabel
           anchors.centerIn: parent
           // Zero whenever the bar is wide enough, which is every landscape
           // monitor. The clock only leaves true centre to avoid a collision.
           anchors.horizontalCenterOffset: centerGroup.collisionShift
-          text: Qt.formatDateTime(ClockState.zonedDate(), "h:mm AP")
-          color: Theme.text
-          font.family: Theme.uiFamily
-          font.bold: true
-          font.pixelSize: Theme.fs(14 * panel.barScale)
+          spacing: Theme.fs(14 * panel.barScale)
+
+          Column {
+            anchors.verticalCenter: parent.verticalCenter
+
+            Text {
+              text: Qt.formatDateTime(ClockState.zonedDate(), "hh:mm:ss AP")
+              color: Theme.green
+              font.family: Theme.glyphFamily
+              font.bold: true
+              font.pixelSize: Theme.fs(12 * panel.barScale)
+            }
+
+            Text {
+              text: Qt.formatDateTime(ClockState.zonedDate(), "dddd, MMMM d")
+              color: Theme.textDim
+              font.family: Theme.glyphFamily
+              font.pixelSize: Theme.fs(8 * panel.barScale)
+            }
+          }
+
+          // Hidden until the first fetch lands, so the clock never shows a
+          // placeholder temperature.
+          Row {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: WeatherState.hasData
+            spacing: Theme.fs(6 * panel.barScale)
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: WeatherState.hasData
+                    ? WeatherState.codeGlyph(WeatherState.current.code,
+                                             WeatherState.current.isDay) : ""
+              color: Theme.text
+              font.family: Theme.glyphFamily
+              font.pixelSize: Theme.fs(16 * panel.barScale)
+            }
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              text: WeatherState.hasData
+                    ? WeatherState.current.temp.toFixed(1) + "°F" : ""
+              color: Theme.text
+              font.family: Theme.glyphFamily
+              font.bold: true
+              font.pixelSize: Theme.fs(13 * panel.barScale)
+            }
+          }
         }
 
         MouseArea {

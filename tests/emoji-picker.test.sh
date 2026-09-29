@@ -43,6 +43,14 @@ grep -Fq '@theme "~/.config/rofi/current-theme.rasi"' "$theme" ||
   fail 'the emoji theme no longer follows the generated palette'
 grep -Fq 'Noto Color Emoji' "$theme" || fail 'the emoji theme does not use a colour emoji font'
 
+# Naming the font is not enough. When it is not installed, fontconfig silently
+# substitutes a text font, which draws monochrome outlines for older emoji and
+# hex boxes for everything else.
+if command -v fc-match >/dev/null; then
+  [[ $(fc-match -f '%{family}' 'Noto Color Emoji') == *'Noto Color Emoji'* ]] ||
+    fail 'Noto Color Emoji is not installed (noto-fonts-emoji); emoji will render monochrome'
+fi
+
 # Rofi sizes a row from the element's own font. Setting the emoji font only on
 # element-text leaves rows sized for the inherited UI font and clips every
 # glyph to its top half, so assert the font is resolved on `element` itself.

@@ -49,7 +49,7 @@ the clock centred, the tray and power hard right.
 | Island | Holds |
 | --- | --- |
 | `leftIsland` | `WorkspacesModule` |
-| `centerIsland` | recording and mode indicators, clock |
+| `centerIsland` | recording and mode indicators, clock (time with seconds over the date), current weather in °F |
 | `trayIsland` | launcher, agent, VM, Bluetooth, network, audio, battery when present |
 | `powerIsland` | the power button, alone, circular |
 

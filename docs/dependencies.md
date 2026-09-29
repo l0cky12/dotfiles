@@ -236,6 +236,7 @@ components.
 | --- | --- |
 | JetBrainsMono Nerd Font | Kitty, bar/panels, Rofi glyphs, lock screen |
 | Noto Sans | Quickshell UI fallback and active Hyprlock clock/date |
+| Noto Color Emoji (`noto-fonts-emoji`) | Rofi emoji picker |
 | Papirus icons | Rofi |
 | Powerlevel10k-compatible glyph font | Zsh prompt |
 

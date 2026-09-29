@@ -64,13 +64,14 @@ Singleton {
     const offsetMinutes = usOffsetMinutes(utcMs, zone.std, zone.dst)
     const wall = new Date(utcMs + offsetMinutes * 60000)
     return new Date(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate(),
-                     wall.getUTCHours(), wall.getUTCMinutes())
+                     wall.getUTCHours(), wall.getUTCMinutes(), wall.getUTCSeconds())
   }
 
   readonly property string displayText: Qt.formatDateTime(zonedDate(), formats[formatIndex])
 
+  // Seconds, because the bar clock shows them.
   SystemClock {
     id: clock
-    precision: SystemClock.Minutes
+    precision: SystemClock.Seconds
   }
 }

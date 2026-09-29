@@ -47,7 +47,9 @@ for removed in \
   fi
 done
 
-grep -Fq '"h:mm AP"' "$bar" || fail 'center clock is not fixed to 12-hour h:mm AP'
+grep -Fq '"hh:mm:ss AP"' "$bar" || fail 'center clock is not fixed to 12-hour hh:mm:ss AP'
+grep -Fq '"dddd, MMMM d"' "$bar" || fail 'center clock does not show the date under the time'
+grep -Fq '"°F"' "$bar" || fail 'center clock does not show the temperature in Fahrenheit'
 grep -Fq 'anchors.centerIn: parent' "$bar" || fail 'clock has no centered anchor'
 ! grep -Fq 'onClicked: DashboardState.togglePanel(panel.modelData.name)' "$bar" || fail 'center clock still opens the dashboard'
 awk '

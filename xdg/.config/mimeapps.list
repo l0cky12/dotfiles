@@ -16,7 +16,7 @@ x-scheme-handler/claude-cli=claude-code-url-handler.desktop
 # --- File manager -----------------------------------------------------------
 # Previously resolved to kitty-open.desktop, so opening a folder landed in a
 # terminal instead of a file manager.
-inode/directory=org.gnome.Nautilus.desktop
+inode/directory=thunar.desktop
 
 # --- Images -----------------------------------------------------------------
 # image/svg+xml is deliberately left to the browser: imv rasterizes SVG poorly.

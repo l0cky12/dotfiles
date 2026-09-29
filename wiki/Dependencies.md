@@ -179,6 +179,7 @@ see [Getting started](Getting-Started.md#oh-my-zsh-is-not-in-this-repository).
 | --- | --- |
 | JetBrainsMono Nerd Font | Kitty, bar and panel glyphs, Rofi, lock screen |
 | Noto Sans | Quickshell UI fallback, active Hyprlock clock and date |
+| Noto Color Emoji (`noto-fonts-emoji`) | Rofi emoji picker |
 | Papirus | Rofi icons |
 | A Powerlevel10k-compatible glyph font | Zsh prompt |
 
