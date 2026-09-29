@@ -112,7 +112,7 @@ preset_label() {
 }
 
 virsh_system() {
-  "$virsh_command" -c "$connection" "$@"
+  LC_ALL=C "$virsh_command" -c "$connection" "$@"
 }
 
 domain_exists() {
@@ -248,34 +248,47 @@ host_timezone() {
 # ------------------------------------------------------------------ ISO ---
 
 cached_iso() {
-  local files
+  local files iso
   shopt -s nullglob
   files=("$cache_root"/debian-13.*-amd64-netinst.iso)
   shopt -u nullglob
   ((${#files[@]})) || return 1
-  printf '%s\n' "${files[@]}" | sort -V | tail -n 1
+  iso=$(printf '%s\n' "${files[@]}" | sort -V | tail -n 1)
+  [[ -f $iso.sha512 ]] || return 1
+  (cd -- "$cache_root" && sha512sum --check --status -- "${iso##*/}.sha512") || return 1
+  printf '%s\n' "$iso"
 }
 
 verify_signature() {
-  local directory=$1 status key
-  if ! command -v "$gpg_command" >/dev/null 2>&1 || [[ ! -s $directory/SHA512SUMS.sign ]]; then
-    log "warning: the SHA512SUMS signature was not checked (gpg or the signature is missing)."
+  local directory=$1 status key result=0
+  if ! command -v "$gpg_command" >/dev/null 2>&1; then
+    log "warning: the SHA512SUMS signature was not checked (gpg is missing)."
     notify normal "Could not check the Debian ISO signature. Continuing with the SHA-512 checksum only."
     return 0
   fi
+  [[ -s $directory/SHA512SUMS.sign ]] || die "The Debian SHA512SUMS signature is missing."
   status=$("$gpg_command" --batch --status-fd 1 --verify \
-    "$directory/SHA512SUMS.sign" "$directory/SHA512SUMS" 2>/dev/null) || true
+    "$directory/SHA512SUMS.sign" "$directory/SHA512SUMS" 2>/dev/null) || result=$?
   if grep -q '^\[GNUPG:\] BADSIG' <<<"$status"; then
     die "The Debian SHA512SUMS signature is bad. The ISO was not downloaded."
   fi
+  if grep -Eq '^\[GNUPG:\] (NODATA|EXPSIG|EXPKEYSIG|REVKEYSIG|FAILURE|ERROR)' <<<"$status"; then
+    die "The Debian SHA512SUMS signature could not be verified."
+  fi
   for key in "${debian_cd_keys[@]}"; do
-    if grep -Eq "^\[GNUPG:\] VALIDSIG .*$key" <<<"$status"; then
+    if ((result == 0)) && grep -Eq "^\[GNUPG:\] VALIDSIG .*$key$" <<<"$status"; then
       log "SHA512SUMS is signed by the Debian CD signing key $key."
       return 0
     fi
   done
-  log "warning: SHA512SUMS could not be verified; the Debian CD signing key is not in your keyring."
-  notify normal "Could not verify the Debian ISO signature (the Debian CD key is not in your keyring). Continuing with the SHA-512 checksum only."
+  for key in "${debian_cd_keys[@]}"; do
+    if grep -Fxq "[GNUPG:] NO_PUBKEY ${key: -16}" <<<"$status"; then
+      log "warning: SHA512SUMS could not be verified; the Debian CD signing key is not in your keyring."
+      notify normal "Could not verify the Debian ISO signature (the Debian CD key is not in your keyring). Continuing with the SHA-512 checksum only."
+      return 0
+    fi
+  done
+  die "The Debian SHA512SUMS signature could not be verified."
 }
 
 # Download the newest Debian 13 netinst into the cache and set fetched_iso to
@@ -296,15 +309,17 @@ fetch_iso() {
     "$work/SHA512SUMS") || die "No Debian 13 netinst ISO is listed at $debian_cd."
   iso_name=${line##* }
 
-  if [[ -f $cache_root/$iso_name ]]; then
-    log "$iso_name is already cached."
-    fetched_iso=$cache_root/$iso_name
-    return 0
-  fi
-
   "$curl_command" -fsSL --retry 3 -o "$work/SHA512SUMS.sign" "$debian_cd/SHA512SUMS.sign" ||
     : >"$work/SHA512SUMS.sign"
   verify_signature "$work"
+
+  if [[ -f $cache_root/$iso_name ]] &&
+    (cd -- "$cache_root" && printf '%s\n' "$line" | sha512sum --check --status); then
+    printf '%s\n' "$line" >"$cache_root/$iso_name.sha512"
+    log "$iso_name is already cached and verified."
+    fetched_iso=$cache_root/$iso_name
+    return 0
+  fi
 
   notify normal "Downloading $iso_name…"
   log "Downloading $debian_cd/$iso_name"
@@ -315,6 +330,7 @@ fetch_iso() {
 
   chmod 644 -- "$work/$iso_name"
   mv -- "$work/$iso_name" "$cache_root/$iso_name"
+  printf '%s\n' "$line" >"$cache_root/$iso_name.sha512"
   log "Cached $cache_root/$iso_name"
   fetched_iso=$cache_root/$iso_name
 }
@@ -370,6 +386,7 @@ install_command() {
     --disk "size=$disk_gb,format=qcow2,bus=virtio"
     --network network=default,model=virtio
     --location "$iso"
+    --uuid "$uuid"
     --initrd-inject "$answers/preseed.cfg"
     --initrd-inject "$answers/vm-preset-late.sh"
   )
@@ -381,12 +398,12 @@ install_command() {
 
 # Undefine a domain this run created, with its disks but not the install ISO.
 remove_domain() {
-  local name=$1 disks
-  domain_exists "$name" || return 0
-  disks=$(virsh_system domblklist --details "$name" 2>/dev/null |
-    awk '$1 == "file" && $2 == "disk" { print $4 }' | paste -sd, -) || true
-  virsh_system destroy "$name" >/dev/null 2>&1 || true
-  local args=(undefine "$name" --nvram)
+  local uuid=$1 name=$2 disks
+  domain_exists "$uuid" || return 0
+  disks=$(virsh_system domblklist --details "$uuid" 2>/dev/null |
+    awk '$1 == "file" && $2 == "disk" { print $3 }' | paste -sd, -) || true
+  virsh_system destroy "$uuid" >/dev/null 2>&1 || true
+  local args=(undefine "$uuid" --nvram)
   [[ -z $disks ]] || args+=(--storage "$disks")
   if virsh_system "${args[@]}" >>"$log_file" 2>&1; then
     log "Removed the partly created VM $name."
@@ -432,7 +449,8 @@ dry_run_create() {
 
 create_vm() {
   local preset=$1 requested_name=${2:-} label name user password confirm password_hash
-  local with_key=false choice iso answers install_pid status=0
+  local with_key=false choice iso answers install_pid status=0 uuid
+  uuid=$(</proc/sys/kernel/random/uuid)
   label=$(preset_label "$preset")
   check_resources
 
@@ -498,12 +516,12 @@ create_vm() {
   "$virt_install_command" "${install_args[@]}" >>"$log_file" 2>&1 9>&- &
   install_pid=$!
 
-  until domain_exists "$name"; do
+  until domain_exists "$uuid"; do
     kill -0 "$install_pid" 2>/dev/null || break
     sleep "$poll_interval"
   done
 
-  if domain_exists "$name"; then
+  if domain_exists "$uuid"; then
     # The install initrd is built by now, so the answer files can go, and
     # another VM can be created while this one installs.
     rm -rf -- "$answers"
@@ -523,7 +541,7 @@ create_vm() {
   fi
 
   log "virt-install exited with status $status."
-  remove_domain "$name"
+  remove_domain "$uuid" "$name"
   die "Creating $name failed. See $log_file."
 }
 

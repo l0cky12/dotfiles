@@ -18,7 +18,7 @@ calls=$test_root/calls
 domains=$test_root/domains
 injected=$test_root/injected
 mirror=$test_root/mirror
-mkdir -p "$bin" "$test_root/home/.ssh" "$test_root/tmp" "$injected" "$mirror"
+mkdir -p "$bin" "$test_root/home/.ssh" "$test_root/tmp" "$injected" "$mirror" "$test_root/uuids"
 : >"$calls"
 printf 'debian13\ndebian13-docker-1\n' >"$domains"
 
@@ -36,17 +36,20 @@ cat >"$bin/virsh" <<'SH'
 printf 'virsh %s\n' "$*" >>"$VM_TEST_CALLS"
 [[ $1 == -c && $2 == qemu:///system ]] || exit 3
 shift 2
+domain=${2:-}
+[[ $1 != domblklist ]] || domain=$3
+[[ ! -f $VM_TEST_UUIDS/$domain ]] || domain=$(<"$VM_TEST_UUIDS/$domain")
 case $1 in
-  dominfo) grep -Fxq "$2" "$VM_TEST_DOMAINS" ;;
+  dominfo) grep -Fxq "$domain" "$VM_TEST_DOMAINS" ;;
   net-info) printf 'Name:           default\nActive:         %s\n' "${VM_TEST_NET:-yes}" ;;
   domblklist)
     printf ' Type   Device   Target   Source\n'
-    printf ' file   disk     vda      /var/lib/libvirt/images/%s.qcow2\n' "$3"
+    printf ' file   disk     vda      /var/lib/libvirt/images/%s.qcow2\n' "$domain"
     printf ' file   cdrom    sda      /cache/netinst.iso\n'
     ;;
   destroy) ;;
   undefine)
-    grep -Fxv "$2" "$VM_TEST_DOMAINS" >"$VM_TEST_DOMAINS.tmp" || true
+    grep -Fxv "$domain" "$VM_TEST_DOMAINS" >"$VM_TEST_DOMAINS.tmp" || true
     mv "$VM_TEST_DOMAINS.tmp" "$VM_TEST_DOMAINS"
     ;;
   *) exit 4 ;;
@@ -56,15 +59,18 @@ SH
 cat >"$bin/virt-install" <<'SH'
 #!/usr/bin/env bash
 printf 'virt-install %s\n' "$*" >>"$VM_TEST_CALLS"
-name=
+name= uuid=
 while (($#)); do
   case $1 in
     --name) name=$2; shift ;;
+    --uuid) uuid=$2; shift ;;
     --initrd-inject) cp -- "$2" "$VM_TEST_INJECTED/"; ls -l "$2" >>"$VM_TEST_INJECTED/modes" ;;
   esac
   shift
 done
 printf '%s\n' "$name" >>"$VM_TEST_DOMAINS"
+[[ -z ${VM_TEST_COLLISION:-} ]] || exit 1
+printf '%s\n' "$name" >"$VM_TEST_UUIDS/$uuid"
 exit "${VM_TEST_INSTALL_EXIT:-0}"
 SH
 
@@ -128,6 +134,9 @@ case ${VM_TEST_GPG:-valid} in
   valid) printf '[GNUPG:] VALIDSIG 1111 2026-01-01 0 4 0 1 10 00 DF9B9C49EAA9298432589D76DA87E80D6294BE9B\n' ;;
   bad) printf '[GNUPG:] BADSIG DA87E80D6294BE9B Debian CD signing key\n'; exit 1 ;;
   nokey) printf '[GNUPG:] NO_PUBKEY DA87E80D6294BE9B\n'; exit 2 ;;
+  malformed) printf '[GNUPG:] NODATA 1\n'; exit 2 ;;
+  unexpected) printf '[GNUPG:] VALIDSIG 1111 2026-01-01 0 4 0 1 10 00 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n' ;;
+  unknown) printf '[GNUPG:] NO_PUBKEY AAAAAAAAAAAAAAAA\n'; exit 2 ;;
 esac
 SH
 
@@ -156,6 +165,7 @@ run() {
     ROFI="$bin/rofi" NOTIFY_SEND="$bin/notify-send" CURL="$bin/curl" GPG="$bin/gpg" \
     SYSTEMCTL="$bin/systemctl" ID_COMMAND="$bin/id" \
     VM_TEST_CALLS="$calls" VM_TEST_DOMAINS="$domains" VM_TEST_INJECTED="$injected" \
+    VM_TEST_UUIDS="$test_root/uuids" \
     VM_TEST_MIRROR="$mirror" VM_TEST_PASSWORD="${VM_TEST_PASSWORD-$password}" "$helper" "$@"
 }
 
@@ -310,10 +320,20 @@ reset_calls
 
 # ------------------------------------------------------------- failure ---
 VM_TEST_INSTALL_EXIT=1 run create debian13 >/dev/null 2>&1 && fail 'a failed install reported success'
-assert_contains "$calls" 'virsh -c qemu:///system undefine debian13-2 --nvram --storage /var/lib/libvirt/images/debian13-2.qcow2'
+failed_uuid=$(awk '/^virt-install / {for (i=1; i<=NF; i++) if ($i == "--uuid") print $(i+1)}' "$calls")
+assert_contains "$calls" "virsh -c qemu:///system undefine $failed_uuid --nvram --storage vda"
 grep -Fxq debian13-2 "$domains" && fail 'the failed VM was left defined'
 grep -Fxq debian13 "$domains" || fail 'cleanup removed a VM it did not create'
 assert_contains "$calls" 'notify --urgency=critical Virtual machines Creating debian13-2 failed.'
+reset_calls
+
+# Another creator can claim the requested name after the first availability
+# check. Only our generated UUID may be opened or removed on failure.
+VM_TEST_COLLISION=1 run create debian13 --name concurrent-vm >/dev/null 2>&1 && fail 'a name collision reported success'
+grep -Fxq concurrent-vm "$domains" || fail 'cleanup removed a VM created by another process'
+assert_not_contains "$calls" ' destroy '
+assert_not_contains "$calls" ' undefine '
+assert_not_contains "$calls" 'virt-manager '
 reset_calls
 
 # ---------------------------------------------------------------- lock ---
@@ -337,6 +357,12 @@ VM_TEST_GPG=bad run refresh-iso debian13 >/dev/null 2>&1 && fail 'a bad signatur
 grep -Fq "curl https://cd.example/iso-cd/$iso_name" "$calls" && fail 'downloaded the ISO despite a bad signature'
 reset_calls
 
+for signature in malformed unexpected unknown; do
+  VM_TEST_GPG=$signature run refresh-iso debian13 >/dev/null 2>&1 && fail "a $signature signature was accepted"
+  assert_not_contains "$calls" "curl https://cd.example/iso-cd/$iso_name"
+  reset_calls
+done
+
 VM_TEST_GPG=nokey run refresh-iso debian13 >/dev/null 2>&1 || fail 'a missing signing key should only warn'
 assert_contains "$calls" 'Could not verify the Debian ISO signature'
 [[ -f $test_root/cache/vm-presets/$iso_name ]] || fail 'refresh-iso did not cache the ISO'
@@ -344,6 +370,17 @@ reset_calls
 
 run refresh-iso debian13 >/dev/null 2>&1 || fail 'refresh-iso with a current cache failed'
 grep -Fq "curl https://cd.example/iso-cd/$iso_name" "$calls" && fail 'refresh-iso downloaded an ISO it already had'
+reset_calls
+
+# A cached filename is not proof of integrity, including during refresh.
+printf 'truncated ISO' >"$test_root/cache/vm-presets/$iso_name"
+run refresh-iso debian13 >/dev/null 2>&1 || fail 'refresh did not repair a corrupt cached ISO'
+cmp "$mirror/$iso_name" "$test_root/cache/vm-presets/$iso_name" || fail 'refresh kept corrupt bytes'
+reset_calls
+printf 'truncated again' >"$test_root/cache/vm-presets/$iso_name"
+run create debian13 --name repaired-cache >/dev/null 2>&1 || fail 'create did not repair a corrupt cached ISO'
+assert_contains "$calls" "curl https://cd.example/iso-cd/$iso_name"
+cmp "$mirror/$iso_name" "$test_root/cache/vm-presets/$iso_name" || fail 'create used corrupt bytes'
 reset_calls
 
 # ---------------------------------------------------------------- menu ---
