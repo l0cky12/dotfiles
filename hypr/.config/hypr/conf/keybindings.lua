@@ -116,7 +116,7 @@ end
 for workspace = 1, 10 do
     bind(mod .. " + SHIFT + " .. number_row_keys[workspace], "move to workspace " .. workspace,
         move_active_window_dispatcher(workspace, true))
-    bind(mod .. " + CTRL + " .. number_row_keys[workspace], "move silently to workspace " .. workspace,
+    bind(mod .. " + SHIFT + CTRL + " .. number_row_keys[workspace], "move silently to workspace " .. workspace,
         move_active_window_dispatcher(workspace, false))
 end
 bind(mod .. " + SHIFT + bracketleft", "move to previous workspace", hl.dsp.window.move({ workspace = "-1", follow = true }))

@@ -143,7 +143,7 @@ live Lua evaluator so they target the active window reliably on Hyprland 0.56.2.
 | Keys | Action |
 | --- | --- |
 | `SUPER+SHIFT+1` … `SUPER+SHIFT+0` | move to workspace 1 … 10 and follow |
-| `SUPER+CTRL+1` … `SUPER+CTRL+0` | move to workspace 1 … 10 without following |
+| `SUPER+SHIFT+CTRL+1` … `SUPER+SHIFT+CTRL+0` | move to workspace 1 … 10 without following |
 | `SUPER+SHIFT+ALT+1` … `SUPER+SHIFT+ALT+4` | move to workspace 1 … 4 without following |
 | `SUPER+SHIFT+[` / `SUPER+SHIFT+]` | move and follow to previous / next workspace |
 | `SUPER+CTRL+[` / `SUPER+CTRL+]` | move silently to previous / next workspace |
