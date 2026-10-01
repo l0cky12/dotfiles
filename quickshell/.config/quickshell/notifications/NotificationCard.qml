@@ -1,6 +1,7 @@
 import Quickshell
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import ".."
 
 NotificationBorder {
@@ -11,6 +12,10 @@ NotificationBorder {
   property string summary: ""
   property string body: ""
   property string image: ""
+  property string actionsJson: "[]"
+  readonly property var actionItems: {
+    try { return JSON.parse(actionsJson) } catch (e) { return [] }
+  }
   property string glyph: ""
   property int urgency: 1
   property real remainingFraction: 1
@@ -27,6 +32,7 @@ NotificationBorder {
 
   signal closeRequested()
   signal cardClicked()
+  signal actionRequested(string identifier)
 
   function resolveIcon(value) {
     const icon = String(value || "")
@@ -38,6 +44,7 @@ NotificationBorder {
 
   implicitWidth: Theme.fs(NotificationConfig.cardWidth)
   implicitHeight: row.implicitHeight + root.verticalPadding * 2 + topWidth + bottomWidth
+                  + (buttons.visible ? buttons.implicitHeight + Theme.fs(8) : 0)
   cornerRadius: Theme.notificationRadius
 
   HoverHandler { id: hover }
@@ -129,6 +136,43 @@ NotificationBorder {
         wrapMode: Text.WordWrap
         elide: Text.ElideRight
         maximumLineCount: 3
+      }
+    }
+  }
+
+  RowLayout {
+    id: buttons
+    anchors.top: row.bottom
+    anchors.topMargin: Theme.fs(8)
+    anchors.left: row.left
+    anchors.right: row.right
+    spacing: Theme.fs(8)
+    visible: root.actionItems.length > 0
+
+    Repeater {
+      model: root.actionItems
+      delegate: Button {
+        required property var modelData
+        objectName: "notificationAction-" + modelData.identifier
+        Layout.fillWidth: true
+        text: modelData.text
+        implicitHeight: Theme.fs(30)
+        onClicked: root.actionRequested(modelData.identifier)
+        contentItem: Text {
+          text: parent.text
+          textFormat: Text.PlainText
+          color: Theme.notificationText
+          font.family: Theme.uiFamily
+          font.pixelSize: Theme.fs(14)
+          horizontalAlignment: Text.AlignHCenter
+          verticalAlignment: Text.AlignVCenter
+          elide: Text.ElideRight
+        }
+        background: Rectangle {
+          radius: Theme.fs(4)
+          color: parent.hovered || parent.activeFocus ? Theme.notificationBorder1 : Theme.notificationBackground
+          border.color: Theme.notificationBorder1
+        }
       }
     }
   }

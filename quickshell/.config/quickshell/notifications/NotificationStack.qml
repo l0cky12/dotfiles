@@ -25,6 +25,7 @@ Item {
         required property string summary
         required property string body
         required property string image
+        required property string actionsJson
         required property string glyph
         required property int urgency
         required property real expireTimeout
@@ -90,12 +91,14 @@ Item {
           summary: slot.summary
           body: slot.body
           image: slot.image
+          actionsJson: slot.actionsJson
           glyph: slot.glyph
           urgency: slot.urgency
           expiring: slot.lifetime > 0
           remainingFraction: slot.lifetime > 0 ? slot.remainingMs / slot.lifetime : 1
           onCloseRequested: NotificationService.dismissKey(slot.key)
           onCardClicked: NotificationService.invokeKey(slot.key)
+          onActionRequested: function(identifier) { NotificationService.invokeKey(slot.key, identifier) }
         }
       }
     }

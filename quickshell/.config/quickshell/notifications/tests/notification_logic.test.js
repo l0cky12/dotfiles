@@ -17,6 +17,16 @@ const snapshot = logic.snapshotOf(notification, 1234, "DP-1");
 assert.equal(snapshot.key, "1234-7");
 assert.equal(snapshot.glyph, "󰖩");
 assert.equal(snapshot.screenName, "DP-1");
+assert.equal(snapshot.actionsJson, "[]");
+const screenshot = logic.snapshotOf({actions: [
+  {identifier: "default", text: "Open"},
+  {identifier: "edit", text: "Edit"},
+  {identifier: "save", text: "Save"}
+]}, 1234, "DP-1");
+assert.deepEqual(JSON.parse(screenshot.actionsJson), [
+  {identifier: "edit", text: "Edit"}, {identifier: "save", text: "Save"}
+]);
+assert.ok(logic.updateRoles().includes("actionsJson"));
 
 assert.equal(logic.shouldBypassDnd({appName: "Slack", hints: {"swaync-bypass-dnd": true}}, ["Capture"]), false);
 assert.equal(logic.shouldBypassDnd({appName: "Capture", hints: {"swaync-bypass-dnd": true}}, ["Capture"]), true);

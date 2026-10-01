@@ -105,6 +105,7 @@ Singleton {
       summary: String(v.summary || ""),
       body: Logic.sanitizeBody(v.body),
       image: String(v.image || ""),
+      actionsJson: v.restored || v.replay ? "[]" : String(v.actionsJson || "[]"),
       glyph: String(v.glyph || ""),
       urgency: Number(v.urgency) === 0 || Number(v.urgency) === 2 ? Number(v.urgency) : 1,
       expireTimeout: Math.max(0, Number(v.expireTimeout) || 0),
@@ -141,7 +142,7 @@ Singleton {
     const refresh = function() { root.refreshNative(entry.key, notification) }
     const signals = ["summaryChanged", "bodyChanged", "appNameChanged", "appIconChanged",
                      "imageChanged", "urgencyChanged", "expireTimeoutChanged",
-                     "desktopEntryChanged", "hintsChanged"]
+                     "desktopEntryChanged", "hintsChanged", "actionsChanged"]
     for (let i = 0; i < signals.length; i++) {
       const signal = notification[signals[i]]
       if (signal && typeof signal.connect === "function") signal.connect(refresh)
@@ -252,27 +253,28 @@ Singleton {
     return keys.length ? "ok" : "none"
   }
 
-  function invokeKey(key) {
+  function invokeKey(key, identifier = "default") {
     const index = root.indexForKey(key)
     if (index < 0) return "none"
     const entry = popupModel.get(index)
     const ref = root.liveRefs[key]
-    root.requestClose(key, "invoke")
     let invoked = false
     if (ref && !entry.restored && !entry.replay) {
       try {
         for (let i = 0; i < ref.actions.length; i++) {
           const action = ref.actions[i]
-          if (action && action.identifier === "default") {
+          if (action && action.identifier === identifier) {
             action.invoke()
             invoked = true
             break
           }
         }
       } catch (e) {
-        console.warn("notifications: default action failed:", e)
+        console.warn("notifications: action failed:", e)
       }
     }
+    if (!invoked && identifier !== "default") return "none"
+    root.requestClose(key, "invoke")
     if (!invoked) actions.focus(entry)
     return invoked ? "invoked" : "focused"
   }
