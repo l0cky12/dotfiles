@@ -12,6 +12,7 @@
   "multiLinePadding": 10,
   "iconSize": 40,
   "iconGap": 12,
+  "vinylSize": 64,
   "glyphGap": 8,
   "closeSize": 18,
   "countdownHeight": 2,
