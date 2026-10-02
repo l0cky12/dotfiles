@@ -177,6 +177,22 @@ Scope {
     onPressed: LmenuState.toggle(bar.focusedScreen(), "")
   }
 
+  // Panel keys from keybindings.lua's shell() helper, for the same reason.
+  GlobalShortcut { name: "keybinds"; description: "keybindings palette"; onPressed: KeybindsState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "neovim-keybinds"; description: "Neovim keybindings"; onPressed: AppKeybindsState.togglePanel(bar.focusedScreen(), "neovim") }
+  GlobalShortcut { name: "herdr-keybinds"; description: "Herdr keybindings"; onPressed: AppKeybindsState.togglePanel(bar.focusedScreen(), "herdr") }
+  GlobalShortcut { name: "clipboard"; description: "clipboard history"; onPressed: ClipboardState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "visualizer"; description: "audio visualizer"; onPressed: VisualizerState.toggle() }
+  GlobalShortcut { name: "network"; description: "network panel"; onPressed: NetworkState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "network-speedtest"; description: "network speed test"; onPressed: NetworkState.runSpeedTest(bar.focusedScreen()) }
+  GlobalShortcut { name: "display"; description: "display panel"; onPressed: DisplayState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "media"; description: "media panel"; onPressed: MediaState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "audio"; description: "audio panel"; onPressed: AudioState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "bluetooth"; description: "Bluetooth panel"; onPressed: BluetoothState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "theme"; description: "theme picker"; onPressed: ThemeState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "nightlight"; description: "night light schedule"; onPressed: NightLightState.togglePanel(bar.focusedScreen()) }
+  GlobalShortcut { name: "webapps"; description: "web app manager"; onPressed: WebAppState.togglePanel(bar.focusedScreen()) }
+
   IpcHandler {
     target: "lmenu"
     function toggle(route: string): void {

@@ -491,7 +491,8 @@ Carried over from the previous theme set:
 ### Visual Theme Picker
 
 `SUPER + CTRL + SHIFT + SPACE` opens a fullscreen Quickshell overlay showing a
-preview tile per theme. It runs inside the already-running shell process (over
+preview tile per theme. It runs inside the already-running shell process (the
+key is a Hyprland global shortcut, `quickshell:theme`; scripts can use
 `quickshell ipc call theme toggle`), so there is nothing to start.
 
 ```

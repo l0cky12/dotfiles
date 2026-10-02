@@ -43,7 +43,7 @@ bindings use it.
 | `SUPER+L` | lock | `screensaver-lock` if present, otherwise Hyprlock directly |
 | `SUPER+P` | power menu | `power-menu.sh`, launcher-neutral |
 | `SUPER+ALT+P` | monitor profiles | themed Rofi menu with a next-profile cycle |
-| `SUPER+K` | keybinding palette | `quickshell ipc call keybinds toggle` |
+| `SUPER+K` | keybinding palette | global shortcut `quickshell:keybinds` |
 | `SUPER+I` | coding agent | `ai-agent`, via `run-if-deployed.sh ai` |
 | `SUPER+CTRL+T` | activity monitor | floating `btop` |
 | `SUPER+SHIFT+G` | Gaming VM | starts `Gaming-VM` with virsh, waits 15 s, then Looking Glass |
@@ -54,7 +54,7 @@ bindings use it.
 | --- | --- | --- |
 | `SUPER+A` | application launcher | `quick-search.sh drun` |
 | `SUPER+SHIFT+A` | lmenu root menu | `lmenu toggle` |
-| `SUPER+ALT+A` | web-app manager | `quickshell ipc call webapps toggle` |
+| `SUPER+ALT+A` | web-app manager | global shortcut `quickshell:webapps` |
 | `SUPER+W` | browser | `helium-browser`, via `run-or-install` |
 | `SUPER+SHIFT+ALT+W` | private browser window | `default-browser-private` |
 | `SUPER+ALT+W` | Windows VM | `windows-vm launch` |

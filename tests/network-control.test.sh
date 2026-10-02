@@ -154,7 +154,7 @@ grep -Fq 'WlrKeyboardFocus.Exclusive' "$speed_overlay" || fail 'speed-test overl
 grep -Fq 'Keys.onEscapePressed: NetworkState.closeSpeedTest()' "$speed_overlay" || fail 'speed-test overlay cannot close with Escape'
 grep -Fq 'Run again' "$speed_overlay" || fail 'speed-test overlay has no repeat action'
 grep -Fq 'function closeSpeedTest()' "$state" || fail 'speed-test state cannot close an active test'
-grep -Fqx 'exec(mod .. " + ALT + T", "network speed test", "quickshell ipc call network speedTest")' \
+grep -Fqx 'shell(mod .. " + ALT + T", "network speed test", "network-speedtest")' \
   "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Lua speed-test binding does not open the overlay'
 # shellcheck disable=SC2016 # The legacy binding must contain a literal $mainMod.
 grep -Fqx 'bindd = $mainMod ALT, T, network speed test, exec, quickshell ipc call network speedTest' \
@@ -162,7 +162,7 @@ grep -Fqx 'bindd = $mainMod ALT, T, network speed test, exec, quickshell ipc cal
 grep -Fq 'stderr: StdioCollector { id: qrErr }' "$state" || fail 'Wi-Fi QR errors are not surfaced to the panel'
 grep -Fq 'root.backendError(qrErr.text)' "$state" || fail 'Wi-Fi QR errors are not cleaned up for the panel'
 grep -Fq 'NetworkState.togglePanel(bar.focusedScreen())' "$repo_root/quickshell/.config/quickshell/Bar.qml" || fail 'network manage IPC does not open the panel'
-grep -Fqx 'exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")' \
+grep -Fqx 'shell(mod .. " + CTRL + W", "manage Wi-Fi and network", "network")' \
   "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Lua Super+Ctrl+W binding is missing or changed'
 # shellcheck disable=SC2016 # The legacy binding must contain a literal $mainMod.
 grep -Fqx 'bindd = $mainMod CTRL, W, manage Wi-Fi and network, exec, quickshell ipc call network manage' \

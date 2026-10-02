@@ -13,6 +13,14 @@ end
 
 local window_layout = cfg.scripts_dir .. "/window-layout.sh"
 
+-- Quickshell panels open through Hyprland global shortcuts (GlobalShortcut in
+-- Bar.qml): the keypress reaches the resident shell directly instead of
+-- starting an IPC client process (~30 ms) on every press. The IPC targets stay
+-- for scripts and lmenu.
+local function shell(keys, description, name)
+    bind(keys, description, hl.dsp.global("quickshell:" .. name))
+end
+
 -- Entry points owned by a separate Stow package. Routed through
 -- run-if-deployed.sh so an undeployed package reports itself instead of making
 -- the keybinding silently do nothing.
@@ -36,39 +44,39 @@ exec(mod .. " + L", "lock screen", [[if test -x "$HOME/.local/bin/screensaver-lo
 exec(mod .. " + P", "power menu", "bash " .. cfg.scripts_dir .. "/power-menu.sh")
 exec(mod .. " + ALT + P", "monitor profiles", cfg.scripts_dir .. "/monitor-profile-menu.sh")
 exec(mod .. " + ALT + E", "emoji menu", cfg.scripts_dir .. "/RofiEmoji.sh")
-exec(mod .. " + K", "keybindings", "quickshell ipc call keybinds toggle")
+shell(mod .. " + K", "keybindings", "keybinds")
 package_exec(mod .. " + CTRL + U", "pull and deploy dotfiles updates", "dots", "dots update")
-exec(mod .. " + N", "Neovim keybindings", "quickshell ipc call app-keybinds neovim")
-exec(mod .. " + H", "Herdr keybindings", "quickshell ipc call app-keybinds herdr")
+shell(mod .. " + N", "Neovim keybindings", "neovim-keybinds")
+shell(mod .. " + H", "Herdr keybindings", "herdr-keybinds")
 exec(mod .. " + I", "coding agent",
     cfg.scripts_dir .. "/run-if-deployed.sh ai ai-agent")
 
 exec(mod .. " + C", "universal copy", cfg.scripts_dir .. "/universal-clipboard.sh copy")
 exec(mod .. " + X", "universal cut", cfg.scripts_dir .. "/universal-clipboard.sh cut")
 exec(mod .. " + V", "universal paste", cfg.scripts_dir .. "/universal-clipboard.sh paste")
-exec(mod .. " + CTRL + V", "clipboard history", "quickshell ipc call clipboard toggle")
-exec(mod .. " + ALT + V", "toggle audio visualizer", "quickshell ipc call visualizer toggle")
+shell(mod .. " + CTRL + V", "clipboard history", "clipboard")
+shell(mod .. " + ALT + V", "toggle audio visualizer", "visualizer")
 exec(mod .. " + SHIFT + C", "calculator", cfg.scripts_dir .. "/calculator.sh")
 exec(mod .. " + CTRL + Q", "calculator", cfg.scripts_dir .. "/calculator.sh")
 exec(mod .. " + CTRL + period", "transcode media", cfg.scripts_dir .. "/transcode-menu.sh")
 app_exec(mod .. " + CTRL + S", "share with LocalSend", "localsend")
 exec(mod .. " + CTRL + T", "activity (btop, floating)", cfg.scripts_dir .. "/btop-float.sh")
 exec(mod .. " + CTRL + SHIFT + G", "play temporary dotfiles history", cfg.scripts_dir .. "/gource-dotfiles.sh")
-exec(mod .. " + ALT + T", "network speed test", "quickshell ipc call network speedTest")
-exec(mod .. " + CTRL + I", "toggle network panel", "quickshell ipc call network toggle")
-exec(mod .. " + CTRL + D", "toggle display panel", "quickshell ipc call display toggle")
-exec(mod .. " + CTRL + M", "toggle media panel", "quickshell ipc call media toggle")
-exec(mod .. " + CTRL + A", "toggle audio panel", "quickshell ipc call audio toggle")
-exec(mod .. " + CTRL + B", "toggle Bluetooth panel", "quickshell ipc call bluetooth toggle")
+shell(mod .. " + ALT + T", "network speed test", "network-speedtest")
+shell(mod .. " + CTRL + I", "toggle network panel", "network")
+shell(mod .. " + CTRL + D", "toggle display panel", "display")
+shell(mod .. " + CTRL + M", "toggle media panel", "media")
+shell(mod .. " + CTRL + A", "toggle audio panel", "audio")
+shell(mod .. " + CTRL + B", "toggle Bluetooth panel", "bluetooth")
 exec(mod .. " + SHIFT + B", "power profile menu", cfg.scripts_dir .. "/power-profile.sh menu")
-exec(mod .. " + CTRL + W", "manage Wi-Fi and network", "quickshell ipc call network manage")
-exec(mod .. " + T", "theme picker", "quickshell ipc call theme toggle")
+shell(mod .. " + CTRL + W", "manage Wi-Fi and network", "network")
+shell(mod .. " + T", "theme picker", "theme")
 exec(mod .. " + Backspace", "toggle window transparency on all workspaces", cfg.scripts_dir .. "/toggle-transparency.sh")
 exec(mod .. " + SHIFT + Backspace", "toggle window gaps on all workspaces", cfg.scripts_dir .. "/toggle-gaps.sh")
 bind(mod .. " + CTRL + N", "night light", function()
     hl.dispatch(hl.dsp.exec_cmd(cfg.scripts_dir .. "/night-light.sh toggle"))
 end)
-exec(mod .. " + SHIFT + N", "night light schedule", "quickshell ipc call nightlight toggle")
+shell(mod .. " + SHIFT + N", "night light schedule", "nightlight")
 
 exec(mod .. " + comma", "dismiss newest notification", "$HOME/.local/bin/notificationctl dismiss-one")
 exec(mod .. " + SHIFT + comma", "dismiss all notifications", "$HOME/.local/bin/notificationctl dismiss-all")
@@ -147,7 +155,7 @@ exec(mod .. " + A", "application launcher", cfg.scripts_dir .. "/quick-search.sh
 -- keypress reaches it without starting a process. `lmenu toggle` is the rofi
 -- fallback for when the shell is not running.
 bind(mod .. " + SHIFT + A", "lmenu root", hl.dsp.global("quickshell:lmenu"))
-exec(mod .. " + ALT + A", "web app manager", "quickshell ipc call webapps toggle")
+shell(mod .. " + ALT + A", "web app manager", "webapps")
 -- One-step install of the page in the focused browser window: the helper
 -- recovers the URL from the window's Wayland class and opens the install form
 -- with it. A plain browser tab has no URL in its class, so the form opens empty.
