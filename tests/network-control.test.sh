@@ -112,6 +112,15 @@ fi
 if run --dry-run ipv4 manual 192.0.2.44 24 192.0.2.1 '1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8 8.8.4.4' >/dev/null 2>&1; then
   fail 'manual IPv4 accepted more than four DNS servers'
 fi
+# Validate the entire argument, including later lines, before passing it to nmcli.
+for values in $'1.1.1.1\nbad.ip' $'1.1.1.1\n1.0.0.1 9.9.9.9 8.8.8.8 8.8.4.4'; do
+  if run --dry-run dns custom "$values" >/dev/null 2>&1; then
+    fail 'custom DNS skipped validation after a newline'
+  fi
+  if run --dry-run ipv4 manual 192.0.2.44 24 192.0.2.1 "$values" >/dev/null 2>&1; then
+    fail 'manual IPv4 skipped DNS validation after a newline'
+  fi
+done
 # A glob must be validated as text, never expanded against the working directory.
 if (cd "$test_root/runtime" && touch 1.1.1.1 && run --dry-run dns custom '*') >/dev/null 2>&1; then
   fail 'DNS expanded a glob into a server list'

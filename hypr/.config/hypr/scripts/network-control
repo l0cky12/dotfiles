@@ -47,9 +47,10 @@ valid_ipv4() {
 
 # Up to four servers, matching the panel. read -a splits without globbing.
 valid_dns_list() {
-  local ip
+  local ip dns=$1
   local -a servers
-  read -r -a servers <<<"$1"
+  dns=${dns//[[:space:]]/ }
+  read -r -a servers <<<"$dns"
   (( ${#servers[@]} <= 4 )) || return 1
   for ip in "${servers[@]}"; do valid_ipv4 "$ip" || return 1; done
 }
