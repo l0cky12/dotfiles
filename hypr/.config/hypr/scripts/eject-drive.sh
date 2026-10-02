@@ -26,7 +26,7 @@ notify_status() {
   # User-initiated confirmations must surface under Do Not Disturb, matching
   # the swaync-bypass convention in dnd.sh and capture/common.sh.
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send -a "Eject drives" -h boolean:swaync-bypass-dnd:true "Eject drives" "$1"
+    notify-send -a "Eject drives" -h boolean:swaync-bypass-dnd:true "Eject drives" "$1" || true
   else
     printf 'Eject drives: %s\n' "$1" >&2
   fi

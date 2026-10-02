@@ -30,4 +30,14 @@ run_dry() {
 grep -Fq 'org.freedesktop.Notifications.Notify' "$script" ||
   fail 'notification fallback must call the D-Bus notification service'
 
+# The live path must use the Lua dispatcher: hyprland.lua rejects the legacy
+# `dispatch layoutmsg preselect r` string as a Lua syntax error.
+stub_root=$(mktemp -d -t window-layout-test.XXXXXX)
+trap 'rm -rf -- "$stub_root"' EXIT
+printf '#!/bin/sh\nprintf "%%s\\n" "$*" >>"%s/calls"\n' "$stub_root" >"$stub_root/hyprctl"
+chmod +x "$stub_root/hyprctl"
+HYPR_LAYOUT=dwindle HYPRCTL="$stub_root/hyprctl" NOTIFY_SEND=true "$script" split-horizontal
+[[ $(<"$stub_root/calls") == "dispatch hl.dsp.layout('preselect r')" ]] ||
+  fail 'split-horizontal must dispatch hl.dsp.layout preselect through Lua'
+
 printf 'ok: layout cycling, Dwindle splits, and non-Dwindle notifications\n'

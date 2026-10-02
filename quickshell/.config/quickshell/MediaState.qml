@@ -197,10 +197,12 @@ Singleton {
   onActiveChanged: root.resyncPosition()
 
   // Smooth local extrapolation for the timeline and lyric sync.
+  // Only while the panel shows the timeline and lyrics; nothing else reads it.
   Timer {
     interval: 100
     repeat: true
-    running: root.active !== null && root.active.isPlaying && !root.dragging
+    triggeredOnStart: true
+    running: root.panelVisible && root.active !== null && root.active.isPlaying && !root.dragging
     onTriggered: {
       const p = root.active
       if (!p)
@@ -215,7 +217,8 @@ Singleton {
   Timer {
     interval: 2000
     repeat: true
-    running: root.active !== null && root.active.isPlaying
+    triggeredOnStart: true
+    running: root.panelVisible && root.active !== null && root.active.isPlaying
     onTriggered: {
       const p = root.active
       if (!p || root.dragging)

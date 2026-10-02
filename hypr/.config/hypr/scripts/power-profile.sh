@@ -32,7 +32,8 @@ EOF
 
 notify() {
   command -v notify-send >/dev/null 2>&1 || return 0
-  notify-send -a "Power profile" "$1" "${2:-}"
+  # A missing notification daemon must not fail an already-applied change.
+  notify-send -a "Power profile" "$1" "${2:-}" || true
 }
 
 require_powerprofilesctl() {

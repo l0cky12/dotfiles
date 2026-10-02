@@ -27,8 +27,8 @@ stow modes screensaver hypr quickshell
 ```
 
 A new login starts `desktop-mode daemon`; the primary Hypridle process owns the
-screensaver timeout. Night-light changes call `night-light.sh`, which reloads
-Hyprland to apply the shader. The controller does not install software, write
+screensaver timeout. Night-light changes call `night-light.sh`, which applies the
+shader live with `hyprctl eval` (no full config reload). The controller does not install software, write
 system files, or restart services.
 
 | Shortcut | Action |
@@ -110,7 +110,7 @@ screensaver-lock --dry-run
 ```
 
 - `available=false` for DND means Quickshell IPC is not reachable.
-- A night-light error means the shader helper or its Hyprland reload failed.
+- A night-light error means the shader helper or its `hyprctl eval` failed.
 - A daemon warning means untimed operations work, but timed expiry is not
   supervised. Start `desktop-mode daemon` once for the current login.
 - `desktop-mode reset --all` disables transient modes and restores automatic

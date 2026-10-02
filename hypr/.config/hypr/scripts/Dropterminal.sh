@@ -17,6 +17,11 @@ SPECIAL_WS="special:scratchpad"
 ADDR_FILE="${DROPTERMINAL_ADDR_FILE:-${XDG_RUNTIME_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}}/dropdown_terminal_addr}"
 umask 077
 mkdir -p -- "${ADDR_FILE%/*}" || exit 1
+# One toggle at a time. A second press during the slide used to run alongside
+# the first, and `pin` is a toggle, so the pair could leave the terminal pinned
+# in the scratchpad or unpinned on screen. The overlapping press is dropped.
+exec 9>"$ADDR_FILE.lock"
+flock -n 9 || exit 0
 
 # Dropdown size and position configuration (percentages)
 WIDTH_PERCENT=65  # Width as percentage of screen width

@@ -31,14 +31,22 @@ pkgs=(); for g in "${groups[@]}"; do while read -r p; do [[ -z $p || $p == \#* ]
 run pacman -Syu --needed "${pkgs[@]}"
 stow_packages=(hypr hyprlock kitty quickshell menu modes screensaver cliphist dots systemd rofi wofi swaync fastfetch zsh xdg)
 if command -v stow >/dev/null; then
+  # Stow must create directories as the user: run as root, --no-folding left
+  # root-owned directories such as ~/.config/hypr/scripts in the home.
+  as_user=(); ((EUID == 0)) && as_user=(runuser -u "$USER_NAME" --)
+  # A destination is backed up at most once across all packages.
+  declare -A backed_up=()
   for d in "${stow_packages[@]}"; do
     [[ -d $ROOT/$d ]] || continue
     # Back up every unmanaged conflict before Stow mutates anything. Include
     # regular files, symlinks, and directories (directory conflicts are not
-    # reported by a file-only scan). A destination is backed up at most once.
-    declare -A backed_up=()
+    # reported by a file-only scan).
     while IFS= read -r -d '' src; do
       rel=${src#"$ROOT/$d/"}; dst="$HOME_DIR/$rel"
+      # Shared XDG base directories are containers every package passes
+      # through, not conflicts: backing them up copied all of ~/.config and
+      # ~/.local/share (game libraries included) once per package.
+      case $rel in .config|.local|.local/bin|.local/share|.local/state) continue ;; esac
       if [[ -e $dst || -L $dst ]]; then
         managed=0
         if [[ -L $dst ]]; then
@@ -51,7 +59,7 @@ if command -v stow >/dev/null; then
         fi
       fi
     done < <(find "$ROOT/$d" -mindepth 1 -print0)
-    run stow --dir="$ROOT" --target="$HOME_DIR" --no-folding "$d"
+    run "${as_user[@]}" stow --dir="$ROOT" --target="$HOME_DIR" --no-folding "$d"
   done
 else say 'WARN: stow not installed; deployment skipped'; fi
 if [[ ${groups[*]} == *optional* ]]; then say 'Optional group selected'; fi

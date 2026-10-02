@@ -10,13 +10,13 @@ import QtQuick
 // reading the pidfile directly, so the liveness check (validating the pid
 // against /proc, clearing stale entries) lives in exactly one place.
 //
-// Polling rather than a subscription because the recorder is started by a
-// keybind, not by a daemon that could stream events; the same Timer+Process
-// shape as NetworkState's connectivity check.
+// record.sh pokes the "record" IPC target (Bar.qml) when a recording starts or
+// stops, so the pill appears at once; the slow poll only clears it after a
+// recorder that died without going through `record stop`.
 Singleton {
   id: root
 
-  readonly property string script: "/home/liam/.config/hypr/scripts/capture/capture.sh"
+  readonly property string script: Quickshell.env("HOME") + "/.config/hypr/scripts/capture/capture.sh"
 
   property bool recording: false
 
@@ -26,6 +26,7 @@ Singleton {
   readonly property string glyphRecord: String.fromCodePoint(0xf044b)
 
   function stop() { stopProc.running = true }
+  function refresh() { if (!statusProc.running) statusProc.running = true }
 
   Process {
     id: stopProc
@@ -49,7 +50,7 @@ Singleton {
   }
 
   Timer {
-    interval: 2000
+    interval: 30000
     running: true
     repeat: true
     triggeredOnStart: true

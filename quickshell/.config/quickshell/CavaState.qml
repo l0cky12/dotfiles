@@ -49,8 +49,8 @@ Singleton {
     // time playback resumes; if cava dies mid-playback the bar stays on
     // the fallback animation until playback next toggles or the shell
     // reloads (accepted limitation).
-    property bool wanted: MediaState.isPlaying
-    running: wanted
+    // The always-visible MediaIcon also consumes the spectrum with panels closed.
+    running: MediaState.isPlaying
     command: ["cava", "-p", Quickshell.env("HOME") + "/.config/quickshell/cava/bar.conf"]
     stdout: SplitParser {
       onRead: line => root.handleLine(line)

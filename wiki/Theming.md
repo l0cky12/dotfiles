@@ -134,7 +134,8 @@ and never fires from the picker or a keybinding. See
 | `SUPER+CTRL+D` → THEME | the Display panel's launcher row, same picker |
 | `theme set <slug>` | the CLI, and what both of the above call |
 
-The picker runs inside the already-running shell over
+The picker runs inside the already-running shell: the key is a Hyprland global
+shortcut (`quickshell:theme`) and scripts can call
 `quickshell ipc call theme toggle`, so there is nothing to start.
 
 ```text

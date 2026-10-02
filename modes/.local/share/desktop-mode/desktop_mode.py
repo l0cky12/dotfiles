@@ -413,6 +413,9 @@ def signal_daemon(root: Path) -> bool:
         return False
 
 
+RECONCILE_EVERY = 5
+
+
 def daemon(controller: Controller) -> int:
     root = controller.store.root
     lock = (root / "daemon.lock").open("w", encoding="ascii")
@@ -433,9 +436,16 @@ def daemon(controller: Controller) -> int:
     old = {sig: signal.signal(sig, stop) for sig in (signal.SIGINT, signal.SIGTERM)}
     old[signal.SIGHUP] = signal.signal(signal.SIGHUP, reload)
     try:
+        passes = 0
         while not stopped:
             controller.expire()
-            controller.reconcile()
+            # Repairing out-of-band DND changes starts notificationctl and a
+            # Quickshell IPC client, so it runs every fifth pass or at once on
+            # SIGHUP. Expiry is file reads only and keeps the full rate. The
+            # shell restores its own DND state when it restarts.
+            if wake or passes % RECONCILE_EVERY == 0:
+                controller.reconcile()
+            passes += 1
             wake = False
             deadline = time.monotonic() + controller.config.reconcile_seconds
             while not stopped and not wake and time.monotonic() < deadline:
@@ -546,13 +556,18 @@ def main(argv: list[str] | None = None) -> int:
             return daemon(controller)
         if args.command == "watch":
             previous = None
-            while True:
+            # The bar keeps one watch running. If the shell dies without
+            # reaping it, stop rather than poll until the next status change
+            # finally hits the closed pipe.
+            parent = os.getppid()
+            while os.getppid() == parent:
                 value = controller.status()
                 encoded = json.dumps(value, sort_keys=True)
                 if encoded != previous:
                     print(encoded, flush=True)
                     previous = encoded
                 time.sleep(config.reconcile_seconds)
+            return 0
         if args.command == "doctor":
             value = {"config": str(args.config or config_path()), "runtime_dir": str(controller.store.root),
                      "daemon": daemon_running(controller.store.root), "configuration": asdict(config),

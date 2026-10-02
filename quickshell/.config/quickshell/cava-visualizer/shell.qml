@@ -40,6 +40,10 @@ ShellRoot {
                 // brightness thresholds.
                 property bool wallpaperAccent: false
                 property string wallpaperHex: ""
+                // Last wallpaper handed to the sampler. Assigned in
+                // sampleWallpaper(); without the declaration that write threw
+                // and the opt-in wallpaper accent never ran.
+                property string lastSampledPath: ""
                 readonly property color accentColor:
                     (wallpaperAccent && wallpaperHex !== "") ? wallpaperHex : accentHex
                 // Current-wallpaper path, read from the same state file

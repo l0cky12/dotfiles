@@ -239,5 +239,20 @@ Singleton {
       root.speedTestPhase = root.speedTestCancelled ? "" : (code === 0 ? "complete" : "error")
     }
   }
-  Timer { interval: 5000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.refresh() }
+  // The bar only needs connection type and Wi-Fi strength. While the panel is
+  // closed, refresh when NetworkManager reports a change instead of running the
+  // nine-nmcli status script every five seconds; the slow poll only keeps the
+  // signal-strength icon honest, which nmcli monitor does not report.
+  Process {
+    id: nmMonitor
+    command: ["nmcli", "monitor"]
+    running: true
+    stdout: SplitParser { onRead: if (!nmSettle.running) nmSettle.start() }
+    stderr: StdioCollector {}
+    onExited: nmMonitorRestart.start()
+  }
+  Timer { id: nmMonitorRestart; interval: 30000; onTriggered: nmMonitor.running = true }
+  // Coalesces a burst of events (a reconnect prints several lines) into one refresh.
+  Timer { id: nmSettle; interval: 500; onTriggered: root.refresh() }
+  Timer { interval: root.panelVisible ? 5000 : 60000; running: true; repeat: true; triggeredOnStart: true; onTriggered: root.refresh() }
 }

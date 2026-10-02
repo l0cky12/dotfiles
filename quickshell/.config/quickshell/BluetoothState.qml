@@ -5,8 +5,9 @@ import QtQuick
 
 // Bluetooth adapter and device state, backed by `bluetooth-control status`.
 //
-// The backend is polled continuously — including while the panel is closed —
-// so opening the menu never shows an empty or stale list. Poll results are
+// While the panel is closed the list stays warm from BlueZ D-Bus signals plus a
+// slow backstop poll, so opening the menu never shows an empty or stale list;
+// while it is open the backend is polled every couple of seconds. Results are
 // split into the panel's three zones (connected / paired / discovered) and
 // diffed into a ListModel per zone, so a poll that changes nothing touches no
 // delegates and a poll that changes one battery reading repaints one row
@@ -476,10 +477,26 @@ Singleton {
     stderr: StdioCollector {}
   }
 
-  // Polls all the time so the panel opens warm. Faster while the panel is open
-  // and faster still while discovery is running, so scan hits appear live.
+  // BlueZ announces power and connection changes on the system bus, so the bar
+  // icon follows those signals instead of running the whole status script every
+  // eight seconds. Throttled rather than debounced: discovery emits a steady
+  // stream of RSSI updates that would otherwise postpone the refresh forever.
+  Process {
+    id: bluezMonitor
+    command: ["gdbus", "monitor", "--system", "--dest", "org.bluez"]
+    running: true
+    stdout: SplitParser { onRead: if (!bluezSettle.running) bluezSettle.start() }
+    stderr: StdioCollector {}
+    onExited: bluezMonitorRestart.start()
+  }
+  Timer { id: bluezMonitorRestart; interval: 30000; onTriggered: bluezMonitor.running = true }
+  Timer { id: bluezSettle; interval: 1000; onTriggered: root.refresh() }
+
+  // Polls faster while the panel is open and faster still while discovery is
+  // running, so scan hits appear live. The closed-panel poll is only a backstop
+  // for signals missed while gdbus was restarting.
   Timer {
-    interval: !root.panelVisible ? 8000
+    interval: !root.panelVisible ? 60000
             : (root.scanning || root.scanRequested) ? 1200 : 2000
     running: true
     repeat: true

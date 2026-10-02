@@ -116,9 +116,12 @@ is_manual_package() {
   esac
 }
 
+# systemd: a folded ~/.config/systemd would be a symlink into this checkout, so
+# `systemctl --user enable` and `edit` would write *.wants links and drop-ins
+# into the repository.
 uses_no_folding() {
   case $1 in
-    neovim|btop|obsidian|wallpaper) return 0 ;;
+    neovim|btop|obsidian|wallpaper|systemd) return 0 ;;
     *) return 1 ;;
   esac
 }

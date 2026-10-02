@@ -32,6 +32,9 @@ hl.window_rule({
     match = { title = "^capture-webcam$" },
     float = true,
     pin = true,
+    -- Overrides dim-floating above (later rules win): the pinned overlay stays
+    -- up for a whole recording, and dimming around it darkened every frame.
+    dim_around = false,
 })
 
 hl.window_rule({

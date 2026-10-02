@@ -35,4 +35,15 @@ grep -Fq 'hl.dsp.window.move({ x = 1336, y = -42,' "$fixture/calls" || {
   printf 'FAIL: hide animation used geometry from before the monitor move\n' >&2
   exit 1
 }
+# A press while another toggle is still sliding is dropped, not run alongside.
+: > "$fixture/calls"
+flock "$fixture/address.lock" sleep 2 &
+holder=$!
+sleep 0.2
+DROPTERMINAL_ADDR_FILE="$fixture/address" DROPTERMINAL_TEST_CALLS="$fixture/calls" \
+  PATH="$fixture/bin:$PATH" "$repo_root/hypr/.config/hypr/scripts/Dropterminal.sh" kitty
+[[ ! -s "$fixture/calls" ]] || { printf 'FAIL: overlapping toggle was not dropped\n' >&2; exit 1; }
+kill "$holder" 2>/dev/null || true
+wait "$holder" 2>/dev/null || true
+
 printf 'Dropterminal fixture: ok\n'

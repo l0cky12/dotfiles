@@ -74,7 +74,9 @@ set_split_direction() {
     printf 'current=dwindle\naction=split-%s\nlayoutmsg=preselect %s\n' "$description" "$direction"
     return
   fi
-  "$HYPRCTL" dispatch layoutmsg "preselect $direction"
+  # hyprland.lua routes `hyprctl dispatch` through Lua; the legacy
+  # `layoutmsg preselect` string is a syntax error there and did nothing.
+  "$HYPRCTL" dispatch "hl.dsp.layout('preselect $direction')"
   notify 'Dwindle split' "Next window opens ${description}"
 }
 

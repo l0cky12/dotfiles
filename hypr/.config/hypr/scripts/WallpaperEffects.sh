@@ -11,7 +11,7 @@ notify() {
   local message="$2"
 
   if command -v notify-send >/dev/null 2>&1; then
-    notify-send "$title" "$message"
+    notify-send "$title" "$message" || true
   else
     printf '%s: %s\n' "$title" "$message" >&2
   fi

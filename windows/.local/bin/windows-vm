@@ -49,6 +49,13 @@ notify() {
   printf '%s: %s\n' "$title" "$message" >&2
 }
 
+# Tell the bar icon to re-read status now instead of waiting for its slow
+# poll. Best effort and detached: no shell running is not an error.
+refresh_bar() {
+  has quickshell && { quickshell ipc call windows-vm refresh >/dev/null 2>&1 & }
+  return 0
+}
+
 die() {
   notify critical "$APP_NAME" "$1"
   exit "${2:-1}"
@@ -380,6 +387,7 @@ install_windows() {
   if ! compose up --detach windows; then
     die "Windows installation failed to start. Run: windows-vm logs"
   fi
+  refresh_bar
   notify normal "Windows VM started" "Windows installation is running; monitor progress at http://127.0.0.1:8006"
   if has xdg-open; then
     setsid xdg-open http://127.0.0.1:8006 >/dev/null 2>&1 &
@@ -426,6 +434,7 @@ launch_windows() {
   if [[ "$state" != running ]]; then
     notify normal "Starting Windows" "Starting the managed Windows 11 VM"
     compose up --detach windows || die "Windows failed to start. Run: windows-vm logs"
+    refresh_bar
     notify normal "Windows VM started" "The managed Windows 11 VM started successfully."
   fi
 
@@ -484,6 +493,12 @@ status_windows() {
     container=unknown
     port=$(read_setting WINDOWS_RDP_PORT 3389)
   fi
+  # The bar asks every few seconds; with no VM configured its answer is "off"
+  # regardless, so skip the docker CLI and daemon round trips entirely.
+  if ((bar)) && [[ "$configured" != yes ]]; then
+    printf 'off\n'
+    return
+  fi
   if has docker && docker compose version >/dev/null 2>&1 && docker_ready; then
     docker_state=available
     if [[ "$configured" == yes ]]; then
@@ -519,6 +534,7 @@ stop_windows() {
     return
   fi
   compose stop windows
+  refresh_bar
   notify normal "Windows VM stopped" "The managed VM stopped cleanly."
 }
 

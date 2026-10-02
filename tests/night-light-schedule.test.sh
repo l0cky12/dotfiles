@@ -18,7 +18,7 @@ fail() {
 
 # --- wiring -------------------------------------------------------------------
 
-grep -Fq 'exec(mod .. " + SHIFT + N", "night light schedule", "quickshell ipc call nightlight toggle")' \
+grep -Fq 'shell(mod .. " + SHIFT + N", "night light schedule", "nightlight")' \
   "$repo_root/hypr/.config/hypr/conf/keybindings.lua" || fail 'Super+Shift+N does not open the schedule panel'
 # shellcheck disable=SC2016 # Literal Hyprland variable.
 grep -Fq 'bindd = $mainMod SHIFT, N, night light schedule, exec, quickshell ipc call nightlight toggle' \

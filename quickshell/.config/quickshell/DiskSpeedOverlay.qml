@@ -69,7 +69,8 @@ PanelWindow {
   Image {
     id: wallpaper
     anchors.fill: parent
-    source: window.wallpaperPath === "" ? "" : "file://" + window.wallpaperPath
+    // See SpeedTestOverlay: no full-screen decode while hidden.
+    source: !window.visible || window.wallpaperPath === "" ? "" : "file://" + window.wallpaperPath
     fillMode: Image.PreserveAspectCrop
     asynchronous: true
     visible: false

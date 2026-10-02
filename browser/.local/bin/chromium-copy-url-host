@@ -11,9 +11,10 @@ parse_url() {
 copy_url() {
     local url="$1"
     [[ -n "$url" ]] || return 1
-    printf '%s' "$url" | wl-copy --type text/plain
+    printf '%s' "$url" | wl-copy --type text/plain || return 1
+    # The reply reports the copy, not whether a notification daemon answered.
     notify-send -a "Copy URL" -h string:desktop-glyph:󰅍 \
-        "URL copied to clipboard"
+        "URL copied to clipboard" || true
 }
 
 read_native_message() {

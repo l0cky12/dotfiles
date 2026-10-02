@@ -35,7 +35,7 @@ export APP_WIDGET_LAUNCHES="$test_root/launches"
 
 APP_WIDGET_CLIENTS='[{"address":"0xabc","class":"spotify"}]' \
   "$launcher" spotify spotify
-[[ $(<"$test_root/calls") == 'dispatch focuswindow address:0xabc' ]] ||
+[[ $(<"$test_root/calls") == 'dispatch hl.dsp.focus({ window = "address:0xabc" })' ]] ||
   fail 'existing app window was not focused by address'
 [[ ! -e $test_root/launches ]] || fail 'existing app was launched instead of focused'
 

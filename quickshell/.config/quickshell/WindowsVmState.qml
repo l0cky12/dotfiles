@@ -28,8 +28,11 @@ Singleton {
     }
   }
 
+  // Fast only while the VM is up or booting. When off, `windows-vm` pokes
+  // the "windows-vm" IPC target (Bar.qml) on start and stop, so the slow poll
+  // only catches a VM started some other way.
   Timer {
-    interval: 3000
+    interval: root.phase === "off" ? 30000 : 3000
     running: true
     repeat: true
     triggeredOnStart: true
