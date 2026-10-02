@@ -146,6 +146,19 @@ assert_eq 'https://example.com/a?b=c' "$(<"$test_root/clipboard")"
 assert_contains "$test_root/wl-copy-args" '--type text/plain'
 assert_contains "$test_root/copy-notification" 'URL copied to clipboard'
 
+# The reply must report the copy even when no notification daemon answers,
+# and must report failure when the copy itself fails.
+(
+    # shellcheck source=/dev/null
+    source "$copy_host"
+    wl-copy() { cat >/dev/null; }
+    notify-send() { return 1; }
+    copy_url 'https://example.com/' || exit 1
+    wl-copy() { cat >/dev/null; return 1; }
+    notify-send() { return 0; }
+    ! copy_url 'https://example.com/'
+) || fail 'copy_url must follow wl-copy, not notify-send'
+
 (
     # shellcheck source=/dev/null
     source "$video_host"

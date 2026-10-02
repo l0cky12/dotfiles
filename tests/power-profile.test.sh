@@ -38,6 +38,10 @@ case "$1" in
 esac
 SH
 chmod +x "$test_root/bin/powerprofilesctl"
+# No notification daemon (e.g. the shell is restarting): notify-send fails.
+# A profile change that already succeeded must still exit 0.
+printf '#!/bin/sh\nexit 1\n' > "$test_root/bin/notify-send"
+chmod +x "$test_root/bin/notify-send"
 export POWER_CALLS="$test_root/calls"
 : > "$POWER_CALLS"
 
