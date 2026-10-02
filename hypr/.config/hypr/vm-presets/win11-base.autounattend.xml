@@ -116,11 +116,7 @@
       <FirstLogonCommands>
         <SynchronousCommand wcm:action="add">
           <Order>1</Order>
-          <CommandLine>cmd /c del /f /q C:\Windows\Panther\unattend.xml C:\Windows\Panther\unattend-original.xml</CommandLine>
-        </SynchronousCommand>
-        <SynchronousCommand wcm:action="add">
-          <Order>2</Order>
-          <CommandLine>C:\Windows\System32\Sysprep\sysprep.exe /generalize /oobe /shutdown /mode:vm</CommandLine>
+          <CommandLine>cmd /c "del /f /q C:\Windows\Panther\unattend.xml C:\Windows\Panther\unattend-original.xml &amp; C:\Windows\System32\Sysprep\sysprep.exe /generalize /oobe /shutdown /mode:vm"</CommandLine>
         </SynchronousCommand>
       </FirstLogonCommands>
       <OOBE>

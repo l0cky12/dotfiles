@@ -47,8 +47,10 @@ case $1 in
     printf ' file   disk     vda      /var/lib/libvirt/images/%s.qcow2\n' "$domain"
     printf ' file   cdrom    sda      /cache/netinst.iso\n'
     ;;
-  destroy|send-key|change-media|event) ;;
-  domstate) printf 'shut off\n' ;;
+  destroy|send-key|change-media) ;;
+  event) exit "${VM_TEST_REBOOT_EXIT:-0}" ;;
+  domstate) printf 'shut off (%s)\n' "${VM_TEST_SHUTOFF_REASON:-shutdown}" ;;
+  vol-info) printf 'Capacity: %s\n' "${VM_TEST_BASE_CAPACITY:-107374182400}" ;;
   vol-path)
     [[ -f $VM_TEST_BASE ]] || exit 1
     printf '/var/lib/libvirt/images/win11-base.qcow2\n'
@@ -386,6 +388,24 @@ grep -Fxq win11-base "$domains" && fail 'a failed base build left its VM defined
 assert_contains "$calls" 'Building the Windows 11 base image failed.'
 reset_calls
 
+# An externally destroyed base is not a successful sysprep shutdown.
+VM_TEST_SHUTOFF_REASON=destroyed run create win11 >/dev/null 2>&1 &&
+  fail 'accepted a forcibly stopped base as prepared'
+assert_contains "$calls" 'The Windows base did not shut down normally.'
+grep -Fxq win11-base "$domains" || fail 'removed the unfinished base definition'
+grep -Fxv win11-base "$domains" >"$domains.tmp"; mv "$domains.tmp" "$domains"
+rm -f "$test_root/base-built"
+reset_calls
+
+# Cached answer deletion must finish before sysprep starts.
+python3 - "$templates/win11-base.autounattend.xml" <<'CHECK' || fail 'base cleanup races sysprep'
+import sys, xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+commands = root.findall('.//{*}FirstLogonCommands/{*}SynchronousCommand/{*}CommandLine')
+assert len(commands) == 1 and 'del /f /q' in commands[0].text
+assert ' & ' in commands[0].text and 'sysprep.exe /generalize' in commands[0].text
+CHECK
+
 # The first create builds the base, then clones it.
 run create win11 >"$test_root/win11.out" 2>&1 ||
   { cat "$test_root/win11.out" >&2; fail 'create win11 failed'; }
@@ -413,10 +433,33 @@ encoded=$(sed -n 's/^ *<Value>\(.*\)<\/Value>$/\1/p' "$injected/autounattend.xml
 grep -rFq -- "$password" "$test_root" && fail 'the Windows password was written to disk in plain text'
 reset_calls
 
+# A clone must not truncate the base image's partition layout.
+VM_PRESET_DISK_GB=80 run create win11 >/dev/null 2>&1 && fail 'cloned onto a smaller disk'
+assert_contains "$calls" 'The clone disk cannot be smaller than the Windows base image.'
+grep -Fq 'virt-install' "$calls" && fail 'virt-install ran with a truncated clone disk'
+reset_calls
+
+# Without a setup reboot, do not delete the answer disc under a running VM or
+# report success. Remove only this failed clone and its overlay.
+VM_TEST_REBOOT_EXIT=1 run create win11 --name reboot-failed >/dev/null 2>&1 &&
+  fail 'reported successful setup without a reboot'
+grep -Fxq reboot-failed "$domains" && fail 'left the incomplete clone running'
+assert_contains "$calls" 'Waiting for the Windows setup reboot failed.'
+assert_not_contains "$calls" 'reboot-failed is finishing Windows setup'
+reset_calls
+
 # Later creates only clone.
 run create win11 >/dev/null 2>&1 || fail 'a second create win11 failed'
 assert_contains "$calls" '--name win11-2 '
 assert_not_contains "$calls" '--name win11-base'
+reset_calls
+
+# Interrupted installation already allocated a disk, but it is not a ready base.
+printf 'win11-base\n' >>"$domains"
+run create win11 >/dev/null 2>&1 && fail 'cloned the disk of an unfinished base VM'
+assert_contains "$calls" 'A VM named win11-base is left from an unfinished base build.'
+grep -Fq 'virt-install' "$calls" && fail 'virt-install ran with an unfinished base disk'
+grep -Fxv win11-base "$domains" >"$domains.tmp"; mv "$domains.tmp" "$domains"
 reset_calls
 
 # A leftover base VM blocks a rebuild instead of being overwritten.

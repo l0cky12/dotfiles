@@ -501,7 +501,9 @@ first one is slow.
 
 There is no SSH key prompt. Windows takes the password only in a reversible
 encoding, so it sits on a 0644 answer disc in `$XDG_CACHE_HOME/vm-presets/`
-until the clone's first reboot, when the disc is ejected and deleted. Device
+until the clone's first reboot, when the disc is ejected and deleted. If that
+reboot cannot be confirmed within 15 minutes, creation fails and removes the
+incomplete clone. A clone disk must be at least as large as its base image. Device
 encryption is turned off in the base because every clone gets a new TPM.
 
 To rebuild the base from a newer ISO, delete every Windows 11 clone first,

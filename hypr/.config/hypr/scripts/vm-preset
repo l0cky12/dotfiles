@@ -684,11 +684,9 @@ clone_install_args() {
 
 # Install Windows once, sysprep it, and keep only its disk as the base image.
 build_base() {
-  local iso work base_uuid admin install_pid status=0 deadline _
+  local iso work base_uuid admin install_pid status=0 deadline shutdown_state _
   iso=$(win11_iso) ||
     die "No Windows 11 ISO in $win11_iso_dir. Download one from https://www.microsoft.com/software-download/windows11 and save it there."
-  domain_exists "$base_name" &&
-    die "A VM named $base_name is left from an unfinished base build. Delete it and its disk in virt-manager, then try again."
   log "Building $base_name from $iso"
 
   base_uuid=$(</proc/sys/kernel/random/uuid)
@@ -729,11 +727,15 @@ build_base() {
   # The rest of setup, the one Administrator logon, and sysprep run on their
   # own; sysprep ends by shutting the VM off.
   deadline=$((SECONDS + 7200))
-  until [[ $(virsh_system domstate "$base_uuid" 2>/dev/null) == "shut off"* ]]; do
+  until [[ $(virsh_system domstate "$base_uuid" --reason 2>/dev/null) == "shut off"* ]]; do
     ((SECONDS < deadline)) ||
       die "$base_name did not shut down within 2 hours, so sysprep did not finish. Check its console in virt-manager."
     sleep "$poll_interval"
   done
+  shutdown_state=$(virsh_system domstate "$base_uuid" --reason 2>/dev/null) ||
+    die "Could not verify the Windows base shutdown. See $log_file."
+  [[ $shutdown_state == 'shut off (shutdown)' ]] ||
+    die "The Windows base did not shut down normally. Check its console in virt-manager."
   # Keep the disk, drop the VM, so nothing boots and changes the base.
   virsh_system undefine "$base_uuid" --nvram >>"$log_file" 2>&1 ||
     die "Could not remove the $base_name VM definition. See $log_file."
@@ -741,12 +743,19 @@ build_base() {
 }
 
 create_win11() {
-  local name=$1 user=$2 secret=$3 base work disc
+  local name=$1 user=$2 secret=$3 base work disc capacity
   [[ $name != "$base_name" ]] || die "$base_name is reserved for the base image."
+  domain_exists "$base_name" &&
+    die "A VM named $base_name is left from an unfinished base build. Delete it and its disk in virt-manager, then try again."
   base=$(base_volume) || {
     build_base
     base=$(base_volume) || die "The base image is missing after building it. See $log_file."
   }
+  capacity=$(virsh_system vol-info --pool default --bytes "$base_name.qcow2" | awk '/^Capacity:/ {print $2}') ||
+    die "Could not read the Windows base capacity."
+  [[ $capacity =~ ^[1-9][0-9]*$ ]] || die "Invalid Windows base capacity."
+  ((disk_gb * 1073741824 >= capacity)) ||
+    die "The clone disk cannot be smaller than the Windows base image."
   log "Cloning $name from $base"
 
   work=$(mktemp -d -t vm-preset.XXXXXX)
@@ -770,8 +779,10 @@ create_win11() {
 
   # Setup caches the answer file before the reboot that ends specialize, so the
   # disc, and the password on it, can go then.
-  virsh_system event --domain "$uuid" --event reboot --timeout 900 >>"$log_file" 2>&1 ||
-    log "warning: $name did not report a reboot within 15 minutes; ejecting the answer disc anyway."
+  if ! virsh_system event --domain "$uuid" --event reboot --timeout 900 >>"$log_file" 2>&1; then
+    remove_domain "$uuid" "$name"
+    die "Waiting for the Windows setup reboot failed. The incomplete clone was removed. See $log_file."
+  fi
   virsh_system change-media "$uuid" "$disc" --eject --live --config >>"$log_file" 2>&1 ||
     log "warning: could not eject the answer disc from $name; remove its second CD drive in virt-manager."
   log "$name is finishing setup."
