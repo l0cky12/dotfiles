@@ -98,6 +98,15 @@ CURRENT_GAPS_OUT=0 CURRENT_GAPS_IN=0 CURRENT_BORDER_SIZE=0 \
 [[ ! -e "$test_root/state/hyprland-desktop/gaps-defaults.json" ]] ||
   fail 'restoring gaps did not remove the saved state'
 
+# A reload restored the configured gaps but left the saved file: the next press
+# must turn gaps off again, not "restore" values that are already live.
+printf '{"gaps_out":12,"gaps_in":6,"border_size":1}\n' \
+  >"$test_root/state/hyprland-desktop/gaps-defaults.json"
+"$scripts/toggle-gaps.sh" --dry-run >"$test_root/gaps-stale.out"
+grep -Fq 'gaps_out\ =\ 0\,\ gaps_in\ =\ 0\,\ border_size\ =\ 0' "$test_root/gaps-stale.out" ||
+  fail 'a stale saved gaps file made the toggle restore instead of disable'
+rm -f "$test_root/state/hyprland-desktop/gaps-defaults.json"
+
 "$scripts/toggle-gaps.sh"
 jq -e '.gaps_out == 12 and .gaps_in == 4 and .border_size == 2' \
   "$test_root/state/hyprland-desktop/gaps-defaults.json" >/dev/null ||

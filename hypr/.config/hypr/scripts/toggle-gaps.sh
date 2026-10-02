@@ -40,7 +40,12 @@ option_value() {
   '
 }
 
-if [[ -f $state_file ]]; then
+# Restore only while gaps are still off. A reload, monitor-profile apply or
+# re-login brings the configured gaps back but leaves the saved file behind;
+# trusting the file alone made the next press "restore" what was already
+# live, so it looked like the key did nothing.
+live_gaps_out=$(option_value general:gaps_out)
+if [[ -f $state_file && ${live_gaps_out%% *} == 0 ]]; then
   IFS=$'\t' read -r gaps_out gaps_in border_size < <(
     "$jq_command" -er '
       [.gaps_out, .gaps_in, .border_size]
