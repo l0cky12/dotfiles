@@ -111,6 +111,14 @@
     "action": "~/.config/hypr/scripts/vm-preset create debian13-docker"
   },
   {
+    "id": "development.vms.win11",
+    "icon": "",
+    "label": "Windows 11",
+    "aliases": ["windows", "win11"],
+    "description": "Blank Windows 11 Pro clone: 4 cores, 6 GB RAM, 100 GB; the first builds a base from ~/Resources/ISO",
+    "action": "~/.config/hypr/scripts/vm-preset create win11"
+  },
+  {
     "id": "development.vms.manager",
     "icon": "󰒓",
     "label": "Open Virtual Machine Manager",

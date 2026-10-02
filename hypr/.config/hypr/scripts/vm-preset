@@ -10,6 +10,12 @@
 # downloads the install ISO, runs virt-install against qemu:///system, and opens
 # the console in virt-manager. The guest user is the host $USER.
 #
+# win11 clones a sysprepped base image, win11-base.qcow2 in the default pool,
+# which the first win11 create builds from the newest ~/Resources/ISO/Win11*.iso.
+# The clone's name and user come from an answer disc that is ejected and deleted
+# at the clone's first reboot. Windows takes the password only in a reversible
+# encoding, so that disc holds it for the minute or two before then.
+#
 # The password is hashed with openssl as soon as it is read and is never written
 # anywhere. Only the SHA-512 crypt hash reaches the preseed, which lives in a
 # mode 0700 temporary directory that is removed once the install has started.
@@ -27,6 +33,8 @@ curl_command=${CURL:-curl}
 gpg_command=${GPG:-gpg}
 systemctl_command=${SYSTEMCTL:-systemctl}
 id_command=${ID_COMMAND:-id}
+xorriso_command=${XORRISO:-xorriso}
+swtpm_command=${SWTPM:-swtpm}
 connection=qemu:///system
 config_home=${XDG_CONFIG_HOME:-$HOME/.config}
 cache_root=${XDG_CACHE_HOME:-$HOME/.cache}/vm-presets
@@ -35,9 +43,12 @@ script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 template_dir=${VM_PRESET_TEMPLATES:-$config_home/hypr/vm-presets}
 ssh_key=$HOME/.ssh/id_rsa.pub
 debian_cd=${VM_PRESET_DEBIAN_CD:-https://cdimage.debian.org/debian-cd/current/amd64/iso-cd}
-vcpus=${VM_PRESET_VCPUS:-2}
-memory=${VM_PRESET_MEMORY:-4096}
-disk_gb=${VM_PRESET_DISK_GB:-60}
+win11_iso_dir=${VM_PRESET_WIN11_ISO_DIR:-$HOME/Resources/ISO}
+win11_language=${VM_PRESET_WIN11_LANGUAGE:-en-US}
+# Preset defaults are filled in by check_resources.
+vcpus=${VM_PRESET_VCPUS:-}
+memory=${VM_PRESET_MEMORY:-}
+disk_gb=${VM_PRESET_DISK_GB:-}
 poll_interval=${VM_PRESET_POLL_INTERVAL:-1}
 dry_run=false
 log_file=
@@ -48,7 +59,7 @@ if [[ ! -d $template_dir ]]; then
   template_dir=$script_dir/../vm-presets
 fi
 
-presets=(debian13 debian13-docker)
+presets=(debian13 debian13-docker win11)
 
 # Primary-key fingerprints of the Debian CD signing keys that sign release
 # SHA512SUMS files (https://www.debian.org/CD/verify).
@@ -66,7 +77,7 @@ Commands:
   create PRESET         prompt for a name and password, then install a new VM
   refresh-iso PRESET    download the newest install ISO into the cache
 
-Presets: debian13, debian13-docker
+Presets: debian13, debian13-docker, win11
 EOF
   exit 2
 }
@@ -108,6 +119,7 @@ preset_label() {
   case $1 in
     debian13) printf 'Debian 13' ;;
     debian13-docker) printf 'Debian 13 + Docker' ;;
+    win11) printf 'Windows 11' ;;
   esac
 }
 
@@ -128,9 +140,11 @@ unit_active() {
 }
 
 check_prerequisites() {
-  local missing=() command message groups network
-  for command in "$virt_install_command" "$virsh_command" "$rofi_command" openssl \
-    "$curl_command" sha512sum flock; do
+  local preset=$1 missing=() command message groups network commands
+  commands=("$virt_install_command" "$virsh_command" "$rofi_command" openssl
+    "$curl_command" sha512sum flock)
+  [[ $preset != win11 ]] || commands+=("$xorriso_command" "$swtpm_command" iconv)
+  for command in "${commands[@]}"; do
     command -v "$command" >/dev/null 2>&1 || missing+=("${command##*/}")
   done
   groups=$("$id_command" -nG 2>/dev/null) || true
@@ -180,6 +194,12 @@ rofi_prompt() {
   theme=$(theme_file)
   [[ -z $theme ]] || args+=(-theme "$theme")
   "$rofi_command" "${args[@]}" "$@"
+}
+
+open_console() {
+  command -v "$virt_manager_command" >/dev/null 2>&1 || return 0
+  setsid "$virt_manager_command" --connect "$connection" --show-domain-console "$1" \
+    </dev/null >/dev/null 2>&1 &
 }
 
 cancelled() {
@@ -245,7 +265,49 @@ host_timezone() {
   printf '%s' "$value"
 }
 
+windows_locale() {
+  local value
+  value=$(host_locale)
+  value=${value%.UTF-8}
+  printf '%s' "${value/_/-}"
+}
+
+# Windows uses its own zone names; anything unlisted falls back to UTC.
+windows_timezone() {
+  case ${VM_PRESET_WIN11_TIMEZONE:-$(host_timezone)} in
+    America/New_York|America/Detroit) printf 'Eastern Standard Time' ;;
+    America/Chicago) printf 'Central Standard Time' ;;
+    America/Denver) printf 'Mountain Standard Time' ;;
+    America/Phoenix) printf 'US Mountain Standard Time' ;;
+    America/Los_Angeles) printf 'Pacific Standard Time' ;;
+    Europe/London) printf 'GMT Standard Time' ;;
+    *) printf 'UTC' ;;
+  esac
+}
+
+# NetBIOS names stop at 15 characters.
+computer_name() {
+  local name=${1:0:15}
+  while [[ $name == *- ]]; do name=${name%-}; done
+  printf '%s' "$name"
+}
+
+# windows_password PASSWORD ELEMENT - the unattend encoding, base64 of
+# UTF-16LE(PASSWORD + ELEMENT), where ELEMENT is Password or AdministratorPassword.
+windows_password() {
+  printf '%s%s' "$1" "$2" | iconv -f UTF-8 -t UTF-16LE | base64 -w 0
+}
+
 # ------------------------------------------------------------------ ISO ---
+
+win11_iso() {
+  local files
+  shopt -s nullglob nocaseglob
+  files=("$win11_iso_dir"/win11*.iso)
+  shopt -u nullglob nocaseglob
+  ((${#files[@]})) || return 1
+  printf '%s\n' "${files[@]}" | sort -V | tail -n 1
+}
 
 cached_iso() {
   local files iso
@@ -414,6 +476,11 @@ remove_domain() {
 
 check_resources() {
   local value
+  if [[ $1 == win11 ]]; then
+    vcpus=${vcpus:-4} memory=${memory:-6144} disk_gb=${disk_gb:-100}
+  else
+    vcpus=${vcpus:-2} memory=${memory:-4096} disk_gb=${disk_gb:-60}
+  fi
   for value in "$vcpus" "$memory" "$disk_gb"; do
     [[ $value =~ ^[1-9][0-9]*$ ]] || die "VM_PRESET_VCPUS, VM_PRESET_MEMORY and VM_PRESET_DISK_GB must be positive integers."
   done
@@ -423,10 +490,14 @@ dry_run_create() {
   local preset=$1 name=${2:-$1-1} user answers iso with_key=false
   valid_name "$name" || die "Invalid VM name: $name"
   user=$(guest_user)
-  [[ -f $ssh_key ]] && with_key=true
-  iso=$(cached_iso) || iso="$cache_root/debian-13.<latest>-amd64-netinst.iso"
   answers=$(mktemp -d -t vm-preset.XXXXXX)
   cleanup_paths+=("$answers")
+  if [[ $preset == win11 ]]; then
+    dry_run_win11 "$name" "$user" "$answers"
+    return 0
+  fi
+  [[ -f $ssh_key ]] && with_key=true
+  iso=$(cached_iso) || iso="$cache_root/debian-13.<latest>-amd64-netinst.iso"
   write_answers "$answers" "$preset" "$(hostname_for "$name")" "$user" '<redacted-hash>' "$with_key"
   install_command "$name" "$iso" "$answers" "$with_key"
 
@@ -448,18 +519,18 @@ dry_run_create() {
 }
 
 create_vm() {
-  local preset=$1 requested_name=${2:-} label name user password confirm password_hash
+  local preset=$1 requested_name=${2:-} label name user password confirm secret
   local with_key=false choice iso answers install_pid status=0 uuid
   uuid=$(</proc/sys/kernel/random/uuid)
   label=$(preset_label "$preset")
-  check_resources
+  check_resources "$preset"
 
   if "$dry_run"; then
     dry_run_create "$preset" "$requested_name"
     return 0
   fi
 
-  check_prerequisites
+  check_prerequisites "$preset"
   acquire_lock
   user=$(guest_user)
 
@@ -484,10 +555,14 @@ create_vm() {
     unset password confirm
     die "The passwords did not match. Nothing was created."
   fi
-  password_hash=$(printf '%s\n' "$password" | openssl passwd -6 -stdin)
+  if [[ $preset == win11 ]]; then
+    secret=$(windows_password "$password" Password)
+  else
+    secret=$(printf '%s\n' "$password" | openssl passwd -6 -stdin)
+  fi
   unset password confirm
 
-  if [[ -f $ssh_key ]]; then
+  if [[ $preset != win11 && -f $ssh_key ]]; then
     # shellcheck disable=SC2088 # The tilde is display text.
     choice=$(printf 'Yes\nNo\n' | rofi_prompt 'Install host SSH key?' \
       "~/.ssh/id_rsa.pub. Password SSH login is turned off when it is installed." -no-custom) ||
@@ -500,6 +575,11 @@ create_vm() {
   : >"$log_file"
   log "Creating $name from the $preset preset as $user."
 
+  if [[ $preset == win11 ]]; then
+    create_win11 "$name" "$user" "$secret"
+    return 0
+  fi
+
   if ! iso=$(cached_iso); then
     fetch_iso
     iso=$fetched_iso
@@ -508,7 +588,8 @@ create_vm() {
 
   answers=$(mktemp -d -t vm-preset.XXXXXX)
   cleanup_paths+=("$answers")
-  write_answers "$answers" "$preset" "$(hostname_for "$name")" "$user" "$password_hash" "$with_key"
+  write_answers "$answers" "$preset" "$(hostname_for "$name")" "$user" "$secret" "$with_key"
+  unset secret
   install_command "$name" "$iso" "$answers" "$with_key"
 
   notify normal "Creating $name ($label)…"
@@ -526,10 +607,7 @@ create_vm() {
     # another VM can be created while this one installs.
     rm -rf -- "$answers"
     exec 9>&-
-    if command -v "$virt_manager_command" >/dev/null 2>&1; then
-      setsid "$virt_manager_command" --connect "$connection" --show-domain-console "$name" \
-        </dev/null >/dev/null 2>&1 &
-    fi
+    open_console "$name"
     notify normal "Installing $label in $name. The console is open in virt-manager; closing it does not stop the install."
   fi
 
@@ -545,7 +623,196 @@ create_vm() {
   die "Creating $name failed. See $log_file."
 }
 
+# ----------------------------------------------------------- Windows 11 ---
+
+base_name=win11-base
+
+base_volume() {
+  virsh_system vol-path --pool default "$base_name.qcow2" 2>/dev/null
+}
+
+# render_win11 TEMPLATE OUT KEY=VALUE... - an answer file with the host locale.
+render_win11() {
+  local template=$1 out=$2
+  shift 2
+  [[ $win11_language =~ ^[a-z]{2,3}-[A-Z]{2}$ ]] ||
+    die "VM_PRESET_WIN11_LANGUAGE must look like en-US."
+  (
+    umask 077
+    render "$template_dir/$template" "UI_LANGUAGE=$win11_language" \
+      "LOCALE=$(windows_locale)" "$@" >"$out"
+  )
+}
+
+# answer_disc DIR ISO - burn DIR/autounattend.xml onto a disc qemu can read.
+# It is 0644 in the cache only until the guest's next reboot.
+answer_disc() {
+  mkdir -p -- "$cache_root"
+  chmod 755 -- "$cache_root"
+  cleanup_paths+=("$2")
+  (umask 022 && "$xorriso_command" -as mkisofs -quiet -J -r -V UNATTEND -o "$2" "$1") \
+    >>"$log_file" 2>&1 || die "Could not build the Windows answer disc. See $log_file."
+}
+
+# SATA and e1000e need no drivers. The base installs offline so Store updates
+# cannot break sysprep.
+base_install_args() {
+  local iso=$1 disc=$2 base_uuid=$3
+  # shellcheck disable=SC2054 # Commas separate virt-install sub-options.
+  install_args=(
+    --connect "$connection" --name "$base_name" --osinfo win11
+    --vcpus "$vcpus" --memory "$memory"
+    --disk "size=$disk_gb,format=qcow2,bus=sata"
+    --disk "path=$disc,device=cdrom,bus=sata"
+    --network none --cdrom "$iso" --boot uefi --tpm emulator
+    --uuid "$base_uuid" --noautoconsole --wait -1
+  )
+}
+
+clone_install_args() {
+  local name=$1 base=$2 disc=$3
+  # shellcheck disable=SC2054 # Commas separate virt-install sub-options.
+  install_args=(
+    --connect "$connection" --name "$name" --osinfo win11
+    --vcpus "$vcpus" --memory "$memory"
+    --disk "size=$disk_gb,format=qcow2,bus=sata,backing_store=$base,backing_format=qcow2"
+    --disk "path=$disc,device=cdrom,bus=sata"
+    --network network=default,model=e1000e --import --boot uefi --tpm emulator
+    --uuid "$uuid" --noautoconsole
+  )
+}
+
+# Install Windows once, sysprep it, and keep only its disk as the base image.
+build_base() {
+  local iso work base_uuid admin install_pid status=0 deadline shutdown_state _
+  iso=$(win11_iso) ||
+    die "No Windows 11 ISO in $win11_iso_dir. Download one from https://www.microsoft.com/software-download/windows11 and save it there."
+  log "Building $base_name from $iso"
+
+  base_uuid=$(</proc/sys/kernel/random/uuid)
+  admin=$(openssl rand -base64 24)
+  work=$(mktemp -d -t vm-preset.XXXXXX)
+  cleanup_paths+=("$work")
+  render_win11 win11-base.autounattend.xml "$work/autounattend.xml" \
+    "ADMIN_PASSWORD=$(windows_password "$admin" AdministratorPassword)" \
+    "AUTOLOGON_PASSWORD=$(windows_password "$admin" Password)"
+  unset admin
+  answer_disc "$work" "$cache_root/.answers-$base_uuid.iso"
+  base_install_args "$iso" "$cache_root/.answers-$base_uuid.iso" "$base_uuid"
+
+  notify normal "Building the Windows 11 base image once. This takes about 20–30 minutes; later VMs take a few."
+  log "Running $(printf '%q ' "$virt_install_command" "${install_args[@]}")"
+  "$virt_install_command" "${install_args[@]}" >>"$log_file" 2>&1 9>&- &
+  install_pid=$!
+  until domain_exists "$base_uuid"; do
+    kill -0 "$install_pid" 2>/dev/null || break
+    sleep "$poll_interval"
+  done
+  if domain_exists "$base_uuid"; then
+    open_console "$base_name"
+    # ponytail: blind Enter presses get past the UEFI "Press any key to boot
+    # from CD" prompt; remaster the ISO with efisys_noprompt.bin if it misses.
+    for _ in {1..15}; do
+      virsh_system send-key "$base_uuid" KEY_ENTER >/dev/null 2>&1 || true
+      sleep "$poll_interval"
+    done
+  fi
+  wait "$install_pid" || status=$?
+  if ((status != 0)); then
+    log "virt-install exited with status $status."
+    remove_domain "$base_uuid" "$base_name"
+    die "Building the Windows 11 base image failed. See $log_file."
+  fi
+
+  # The rest of setup, the one Administrator logon, and sysprep run on their
+  # own; sysprep ends by shutting the VM off.
+  deadline=$((SECONDS + 7200))
+  until [[ $(virsh_system domstate "$base_uuid" --reason 2>/dev/null) == "shut off"* ]]; do
+    ((SECONDS < deadline)) ||
+      die "$base_name did not shut down within 2 hours, so sysprep did not finish. Check its console in virt-manager."
+    sleep "$poll_interval"
+  done
+  shutdown_state=$(virsh_system domstate "$base_uuid" --reason 2>/dev/null) ||
+    die "Could not verify the Windows base shutdown. See $log_file."
+  [[ $shutdown_state == 'shut off (shutdown)' ]] ||
+    die "The Windows base did not shut down normally. Check its console in virt-manager."
+  # Keep the disk, drop the VM, so nothing boots and changes the base.
+  virsh_system undefine "$base_uuid" --nvram >>"$log_file" 2>&1 ||
+    die "Could not remove the $base_name VM definition. See $log_file."
+  log "Built the $base_name.qcow2 base image."
+}
+
+create_win11() {
+  local name=$1 user=$2 secret=$3 base work disc capacity
+  [[ $name != "$base_name" ]] || die "$base_name is reserved for the base image."
+  domain_exists "$base_name" &&
+    die "A VM named $base_name is left from an unfinished base build. Delete it and its disk in virt-manager, then try again."
+  base=$(base_volume) || {
+    build_base
+    base=$(base_volume) || die "The base image is missing after building it. See $log_file."
+  }
+  capacity=$(virsh_system vol-info --pool default --bytes "$base_name.qcow2" | awk '/^Capacity:/ {print $2}') ||
+    die "Could not read the Windows base capacity."
+  [[ $capacity =~ ^[1-9][0-9]*$ ]] || die "Invalid Windows base capacity."
+  ((disk_gb * 1073741824 >= capacity)) ||
+    die "The clone disk cannot be smaller than the Windows base image."
+  log "Cloning $name from $base"
+
+  work=$(mktemp -d -t vm-preset.XXXXXX)
+  cleanup_paths+=("$work")
+  render_win11 win11.autounattend.xml "$work/autounattend.xml" \
+    "TIMEZONE=$(windows_timezone)" "COMPUTER_NAME=$(computer_name "$(hostname_for "$name")")" \
+    "USERNAME=$user" "PASSWORD=$secret"
+  disc=$cache_root/.answers-$uuid.iso
+  answer_disc "$work" "$disc"
+  rm -rf -- "$work"
+  clone_install_args "$name" "$base" "$disc"
+
+  log "Running $(printf '%q ' "$virt_install_command" "${install_args[@]}")"
+  if ! "$virt_install_command" "${install_args[@]}" >>"$log_file" 2>&1 9>&-; then
+    remove_domain "$uuid" "$name"
+    die "Creating $name failed. See $log_file."
+  fi
+  exec 9>&-
+  open_console "$name"
+  notify normal "Setting up $name from the Windows 11 base image. This takes a few minutes."
+
+  # Setup caches the answer file before the reboot that ends specialize, so the
+  # disc, and the password on it, can go then.
+  if ! virsh_system event --domain "$uuid" --event reboot --timeout 900 >>"$log_file" 2>&1; then
+    remove_domain "$uuid" "$name"
+    die "Waiting for the Windows setup reboot failed. The incomplete clone was removed. See $log_file."
+  fi
+  virsh_system change-media "$uuid" "$disc" --eject --live --config >>"$log_file" 2>&1 ||
+    log "warning: could not eject the answer disc from $name; remove its second CD drive in virt-manager."
+  log "$name is finishing setup."
+  notify normal "$name is finishing Windows setup. Log in as $user in a minute or two."
+}
+
+dry_run_win11() {
+  local name=$1 user=$2 work=$3 iso
+  iso=$(win11_iso) || iso="$win11_iso_dir/Win11_<version>_x64.iso"
+  render_win11 win11-base.autounattend.xml "$work/base.xml" \
+    'ADMIN_PASSWORD=<redacted-password>' 'AUTOLOGON_PASSWORD=<redacted-password>'
+  render_win11 win11.autounattend.xml "$work/clone.xml" \
+    "TIMEZONE=$(windows_timezone)" "COMPUTER_NAME=$(computer_name "$(hostname_for "$name")")" \
+    "USERNAME=$user" 'PASSWORD=<redacted-password>'
+
+  printf '# Only when %s.qcow2 is missing: build the base from %s\n' "$base_name" "$iso"
+  base_install_args "$iso" "$cache_root/.answers-<base-uuid>.iso" '<base-uuid>'
+  printf '%q ' "$virt_install_command" "${install_args[@]}"
+  printf '\n\n# ---- base autounattend.xml ----\n'
+  cat -- "$work/base.xml"
+  printf '\n# Clone %s\n' "$name"
+  clone_install_args "$name" "/var/lib/libvirt/images/$base_name.qcow2" "$cache_root/.answers-$uuid.iso"
+  printf '%q ' "$virt_install_command" "${install_args[@]}"
+  printf '\n\n# ---- clone autounattend.xml ----\n'
+  cat -- "$work/clone.xml"
+}
+
 refresh_iso() {
+  [[ $preset != win11 ]] ||
+    die "Windows 11 ISOs are not downloaded automatically. Save one in $win11_iso_dir."
   if "$dry_run"; then
     printf '# Download the newest Debian 13 netinst from %s into %s\n' "$debian_cd" "$cache_root"
     return 0

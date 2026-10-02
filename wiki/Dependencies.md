@@ -140,7 +140,9 @@ libvirt with QEMU, `virt-install`, `virsh`, Rofi, OpenSSL, curl, `sha512sum`,
 and `flock`; optionally virt-manager and GnuPG. The user must be in the
 `libvirt` group, the `default` network must be active, and `libvirtd` or both
 `virtqemud` and `virtstoraged` must be running. `libvirt-qemu` needs search
-permission on your home directory to read the cached ISO.
+permission on your home directory to read the cached ISO. The `win11` preset
+also needs `swtpm`, `xorriso`, and UEFI firmware (`edk2-ovmf`), and search
+permission on `~/Resources/ISO`.
 
 ### Windows VM
 
