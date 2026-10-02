@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 #
 # Reload the desktop in place after a config change: Hyprland re-reads its
-# config, then every Quickshell instance is stopped and relaunched detached.
+# config, then Quickshell is stopped and relaunched detached.
 #
 # Quickshell picks up most QML edits on its own, but a panel that changed
-# shape — new files, new singleton properties — needs a fresh process. Both
-# autostarted instances are restarted, not just the bar: they share one
-# binary, so stopping the bar takes the cava visualiser with it.
+# shape — new files, new singleton properties — needs a fresh process.
 
 set -euo pipefail
 
@@ -20,13 +18,6 @@ fail() {
 
 command -v quickshell >/dev/null 2>&1 || fail "quickshell is not installed"
 
-# Matches the exec-once lines in conf/autostart.conf: the default config is
-# the bar, and the visualiser is a sibling directory. It has to be launched by
-# path rather than by `-c cava-visualizer`, because quickshell stops looking at
-# subdirectories once `quickshell/shell.qml` exists, which it does here.
-shell_root=${XDG_CONFIG_HOME:-$HOME/.config}/quickshell
-declare -a shell_configs=("$shell_root/cava-visualizer")
-
 if pgrep -x Hyprland >/dev/null 2>&1; then
   command -v hyprctl >/dev/null 2>&1 || fail "Hyprland is live but hyprctl is unavailable"
   note 'reloading Hyprland'
@@ -39,7 +30,7 @@ if pgrep -x quickshell >/dev/null 2>&1; then
   note 'stopping Quickshell'
   pkill -x quickshell || true
 
-  # Give the instances a moment to unmap their layer surfaces. A survivor
+  # Give the instance a moment to unmap its layer surfaces. A survivor
   # would hold the bar's namespace and the relaunched process would sit
   # behind it, so escalate rather than racing.
   for _ in {1..30}; do
@@ -55,15 +46,5 @@ fi
 
 note 'starting Quickshell'
 quickshell --daemonize || fail "quickshell failed to start"
-
-for config in "${shell_configs[@]}"; do
-  if [[ ! -f $config/shell.qml ]]; then
-    note "skipping $config: no shell.qml there"
-    continue
-  fi
-  note "starting Quickshell (${config##*/})"
-  quickshell -p "$config" --daemonize ||
-    fail "quickshell -p $config failed to start"
-done
 
 note 'desktop reloaded'
