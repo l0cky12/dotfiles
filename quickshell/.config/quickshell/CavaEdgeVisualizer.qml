@@ -26,13 +26,21 @@ PanelWindow {
   WlrLayershell.layer: WlrLayer.Background
   WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 
-  Timer {
-    interval: 33
-    repeat: true
-    running: panel.visible
-    triggeredOnStart: true
-    onTriggered: canvas.requestPaint()
+  // Repaint when cava delivers a frame (it already caps itself at 30 fps) or
+  // when playback state changes. A free-running timer repainted both
+  // full-width canvases 30 times a second even while paused.
+  Connections {
+    target: CavaState
+    enabled: panel.visible
+    function onLevelsChanged() { canvas.requestPaint() }
+    function onAvailableChanged() { canvas.requestPaint() }
   }
+  Connections {
+    target: MediaState
+    enabled: panel.visible
+    function onIsPlayingChanged() { canvas.requestPaint() }
+  }
+  onVisibleChanged: if (visible) canvas.requestPaint()
 
   Canvas {
     id: canvas

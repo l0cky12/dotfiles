@@ -152,6 +152,22 @@ Scope {
     }
   }
 
+  // Pokes from scripts whose state the bar would otherwise have to poll fast:
+  // capture/record.sh on start/stop and windows-vm on start/stop.
+  IpcHandler {
+    target: "record"
+    function refresh(): void {
+      RecordState.refresh()
+    }
+  }
+
+  IpcHandler {
+    target: "windows-vm"
+    function refresh(): void {
+      WindowsVmState.refresh()
+    }
+  }
+
   IpcHandler {
     target: "modes"
     function toggle(): void {

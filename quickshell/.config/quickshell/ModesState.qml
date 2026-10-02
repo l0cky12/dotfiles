@@ -58,26 +58,27 @@ Singleton {
   function timed(name, duration) { invoke(["enable", name, "--for", duration]) }
   function screensaver() { invoke(["action", "screensaver"]) }
 
+  function applyStatus(text) {
+    if (text.trim() === "") return
+    try {
+      const value = JSON.parse(text)
+      root.modes = value.modes || []
+      root.daemonRunning = value.daemon === true
+      const settings = value.settings || ({})
+      root.warmTemperature = settings.warm_temperature || 1000
+      root.normalTemperature = settings.normal_temperature || 6500
+      root.durationPresets = settings.duration_presets || ["15m", "30m", "1h"]
+      root.lastError = ""
+    } catch (error) {
+      root.lastError = "Invalid desktop-mode status: " + error
+    }
+  }
+
+  // One-shot status for immediate feedback after an action or panel open.
   Process {
     id: statusProc
     command: [root.executable, "status", "--json"]
-    stdout: StdioCollector {
-      onTextChanged: {
-        if (text.trim() === "") return
-        try {
-          const value = JSON.parse(text)
-          root.modes = value.modes || []
-          root.daemonRunning = value.daemon === true
-          const settings = value.settings || ({})
-          root.warmTemperature = settings.warm_temperature || 1000
-          root.normalTemperature = settings.normal_temperature || 6500
-          root.durationPresets = settings.duration_presets || ["15m", "30m", "1h"]
-          root.lastError = ""
-        } catch (error) {
-          root.lastError = "Invalid desktop-mode status: " + error
-        }
-      }
-    }
+    stdout: StdioCollector { onTextChanged: root.applyStatus(text) }
     stderr: StdioCollector {}
     onExited: (code, status) => {
       if (code !== 0) root.lastError = "desktop-mode status is unavailable"
@@ -103,11 +104,24 @@ Singleton {
     onTriggered: root.refresh()
   }
 
-  Timer {
-    interval: 2000
+  // Background updates come from one resident `desktop-mode watch`, which
+  // prints a status line only when something changed. Polling `status` every
+  // two seconds started a bash wrapper and a fresh Python interpreter each time.
+  Process {
+    id: watchProc
+    command: [root.executable, "watch"]
     running: true
-    repeat: true
-    triggeredOnStart: true
-    onTriggered: root.refresh()
+    stdout: SplitParser { onRead: line => root.applyStatus(line) }
+    stderr: StdioCollector {}
+    onExited: (code, status) => {
+      root.lastError = "desktop-mode status is unavailable"
+      watchRestart.restart()
+    }
+  }
+
+  Timer {
+    id: watchRestart
+    interval: 5000
+    onTriggered: watchProc.running = true
   }
 }

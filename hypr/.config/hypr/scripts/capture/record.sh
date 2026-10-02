@@ -62,6 +62,15 @@ record_pid() {
   return 1
 }
 
+# Tell the bar's REC pill to re-read status now. It polls slowly as a backstop
+# for a crashed recorder; start and stop announce themselves. Detached so a
+# missing or busy shell never delays the recorder.
+record_refresh_bar() {
+  command -v quickshell >/dev/null 2>&1 &&
+    { quickshell ipc call record refresh >/dev/null 2>&1 & }
+  return 0
+}
+
 record_status() {
   if record_pid >/dev/null; then
     printf 'recording\n'
@@ -407,6 +416,7 @@ record_start() {
     return 1
   fi
 
+  record_refresh_bar
   notify "Recording started" "$(basename "$outfile")"
 }
 
@@ -440,6 +450,7 @@ record_stop() {
   fi
 
   rm -f "$PIDFILE" "$OUTFILE_REF"
+  record_refresh_bar
   webcam_stop
 
   if [ -z "$outfile" ] || [ ! -f "$outfile" ]; then

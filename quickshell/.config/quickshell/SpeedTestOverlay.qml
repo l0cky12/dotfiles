@@ -48,7 +48,9 @@ PanelWindow {
   Image {
     id: wallpaper
     anchors.fill: parent
-    source: window.wallpaperPath === "" ? "" : "file://" + window.wallpaperPath
+    // Hidden overlays exist on every screen; decoding a screen-sized
+    // wallpaper for each of them only costs memory until one is shown.
+    source: !window.visible || window.wallpaperPath === "" ? "" : "file://" + window.wallpaperPath
     fillMode: Image.PreserveAspectCrop
     asynchronous: true
     visible: false

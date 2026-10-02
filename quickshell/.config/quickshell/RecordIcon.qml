@@ -26,11 +26,17 @@ Item {
     radius: Theme.radiusCell
     color: Theme.error
 
-    SequentialAnimation on opacity {
+    // A two-state blink, not an eased pulse: a running animation re-renders
+    // every bar at the display refresh rate for the whole recording, competing
+    // with the encoder; this repaints twice per cycle.
+    property bool dim: false
+    opacity: dim ? 0.55 : 1.0
+    Timer {
+      interval: 900
+      repeat: true
       running: root.visible
-      loops: Animation.Infinite
-      NumberAnimation { from: 1.0; to: 0.55; duration: 900; easing.type: Easing.InOutQuad }
-      NumberAnimation { from: 0.55; to: 1.0; duration: 900; easing.type: Easing.InOutQuad }
+      onTriggered: pill.dim = !pill.dim
+      onRunningChanged: if (!running) pill.dim = false
     }
   }
 

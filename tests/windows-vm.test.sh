@@ -98,6 +98,13 @@ export WINDOWS_VM_DATA_DIR="$repo_root/windows/.local/share/windows-vm"
 export WINDOWS_VM_RUNTIME_DIR="$test_root/runtime"
 export WINDOWS_VM_STORAGE_DIR="$test_root/home/.windows"
 export WINDOWS_VM_SHARE_DIR="$test_root/home/Windows"
+
+# Before anything is configured the bar polls cheaply: "off" with no docker
+# CLI or daemon round trips.
+"$helper" status --bar > "$test_root/bar-unconfigured.out"
+[[ $(<"$test_root/bar-unconfigured.out") == off ]] || fail 'unconfigured bar status was not off'
+grep -q '^docker ' "$calls" && fail 'unconfigured bar status still queried docker'
+: > "$calls"
 export WINDOWS_VM_NONINTERACTIVE=1
 export WINDOWS_VM_INSTALL_PASSWORD="fixture 'secret'"
 
