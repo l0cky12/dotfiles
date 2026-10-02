@@ -31,18 +31,24 @@ copy_result() {
 }
 
 # History is "expression<TAB>result" per line, oldest first.
-save_history() {
+save_history() (
   local dir tmp
   dir=$(dirname -- "$HISTORY_FILE")
-  mkdir -p -- "$dir" && tmp=$(mktemp "$HISTORY_FILE.XXXXXX") || return 1
+  mkdir -p -- "$dir" || return 1
+  exec 9>"$dir/.history.lock" || return 1
+  flock -x 9 || return 1
+  tmp=$(mktemp "$HISTORY_FILE.XXXXXX") || return 1
   # A failed tail (e.g. unreadable history) aborts before the old file is replaced.
-  { [[ ! -e "$HISTORY_FILE" ]] || tail -n "$((HISTORY_LIMIT - 1))" -- "$HISTORY_FILE"; } > "$tmp" &&
+  if ! { { [[ ! -e "$HISTORY_FILE" ]] || tail -n "$((HISTORY_LIMIT - 1))" -- "$HISTORY_FILE"; } > "$tmp" &&
     printf '%s\t%s\n' "${1//$'\t'/ }" "$2" >> "$tmp" &&
-    mv -f -- "$tmp" "$HISTORY_FILE" || { rm -f -- "$tmp"; return 1; }
-}
+    mv -f -- "$tmp" "$HISTORY_FILE"; }; then
+    rm -f -- "$tmp"
+    return 1
+  fi
+)
 
 history=""
-[[ -r "$HISTORY_FILE" ]] && history=$(tac -- "$HISTORY_FILE")
+[[ -r "$HISTORY_FILE" ]] && { history=$(tac -- "$HISTORY_FILE") || history=""; }
 
 # Enter always calculates the typed text; Ctrl+Enter (custom key 1, exit 10)
 # copies the highlighted history row. -format i:f prints "<row index or -1>:<typed text>".

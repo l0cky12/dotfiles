@@ -76,8 +76,10 @@ export CALCULATOR_NOTIFICATIONS="$test_root/notifications"
 history_file="$test_root/.local/state/calculator/history"
 
 run_calc() {
+  local -a state_env=(-u XDG_STATE_HOME)
+  [[ -z "${CALCULATOR_STATE_HOME:-}" ]] || state_env=("XDG_STATE_HOME=$CALCULATOR_STATE_HOME")
   rm -f "$ROFI_STATE" "$CALCULATOR_CLIPBOARD_DATA" "$CALCULATOR_NOTIFICATIONS"
-  env -u XDG_STATE_HOME PATH="$test_root/bin:$PATH" HOME="$test_root" \
+  env "${state_env[@]}" PATH="$test_root/bin:$PATH" HOME="$test_root" \
     XDG_CONFIG_HOME="$test_root/config" XDG_RUNTIME_DIR="$test_root/runtime" "$calculator"
 }
 
@@ -135,10 +137,56 @@ if [[ "$(id -u)" != 0 ]]; then
 fi
 [[ -z "$(find "${history_file%/*}" -name 'history.*')" ]] || fail 'history temp file left behind'
 
+# A read error still permits calculating; a failed replacement keeps old entries.
+printf '#!/usr/bin/env bash\nexit 1\n' > "$test_root/bin/tac"
+chmod +x "$test_root/bin/tac"
+run_calc
+assert_eq 14 "$(<"$CALCULATOR_CLIPBOARD_DATA")"
+[[ ! -s "$ROFI_MENU" ]] || fail 'failed history read displayed partial history'
+rm "$test_root/bin/tac"
+history_before=$(cat "$history_file")
+printf '#!/usr/bin/env bash\nexit 1\n' > "$test_root/bin/mv"
+chmod +x "$test_root/bin/mv"
+run_calc
+assert_eq "$history_before" "$(cat "$history_file")"
+[[ -z "$(find "${history_file%/*}" -name 'history.*')" ]] || fail 'failed replacement left temporary history'
+rm "$test_root/bin/mv"
+
+# Concurrent instances retain every successful result in a custom state directory.
+cat > "$test_root/bin/tail" <<'SH'
+#!/usr/bin/env bash
+sleep 0.1
+exec /usr/bin/tail "$@"
+SH
+chmod +x "$test_root/bin/tail"
+parallel_state="$test_root/parallel state"
+CALCULATOR_STATE_HOME="$parallel_state" run_calc
+pids=()
+for n in {1..8}; do
+  CALCULATOR_STATE_HOME="$parallel_state" CALCULATOR_EXPRESSION="$n + 10" \
+    ROFI_STATE="$test_root/rofi-state-$n" \
+    CALCULATOR_CLIPBOARD_DATA="$test_root/clipboard-$n" \
+    CALCULATOR_NOTIFICATIONS="$test_root/notifications-$n" run_calc &
+  pids+=("$!")
+done
+for pid in "${pids[@]}"; do wait "$pid"; done
+assert_eq 9 "$(wc -l < "$parallel_state/calculator/history")"
+for n in {1..8}; do
+  grep -Fxq "$(printf '%s + 10\t%s' "$n" "$((n + 10))")" "$parallel_state/calculator/history" ||
+    fail "concurrent save lost calculation $n"
+done
+rm "$test_root/bin/tail"
+
 for cancel_at in 1 2; do
+  history_before=$(cat "$history_file")
   ROFI_CANCEL_AT="$cancel_at" run_calc
   [[ ! -e "$CALCULATOR_CLIPBOARD_DATA" ]] || fail "cancel stage $cancel_at copied a result"
   [[ ! -e "$CALCULATOR_NOTIFICATIONS" ]] || fail "cancel stage $cancel_at notified"
+  if [[ "$cancel_at" == 1 ]]; then
+    assert_eq "$history_before" "$(cat "$history_file")"
+  else
+    assert_eq "$(printf '2 + 3 * 4\t14')" "$(tail -n1 "$history_file")"
+  fi
 done
 
 set +e
