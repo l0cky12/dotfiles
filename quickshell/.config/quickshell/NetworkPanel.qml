@@ -155,13 +155,13 @@ PopupWindow {
               }
             }
             Row { spacing: Theme.gapS
-              Rectangle { width: Theme.fs(230); height: Theme.fs(28); radius: Theme.radiusCell; color: Theme.bgDeep; border.color: Theme.surface
+              Rectangle { width: Theme.fs(320); height: Theme.fs(28); radius: Theme.radiusCell; color: Theme.bgDeep; border.color: Theme.surface
                 TextInput { id: customDns; anchors.fill: parent; anchors.leftMargin: Theme.gapS; anchors.rightMargin: Theme.gapS; verticalAlignment: TextInput.AlignVCenter; color: Theme.text; font.pixelSize: Theme.fs(11); clip: true }
-                Text { anchors.left: parent.left; anchors.leftMargin: Theme.gapS; anchors.verticalCenter: parent.verticalCenter; visible: customDns.text === ""; text: "Custom DNS (e.g. 1.1.1.1 1.0.0.1)"; color: Theme.textMuted; font.pixelSize: Theme.fs(10) }
+                Text { anchors.left: parent.left; anchors.leftMargin: Theme.gapS; anchors.verticalCenter: parent.verticalCenter; visible: customDns.text === ""; text: "Custom DNS, up to 4 (e.g. 1.1.1.1 1.0.0.1 9.9.9.9)"; color: Theme.textMuted; font.pixelSize: Theme.fs(10) }
               }
               Rectangle { width: Theme.fs(64); height: Theme.fs(28); radius: Theme.radiusCell; color: Theme.surface
                 Text { anchors.centerIn: parent; text: "Apply"; color: Theme.text; font.pixelSize: Theme.fs(10) }
-                MouseArea { anchors.fill: parent; onClicked: { if (!NetworkState.validateDns(customDns.text) || customDns.text.trim() === "") { NetworkState.lastError = "Enter one or two valid DNS servers."; return } panel.confirm("Apply custom DNS", "This may reconnect the current network.", function() { NetworkState.applyDns(customDns.text.trim()) }) } }
+                MouseArea { anchors.fill: parent; onClicked: { if (!NetworkState.validateDns(customDns.text) || customDns.text.trim() === "") { NetworkState.lastError = "Enter one to four valid DNS servers."; return } panel.confirm("Apply custom DNS", "Saved to this network's profile, so it persists across reboots. This may reconnect the current network.", function() { NetworkState.applyDns(customDns.text.trim()) }) } }
               }
             }
 
@@ -180,7 +180,7 @@ PopupWindow {
                   { label: "Gateway", width: 126, key: "gateway" }, { label: "DNS (optional)", width: 126, key: "dns" }
                 ]
                   Rectangle { required property var modelData; width: Theme.fs(modelData.width); height: Theme.fs(28); radius: Theme.radiusCell; color: Theme.bgDeep; border.color: Theme.surface
-                    TextInput { id: manualInput; anchors.fill: parent; anchors.leftMargin: Theme.fs(6); anchors.rightMargin: Theme.fs(6); verticalAlignment: TextInput.AlignVCenter; color: Theme.text; font.pixelSize: Theme.fs(10); onTextChanged: { if (parent.modelData.key === "address") panel.manualAddressText = text; else if (parent.modelData.key === "prefix") panel.manualPrefixText = text; else if (parent.modelData.key === "gateway") panel.manualGatewayText = text; else panel.manualDnsText = text } }
+                    TextInput { id: manualInput; anchors.fill: parent; anchors.leftMargin: Theme.fs(6); anchors.rightMargin: Theme.fs(6); verticalAlignment: TextInput.AlignVCenter; color: Theme.text; font.pixelSize: Theme.fs(10); clip: true; onTextChanged: { if (parent.modelData.key === "address") panel.manualAddressText = text; else if (parent.modelData.key === "prefix") panel.manualPrefixText = text; else if (parent.modelData.key === "gateway") panel.manualGatewayText = text; else panel.manualDnsText = text } }
                     Text { anchors.left: parent.left; anchors.leftMargin: Theme.fs(6); anchors.verticalCenter: parent.verticalCenter; visible: manualInput.text === ""; text: parent.modelData.label; color: Theme.textMuted; font.pixelSize: Theme.fs(9) }
                   }
                 }

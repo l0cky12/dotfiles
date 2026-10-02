@@ -103,6 +103,41 @@ fi
 if run --dry-run dns custom bad.ip >/dev/null 2>&1; then
   fail 'DNS accepted an invalid address'
 fi
+if run --dry-run dns custom '1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8 8.8.4.4' >/dev/null 2>&1; then
+  fail 'DNS accepted more than four servers'
+fi
+if run --dry-run dns custom '   ' >/dev/null 2>&1; then
+  fail 'DNS accepted a blank server list'
+fi
+if run --dry-run ipv4 manual 192.0.2.44 24 192.0.2.1 '1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8 8.8.4.4' >/dev/null 2>&1; then
+  fail 'manual IPv4 accepted more than four DNS servers'
+fi
+# Validate the entire argument, including later lines, before passing it to nmcli.
+for values in $'1.1.1.1\nbad.ip' $'1.1.1.1\n1.0.0.1 9.9.9.9 8.8.8.8 8.8.4.4'; do
+  if run --dry-run dns custom "$values" >/dev/null 2>&1; then
+    fail 'custom DNS skipped validation after a newline'
+  fi
+  if run --dry-run ipv4 manual 192.0.2.44 24 192.0.2.1 "$values" >/dev/null 2>&1; then
+    fail 'manual IPv4 skipped DNS validation after a newline'
+  fi
+done
+# A glob must be validated as text, never expanded against the working directory.
+if (cd "$test_root/runtime" && touch 1.1.1.1 && run --dry-run dns custom '*') >/dev/null 2>&1; then
+  fail 'DNS expanded a glob into a server list'
+fi
+
+# Four servers are written to the saved profile (no --temporary), which
+# NetworkManager keeps on disk across reboots, then the profile is re-applied.
+: > "$NMCLI_CALLS"
+run dns custom '1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8' >/dev/null
+grep -Fqx 'connection modify Cafe;Net ipv4.dns 1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8 ipv4.ignore-auto-dns yes' "$NMCLI_CALLS" \
+  || fail 'four DNS servers were not saved to the connection profile'
+grep -Fqx 'connection up Cafe;Net' "$NMCLI_CALLS" || fail 'saved DNS was not re-applied to the connection'
+! grep -Fq -- '--temporary' "$NMCLI_CALLS" || fail 'DNS change would not persist across reboots'
+: > "$NMCLI_CALLS"
+run ipv4 manual 192.0.2.44 24 192.0.2.1 '1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8' >/dev/null
+grep -Fqx 'connection modify Cafe;Net ipv4.method manual ipv4.addresses 192.0.2.44/24 ipv4.gateway 192.0.2.1 ipv4.dns 1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8 ipv4.ignore-auto-dns yes' "$NMCLI_CALLS" \
+  || fail 'manual IPv4 did not save four DNS servers to the profile'
 
 qr_json=$(run qr)
 jq -e '.ssid == "Cafe;Net" and .security == "WPA" and (.path | endswith("/wifi.svg"))' <<<"$qr_json" >/dev/null || fail 'QR output did not limit itself to metadata'

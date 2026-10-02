@@ -74,7 +74,7 @@ Singleton {
   }
   function validateDns(dns) {
     const values = dns.trim() === "" ? [] : dns.trim().split(/\s+/)
-    return values.length <= 2 && values.every(validateIp)
+    return values.length <= 4 && values.every(validateIp)
   }
   function refresh() { if (!statusProc.running) statusProc.running = true }
   function scan() {
@@ -95,7 +95,7 @@ Singleton {
   function restoreDhcp() { action(["ipv4", "automatic"]) }
   function applyManual(address, prefix, gatewayValue, dns) {
     if (!validateIp(address) || !validateIp(gatewayValue) || !/^\d{1,2}$/.test(prefix) || Number(prefix) > 32 || !validateDns(dns)) {
-      lastError = "Enter a valid IPv4 address, prefix, gateway, and up to two DNS servers."
+      lastError = "Enter a valid IPv4 address, prefix, gateway, and up to four DNS servers."
       return
     }
     action(["ipv4", "manual", address, prefix, gatewayValue, dns])
