@@ -9,3 +9,4 @@ NotificationBorder 1.0 NotificationBorder.qml
 NotificationPersistence 1.0 NotificationPersistence.qml
 NotificationActions 1.0 NotificationActions.qml
 NotificationServer 1.0 NotificationServer.qml
+NotificationVinyl 1.0 NotificationVinyl.qml
