@@ -2,34 +2,39 @@
 # Clear the active Wayland clipboard and wipe clipboard history while preserving
 # pinned entries.
 #
-# Usage: clipboard-wipe.sh [pinned-id ...]
-#
-# Pinned entries must be decoded to temp files *before* the wipe, because after
-# it their ids no longer exist. They are then re-stored, so they survive with new
-# ids -- the caller is responsible for re-reading the list afterwards.
+# Usage: clipboard-wipe.sh [pinned-id ...] | --pins JSON
+# Use selective deletion so pins keep their IDs and a concurrent refresh never
+# observes an empty database between wiping and restoring pins.
 
-set -uo pipefail
+set -euo pipefail
 
-tmp=$(mktemp -d) || exit 1
-trap 'rm -rf "$tmp"' EXIT
+if [[ ${1:-} == --pins ]]; then
+  (($# == 2)) || exit 2
+  # Capture the complete successful output, never partially resolved pins.
+  resolved=$(python3 "${BASH_SOURCE[0]%/*}/clipboard-pins.py" resolve "$2") || exit 1
+  mapfile -t pinned_ids <<< "$resolved"
+else
+  pinned_ids=("$@")
+fi
 
-n=0
-for id in "$@"; do
-  [[ $id =~ ^[0-9]+$ ]] || continue
-  if cliphist decode "$id" > "$tmp/$n.bin" 2>/dev/null && [[ -s "$tmp/$n.bin" ]]; then
-    n=$((n + 1))
-  else
-    rm -f "$tmp/$n.bin"
-  fi
+declare -A keep=()
+for id in "${pinned_ids[@]}"; do
+  [[ $id =~ ^[0-9]+$ ]] && keep[$id]=1
 done
 
 # Clear the live clipboard before mutating history. If this fails, leave the
 # database untouched so the UI can report the failure without losing entries.
 wl-copy --clear || exit 1
 
-cliphist wipe || exit 1
-
-# Re-store oldest-first so the most recently pinned ends up nearest the top.
-for ((i = n - 1; i >= 0; i--)); do
-  [[ -s "$tmp/$i.bin" ]] && cliphist store < "$tmp/$i.bin"
-done
+if ((${#keep[@]} == 0)); then
+  cliphist wipe
+else
+  lines=$(cliphist list) || exit 1
+  while IFS= read -r line; do
+    id=${line%%$'\t'*}
+    [[ $id =~ ^[0-9]+$ ]] || continue
+    if [[ ! -v keep[$id] ]]; then
+      printf '%s\n' "$line" | cliphist delete
+    fi
+  done <<< "$lines"
+fi

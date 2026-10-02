@@ -8,9 +8,9 @@ import QtQuick
 //
 // cliphist has neither timestamps nor pinning, so both live in a small sidecar
 // index keyed by cliphist entry id, kept pruned against the live list. A pin
-// belongs to the content, not the id: wiping history re-stores pinned entries,
-// and copying one again re-inserts it, both under new ids, so a pin whose id
-// vanished moves to a new id with the same preview.
+// belongs to the content, not the id: copying one again re-inserts it under a
+// new id, so a pin whose id vanished moves to the same full-content SHA-256
+// hash. Wiping unpinned history leaves pinned IDs intact.
 Singleton {
   id: root
 
@@ -62,8 +62,9 @@ Singleton {
 
   // --- sidecar index (timestamps + pins) -------------------------------------
 
-  // id -> { firstSeen: ms, pinned: bool, backfilled: bool, preview?: string }
-  // `preview` is kept for pinned entries only, so their pin can follow them.
+  // id -> { firstSeen, pinned, backfilled, preview?, hash? }
+  // Only pins retain content metadata. Previews narrow hash lookups but never
+  // decide identity; hashes cover complete decoded bytes, including images.
   // `backfilled` marks entries that already existed the first time we indexed
   // them: their real copy time is unknowable, so the UI shows no relative time
   // for them rather than a misleading "just now".
@@ -97,31 +98,68 @@ Singleton {
     indexFile.setText(JSON.stringify(root.index))
   }
 
+  readonly property string pinHelper: Quickshell.env("HOME") + "/.config/hypr/scripts/clipboard-pins.py"
+  property string pendingPinId: ""
+
   function togglePin(id) {
-    const idx = root.index
-    if (!idx[id])
+    const safe = root.safeId(id)
+    const item = root.index[safe]
+    if (!item || pinProc.running)
       return
-    idx[id].pinned = !idx[id].pinned
-    root.index = idx
-    root.saveIndex()
-    root.rebuild()
+    if (item.pinned === true) {
+      item.pinned = false
+      delete item.preview
+      delete item.hash
+      root.saveIndex()
+      root.rebuild()
+    } else {
+      // Commit a pin only after the complete content can be identified.
+      root.pendingPinId = safe
+      pinProc.command = ["python3", root.pinHelper, "hash", safe]
+      pinProc.running = true
+    }
+  }
+
+  Process {
+    id: pinProc
+    stdout: StdioCollector { id: pinOut; waitForEnd: true }
+    stderr: StdioCollector { id: pinErr; waitForEnd: true }
+    onExited: function(code) {
+      const hash = pinOut.text.trim()
+      const item = root.index[root.pendingPinId]
+      if (code !== 0 || !/^[a-f0-9]{64}$/.test(hash)) {
+        root.lastError = "could not pin clipboard entry: " + pinErr.text.trim()
+        return
+      }
+      if (!item)
+        return
+      item.pinned = true
+      item.hash = hash
+      root.rebuild()
+      root.saveIndex()
+      pendingRefresh.restart()
+    }
   }
 
   // --- listing ---------------------------------------------------------------
 
-  property var rawLines: []
+  property var rawRows: []
 
   function refresh() {
     if (!root.indexLoaded)
       return
+    if (listProc.running) {
+      pendingRefresh.restart()
+      return
+    }
+    listProc.command = ["python3", root.pinHelper, "list", root.pinnedData()]
     listProc.running = true
   }
 
   Process {
     id: listProc
-    command: ["cliphist", "list"]
-    stdout: StdioCollector { id: listOut }
-    stderr: StdioCollector { id: listErr }
+    stdout: StdioCollector { id: listOut; waitForEnd: true }
+    stderr: StdioCollector { id: listErr; waitForEnd: true }
     onExited: function (code) {
       if (code !== 0) {
         root.lastError = "cliphist unavailable: " + listErr.text.trim()
@@ -129,14 +167,18 @@ Singleton {
         // Reconcile only after the complete command output is available. An
         // empty successful result is meaningful: it must clear stale rows
         // after the history has been wiped.
-        root.rawLines = listOut.text.split("\n").filter(l => l.trim() !== "")
-        root.rebuild()
-        root.lastError = ""
+        try {
+          root.rawRows = JSON.parse(listOut.text)
+          root.rebuild()
+          root.lastError = ""
+        } catch (e) {
+          root.lastError = "could not read clipboard history"
+        }
       }
     }
   }
 
-  // Turns the raw `id<TAB>preview` lines into entries, and reconciles the
+  // Turns the helper rows into entries, and reconciles the
   // sidecar index in the same pass (add unseen ids, prune vanished ones).
   function rebuild() {
     const now = Date.now()
@@ -147,38 +189,37 @@ Singleton {
     const rows = []
     var changed = false
 
-    for (var i = 0; i < root.rawLines.length; i++) {
-      const line = root.rawLines[i]
-      const tab = line.indexOf("\t")
-      if (tab <= 0)
-        continue
-      const id = line.substring(0, tab)
-      if (!/^[0-9]+$/.test(id))
+    for (var i = 0; i < root.rawRows.length; i++) {
+      const row = root.rawRows[i]
+      const id = root.safeId(row.id)
+      if (id === "" || typeof row.preview !== "string")
         continue
       seen[id] = true
-      rows.push({ id: id, preview: line.substring(tab + 1) })
+      rows.push(row)
     }
 
-    // Pins whose id is gone, by preview, waiting for their content's new id.
-    const orphanedPins = ({})
+    // A Map has no inherited keys, and full hashes distinguish equal previews.
+    const orphanedPins = new Map()
     for (var old in idx) {
-      if (!seen[old] && idx[old].pinned === true && typeof idx[old].preview === "string")
-        orphanedPins[idx[old].preview] = idx[old]
+      if (!seen[old] && idx[old].pinned === true && typeof idx[old].hash === "string")
+        orphanedPins.set(idx[old].hash, idx[old])
     }
 
     for (var r = 0; r < rows.length; r++) {
       const id = rows[r].id
       const preview = rows[r].preview
+      const hash = rows[r].hash
 
       if (!idx[id]) {
-        const moved = orphanedPins[preview]
+        const moved = orphanedPins.get(hash)
         if (moved) {
-          delete orphanedPins[preview]
+          orphanedPins.delete(hash)
           idx[id] = {
             firstSeen: moved.firstSeen,
             pinned: true,
             backfilled: moved.backfilled === true,
-            preview: preview
+            preview: preview,
+            hash: hash
           }
           changed = true
         } else {
@@ -188,10 +229,19 @@ Singleton {
             // Everything present on the very first index build predates us.
             backfilled: firstRun
           }
+          changed = true
         }
       }
-      if (idx[id].pinned === true && idx[id].preview !== preview) {
-        idx[id].preview = preview
+      if (idx[id].pinned === true) {
+        if (idx[id].preview !== preview || (hash && idx[id].hash !== hash)) {
+          idx[id].preview = preview
+          if (hash) idx[id].hash = hash
+          changed = true
+        }
+      } else if (idx[id].preview !== undefined || idx[id].hash !== undefined) {
+        // Also scrub previews left by earlier versions after an unpin.
+        delete idx[id].preview
+        delete idx[id].hash
         changed = true
       }
 
@@ -257,26 +307,27 @@ Singleton {
     actionProc.running = true
   }
 
-  // Previews of every pinned entry, one per line. screensaver-lock maps them
-  // onto current cliphist ids itself, because this list of ids is only as
-  // fresh as the last refresh.
-  function pinnedPreviews() {
+  // IPC carries data as JSON, so tabs, backslashes and newlines stay literal.
+  function pinnedData() {
     const out = []
     for (var id in root.index) {
       const item = root.index[id]
-      if (item.pinned === true && typeof item.preview === "string")
-        out.push(item.preview)
+      if (item.pinned === true && root.safeId(id) !== "") {
+        const pin = { id: id }
+        if (typeof item.preview === "string") pin.preview = item.preview
+        if (typeof item.hash === "string") pin.hash = item.hash
+        out.push(pin)
+      }
     }
-    return out.join("\n")
+    return JSON.stringify(out)
   }
 
-  // Wipe, preserving pinned entries (they are decoded and re-stored, and the
-  // next rebuild moves each pin onto its re-stored id).
   function wipe() {
-    const pinned = root.entries.filter(e => e.pinned).map(e => root.safeId(e.id))
-                              .filter(s => s !== "")
-    actionProc.command = ["sh", "-c",
-      "$HOME/.config/hypr/scripts/clipboard-wipe.sh " + pinned.join(" ")]
+    if (actionProc.running)
+      return
+    // Resolve hashes against the live database even when the panel is stale.
+    actionProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/clipboard-wipe.sh",
+                          "--pins", root.pinnedData()]
     actionProc.running = true
   }
 

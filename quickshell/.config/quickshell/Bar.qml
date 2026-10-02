@@ -84,8 +84,8 @@ Scope {
       ClipboardState.togglePanel(bar.focusedScreen())
     }
     // screensaver-lock keeps these entries when it wipes history on lock.
-    function pinnedPreviews(): string {
-      return ClipboardState.pinnedPreviews()
+    function pinnedData(): string {
+      return ClipboardState.pinnedData()
     }
   }
 

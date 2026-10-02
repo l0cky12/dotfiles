@@ -15,7 +15,12 @@ belong in `/etc`.
 - **Clipboard history**, which is unencrypted at `~/.cache/cliphist/db`.
   `clipboard-store.sh` filters password-manager MIME markers and sensitive
   applications before storing, history is capped at 200 text/image entries,
-  and the Hyprlock wrapper clears it on lock.
+  and the Hyprlock wrapper clears the live clipboard and unpinned history on
+  lock. Pinned contents remain in the unencrypted database; the Quickshell
+  sidecar also retains their previews and content hashes. Unpinning removes
+  that content metadata. If pin lookup fails or times out, locking falls back
+  to a full wipe, including pins. Clipboard cleanup has a deadline so broken
+  tools cannot prevent locking; a failed cleanup can leave history behind.
 - **Wi-Fi passwords.** The network panel hands secured connections to an
   interactive `nmtui` prompt so the password never crosses the panel boundary,
   and the Wi-Fi QR is rendered at runtime rather than written to disk.

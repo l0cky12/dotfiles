@@ -155,8 +155,14 @@ images to `hypr/.config/hypr/scripts/clipboard-store.sh`. The active UI is the
 Quickshell clipboard panel, backed by `cliphist`. `cliphist/.config/cliphist/config`
 sets a shared 200-entry maximum for text and images. The database is unencrypted
 under `~/.cache/cliphist/db`; password-manager MIME markers and sensitive app
-windows are excluded, and starting Hyprlock clears the live clipboard and
-history.
+windows are excluded. Starting Hyprlock clears the live clipboard and unpinned
+history, preserving pinned contents by their complete-content SHA-256 hashes.
+The panel's Wipe uses the same matching and keeps pinned IDs intact. Copying a
+pinned value again transfers its pin to the new ID on refresh. Pinned previews
+and hashes live in the unencrypted Quickshell `clipboard-index.json` sidecar;
+unpinning removes both fields. A failed or timed-out pin lookup falls back to
+wiping all history, including pins. Cleanup is bounded, and locking proceeds
+even if clipboard tools fail, so unsuccessful cleanup can leave history behind.
 
 Browser Copy URL writes to the real Wayland clipboard, so it enters this history
 through the same watcher. Universal copy/cut/paste helpers adapt shortcuts for
