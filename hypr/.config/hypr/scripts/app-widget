@@ -34,7 +34,9 @@ if [[ $address =~ ^0x[[:xdigit:]]+$ ]]; then
   if $dry_run; then
     printf 'action=would-focus desktop_id=%s address=%s\n' "$desktop_id" "$address"
   else
-    hyprctl dispatch focuswindow "address:$address"
+    # Lua-provider dispatch: the legacy `focuswindow address:` string is a Lua
+    # syntax error under hyprland.lua and focused nothing.
+    hyprctl dispatch "hl.dsp.focus({ window = \"address:$address\" })"
   fi
   exit 0
 fi

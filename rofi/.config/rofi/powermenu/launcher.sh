@@ -52,9 +52,9 @@ run_action() {
       ;;
     logout)
       if (( DRY_RUN )); then
-        print_command hyprctl dispatch exit
+        print_command hyprctl dispatch 'hl.dsp.exit()'
       else
-        hyprctl dispatch exit
+        hyprctl dispatch 'hl.dsp.exit()'
       fi
       ;;
     suspend)

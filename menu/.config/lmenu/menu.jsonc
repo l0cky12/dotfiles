@@ -1708,7 +1708,7 @@
     "id": "system.logout",
     "icon": "󰗽",
     "label": "Logout",
-    "action": "hyprctl dispatch exit"
+    "action": "hyprctl dispatch 'hl.dsp.exit()'"
   },
   {
     "id": "system.reboot",
