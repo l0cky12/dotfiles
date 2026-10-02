@@ -24,9 +24,6 @@ Scope {
 Five things: battery monitoring, the bar, one desktop clock per screen, the
 notification service, and the browser-video progress service.
 
-A second instance runs separately as `quickshell -c cava-visualizer`, configured
-from `quickshell/.config/quickshell/cava-visualizer/`.
-
 ## Bar layout
 
 One top-layer bar per screen. The bar strip itself is transparent and paints

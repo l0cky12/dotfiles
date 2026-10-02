@@ -196,7 +196,7 @@ works fine.
 | Wofi, Fuzzel, Bemenu | power-menu fallbacks; the Wofi config is retained |
 | Noctalia | settings and plugins retained; startup commented out |
 | PulseAudio `pactl` | duplicate fallback volume bindings; `wpctl` registers first and shadows them |
-| Cava | the audio visualiser shell instance |
+| Cava | the bar's media spectrum and the Super+Alt+V edge visualiser; both fall back without it |
 | mpvpaper | retained video-wallpaper paths |
 | nwg-displays | wrote the original Lua monitor files; not required by the active loader |
 | Fastfetch, Pokémon Color Scripts | the interactive Zsh greeting |
