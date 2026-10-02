@@ -212,6 +212,52 @@ class DesktopModeTests(unittest.TestCase):
         self.assertEqual(process.returncode, 0, stderr)
         self.assertFalse(pidfile.exists())
 
+    def test_daemon_reconciles_dnd_less_often_than_expiry(self) -> None:
+        # Each DND reconcile starts notificationctl plus a Quickshell IPC
+        # client; at reconcile_seconds = 0.2 the daemon makes ~6 passes in 1.2 s.
+        log = self.temp / "notify-calls"
+        fixture = self.temp / "notify-log-fixture"
+        fixture.write_text("#!/bin/sh\nprintf '%s\\n' \"$*\" >> \"$MODE_LOG\"\n"
+                           "printf '{\"available\":true,\"dnd\":false}\\n'\n", encoding="utf-8")
+        fixture.chmod(0o755)
+        config = self.config_path.read_text(encoding="utf-8").replace(
+            '["notify-fixture"]', f'["{fixture}"]')
+        self.config_path.write_text(config, encoding="utf-8")
+        env = os.environ.copy()
+        env.update({"DESKTOP_MODE_CONFIG": str(self.config_path),
+                    "DESKTOP_MODE_RUNTIME_DIR": str(self.temp / "reconcile-runtime"),
+                    "MODE_LOG": str(log)})
+        process = subprocess.Popen([str(WRAPPER), "daemon"], env=env,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        time.sleep(1.2)
+        process.terminate()
+        process.communicate(timeout=4)
+        calls = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
+        status_calls = [c for c in calls if c.startswith("status")]
+        self.assertGreaterEqual(len(status_calls), 1)
+        self.assertLessEqual(len(status_calls), 2)
+
+    def test_watch_exits_when_its_parent_dies(self) -> None:
+        # The bar keeps one `watch` running; a crashed shell must not leave it
+        # polling status forever.
+        pid_file = self.temp / "watch.pid"
+        env = os.environ.copy()
+        env.update({"DESKTOP_MODE_CONFIG": str(self.config_path),
+                    "DESKTOP_MODE_RUNTIME_DIR": str(self.temp / "watch-runtime")})
+        subprocess.run(["sh", "-c", f'"{WRAPPER}" watch >/dev/null 2>&1 & echo $! > "{pid_file}"; sleep 0.5'],
+                       env=env, check=True)
+        pid = int(pid_file.read_text(encoding="ascii"))
+        deadline = time.monotonic() + 3
+        while time.monotonic() < deadline:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
+        else:
+            os.kill(pid, 15)
+            self.fail("desktop-mode watch outlived its parent")
+
     def test_lock_condition_fails_closed_when_config_is_missing(self) -> None:
         env = os.environ.copy()
         env.update({"DESKTOP_MODE_CONFIG": str(self.temp / "missing.toml"),
