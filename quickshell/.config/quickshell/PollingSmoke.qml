@@ -30,6 +30,8 @@ Scope {
   Timer {
     interval: 2500; running: true
     onTriggered: {
+      check("display scroll state is ready without opening its panel",
+            DisplayState.monitorFor("DP-1") !== null && DisplayState.monitorFor("DP-1").ddcOk)
       check("desktop-mode watch lines update the modes",
             ModesState.mode("stay-awake").observed === true)
       console.log(smoke.failures === 0 ? "ok: polling smoke" : "FAIL: polling smoke")

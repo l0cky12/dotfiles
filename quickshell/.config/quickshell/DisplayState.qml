@@ -424,13 +424,15 @@ Singleton {
     }
   }
 
+  Component.onCompleted: root.refreshMonitors()
+
   // --- refresh scheduling ---------------------------------------------------
 
   Timer {
     // Slow poll: DDC/CI has no change notification, so this is the only way to
     // notice brightness changed by something else (a stray ddcutil call, the
     // monitor's own OSD buttons). Also re-reads scale so external changes show.
-    // Only while the panel is open -- nothing on the bar shows these values, and
+    // Poll only while the panel is open; startup discovery prepares bar scrolling, and
     // each tick is an i2c transaction per monitor. triggeredOnStart refreshes
     // as the panel opens; hotplug is still caught by onRawEvent below.
     interval: 10000
