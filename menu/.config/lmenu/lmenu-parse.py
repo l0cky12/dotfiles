@@ -205,12 +205,19 @@ def evaluate_guards(requests: list[tuple[str, str, str]]) -> dict[tuple[str, str
     results: dict[tuple[str, str], bool] = {}
     if not requests:
         return results
-    script = ["#!/usr/bin/env bash\n"]
+    # Many rows share a guard (the same `pacman -Q` or status probe appears
+    # under several sections), so each distinct expression runs once and its
+    # result is fanned out to every (id, kind) that asked for it.
+    users: dict[str, list[tuple[str, str]]] = {}
     for entry_id, kind, expression in requests:
+        users.setdefault(expression, []).append((entry_id, kind))
+    expressions = list(users)
+    script = ["#!/usr/bin/env bash\n"]
+    for index, expression in enumerate(expressions):
         script.append(
             "{ if bash -c %s >/dev/null 2>&1 </dev/null; then s=1; else s=0; fi\n"
-            "printf '%%s:%%s:%%s\\n' %s %s \"$s\"; } &\n"
-            % (shlex.quote(expression), shlex.quote(entry_id), shlex.quote(kind))
+            "printf '%%s:%%s\\n' %d \"$s\"; } &\n"
+            % (shlex.quote(expression), index)
         )
     script.append("wait\n")
     try:
@@ -226,11 +233,11 @@ def evaluate_guards(requests: list[tuple[str, str, str]]) -> dict[tuple[str, str
         warn(f"guard batch failed, treating every guard as false: {error}")
         output = ""
     for line in output.splitlines():
-        parts = line.rsplit(":", 2)
-        if len(parts) != 3:
+        index, _, value = line.partition(":")
+        if not index.isdigit() or int(index) >= len(expressions):
             continue
-        entry_id, guard_kind, value = parts
-        results[(entry_id, guard_kind)] = value == "1"
+        for key in users[expressions[int(index)]]:
+            results[key] = value == "1"
     for entry_id, kind, _ in requests:
         results.setdefault((entry_id, kind), False)
     return results
