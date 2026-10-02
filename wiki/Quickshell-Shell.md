@@ -122,7 +122,7 @@ it requests no keyboard focus. It draws in the bottom-right corner.
 
 | Panel | Backed by |
 | --- | --- |
-| Network | `scripts/network-control` over `nmcli`; Wi-Fi scan and connect, per-profile DNS and IPv4 overrides, and runtime-only `qrencode` Wi-Fi sharing |
+| Network | `scripts/network-control` over `nmcli`; Wi-Fi scan and connect, per-profile DNS (up to four servers, saved to the profile so they persist across reboots) and IPv4 overrides, and runtime-only `qrencode` Wi-Fi sharing |
 | Bluetooth | `scripts/bluetooth-control` over `bluetoothctl` |
 | Audio | Quickshell's PipeWire API |
 | Media | Quickshell MPRIS; recent and pinned players; lyrics from `lrclib.net` |

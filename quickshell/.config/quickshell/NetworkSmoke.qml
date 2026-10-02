@@ -17,7 +17,8 @@ Scope {
     check("accepts a valid IPv4 address", NetworkState.validateIp("192.0.2.44"))
     check("rejects an out-of-range IPv4 address", !NetworkState.validateIp("192.0.2.999"))
     check("accepts two DNS servers", NetworkState.validateDns("1.1.1.1 1.0.0.1"))
-    check("rejects more than two DNS servers", !NetworkState.validateDns("1.1.1.1 1.0.0.1 9.9.9.9"))
+    check("accepts four DNS servers", NetworkState.validateDns("1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8"))
+    check("rejects more than four DNS servers", !NetworkState.validateDns("1.1.1.1 1.0.0.1 9.9.9.9 8.8.8.8 8.8.4.4"))
     check("strips the backend prefix from an error",
       NetworkState.backendError("network-control: Connect to Wi-Fi before sharing it\n") === "Connect to Wi-Fi before sharing it")
     check("keeps the most specific backend error line",

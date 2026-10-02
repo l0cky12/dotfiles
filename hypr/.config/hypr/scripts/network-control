@@ -45,10 +45,13 @@ valid_ipv4() {
   done
 }
 
+# Up to four servers, matching the panel. read -a splits without globbing.
 valid_dns_list() {
-  local dns=$1 ip
-  [[ -n $dns ]] || return 0
-  for ip in $dns; do valid_ipv4 "$ip" || return 1; done
+  local ip
+  local -a servers
+  read -r -a servers <<<"$1"
+  (( ${#servers[@]} <= 4 )) || return 1
+  for ip in "${servers[@]}"; do valid_ipv4 "$ip" || return 1; done
 }
 
 wifi_iface() {
@@ -186,7 +189,7 @@ dns() {
       run "$nmcli_command" connection modify "$profile" ipv4.dns "" ipv4.ignore-auto-dns no
       ;;
     custom)
-      valid_dns_list "$values" && [[ -n $values ]] || die 'DNS must contain one or more IPv4 addresses'
+      valid_dns_list "$values" && [[ $values =~ [^[:space:]] ]] || die 'DNS must contain one to four IPv4 addresses'
       run "$nmcli_command" connection modify "$profile" ipv4.dns "$values" ipv4.ignore-auto-dns yes
       ;;
     *) usage ;;
@@ -207,7 +210,7 @@ ipv4() {
         die 'Prefix must be between 0 and 32'
       fi
       valid_ipv4 "$gateway" || die 'Invalid IPv4 gateway'
-      valid_dns_list "$dns_servers" || die 'Invalid DNS server'
+      valid_dns_list "$dns_servers" || die 'DNS must contain up to four IPv4 addresses'
       run "$nmcli_command" connection modify "$profile" ipv4.method manual ipv4.addresses "$address/$prefix" ipv4.gateway "$gateway" ipv4.dns "$dns_servers" ipv4.ignore-auto-dns yes
       ;;
     *) usage ;;
