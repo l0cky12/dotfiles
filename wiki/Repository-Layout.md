@@ -116,7 +116,7 @@ written through a directory symlink into the checkout.
 | `$XDG_STATE_HOME/lmenu/` | lmenu instance pid and current route |
 | `$XDG_STATE_HOME/docker-dev-env/environment.env` | generated dev-database credentials, mode 0600 |
 | `$XDG_STATE_HOME/vm-presets/` | VM creation lock and per-VM creation logs, which never contain the password |
-| `$XDG_CACHE_HOME/vm-presets/` | verified Debian install ISOs |
+| `$XDG_CACHE_HOME/vm-presets/` | verified Debian install ISOs; a Windows answer disc only until the guest's next reboot |
 | `$XDG_RUNTIME_DIR/hyprland-desktop/modes/state.json` | desktop-mode state; session-only by design |
 | `$XDG_RUNTIME_DIR/windows-vm-$UID/` | VM launch lock and ephemeral credentials |
 | `~/.cache/cliphist/db` | clipboard history, unencrypted |

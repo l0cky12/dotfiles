@@ -112,7 +112,7 @@ Under `hypr/.config/hypr/scripts/`.
 | `quick-search.sh` | `SUPER+A` | apps view; `Tab` cycles windows, apps, commands |
 | `quick-search-everything.sh` | — | category navigation plus confirmed reboot and shutdown |
 | `docker-dev-env` | lmenu → Development | start, stop, inspect, and tail local MySQL, PostgreSQL, MariaDB, Redis |
-| `vm-preset` | lmenu → Development | create a blank Debian 13 or Debian 13 + Docker VM, installed unattended |
+| `vm-preset` | lmenu → Development | create a blank Debian 13, Debian 13 + Docker, or Windows 11 VM, installed unattended |
 | `transcode-menu.sh` | `SUPER+CTRL+.` | fuzzy media/format/size picker; delegates to `transcode` |
 | `RofiEmoji.sh` | `SUPER+ALT+E` | fuzzy emoji search, copies the glyph |
 | `universal-clipboard.sh` | `SUPER+C/X/V` | detects terminal classes, sends the right shortcut |
@@ -449,10 +449,13 @@ creates a new VM on `qemu:///system` and installs it without manual steps.
 | --- | --- |
 | `debian13` | Debian 13 server: standard utilities, OpenSSH, `qemu-guest-agent`, `sudo` |
 | `debian13-docker` | the same, plus Docker Engine, Buildx, and the Compose plugin from Docker's apt repository, with the user in the `docker` group |
+| `win11` | Windows 11 Pro, unactivated, with the user as a local administrator and no Microsoft account; nothing else added |
 
-Each VM gets 2 vCPUs, 4 GiB of RAM, a 60 GiB qcow2 disk in the `default` pool,
+Each Debian VM gets 2 vCPUs, 4 GiB of RAM, a 60 GiB qcow2 disk in the `default` pool,
 and the `default` NAT network. `VM_PRESET_VCPUS`, `VM_PRESET_MEMORY` (MiB), and
-`VM_PRESET_DISK_GB` override them.
+`VM_PRESET_DISK_GB` override them. Windows 11 VMs get 4 vCPUs, 6 GiB, a 100
+GiB SATA disk, an e1000e NIC, UEFI, and an emulated TPM; a clone's disk cannot
+be smaller than the base's.
 
 1. Prerequisites are checked, and anything missing is listed in one
    notification.
@@ -477,6 +480,36 @@ VM and its disk are removed. Each VM's creation log is
 `vm-preset --dry-run create PRESET [--name NAME]` prints the `virt-install`
 command and the rendered answer files, with the hash redacted, without calling
 libvirt or the network.
+
+### Windows 11
+
+`win11` VMs are copy-on-write clones of a sysprepped base image, so only the
+first one is slow.
+
+1. Download the ISO from <https://www.microsoft.com/software-download/windows11>
+   into `~/Resources/ISO` (`VM_PRESET_WIN11_ISO_DIR`). The newest `Win11*.iso`
+   there is used in place, with no checksum check.
+2. The first `create win11` builds `win11-base.qcow2` in the `default` pool:
+   an offline unattended install, one automatic logon as the built-in
+   Administrator with a random password, then `sysprep /generalize /oobe
+   /shutdown /mode:vm`. This takes about 20–30 minutes. The `win11-base` VM is
+   then undefined and only its disk is kept.
+3. Each create, including the first, clones that disk with `backing_store` and
+   boots it with an answer disc that sets the computer name (the VM name cut to
+   15 characters) and creates the user as a local administrator. A clone is
+   ready in a few minutes.
+
+There is no SSH key prompt. Windows takes the password only in a reversible
+encoding, so it sits on a 0644 answer disc in `$XDG_CACHE_HOME/vm-presets/`
+until the clone's first reboot, when the disc is ejected and deleted. Device
+encryption is turned off in the base because every clone gets a new TPM.
+
+To rebuild the base from a newer ISO, delete every Windows 11 clone first,
+since each depends on it, then run `virsh -c qemu:///system vol-delete
+--pool default win11-base.qcow2`. If a base build is interrupted, delete the
+`win11-base` VM and its disk in virt-manager. `VM_PRESET_WIN11_LANGUAGE`
+(default `en-US`) must match the ISO's language; the time zone follows the host
+for common US zones and London, otherwise UTC (`VM_PRESET_WIN11_TIMEZONE`).
 
 ## Power menu
 

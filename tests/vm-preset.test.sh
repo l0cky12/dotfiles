@@ -47,7 +47,12 @@ case $1 in
     printf ' file   disk     vda      /var/lib/libvirt/images/%s.qcow2\n' "$domain"
     printf ' file   cdrom    sda      /cache/netinst.iso\n'
     ;;
-  destroy) ;;
+  destroy|send-key|change-media|event) ;;
+  domstate) printf 'shut off\n' ;;
+  vol-path)
+    [[ -f $VM_TEST_BASE ]] || exit 1
+    printf '/var/lib/libvirt/images/win11-base.qcow2\n'
+    ;;
   undefine)
     grep -Fxv "$domain" "$VM_TEST_DOMAINS" >"$VM_TEST_DOMAINS.tmp" || true
     mv "$VM_TEST_DOMAINS.tmp" "$VM_TEST_DOMAINS"
@@ -71,6 +76,7 @@ done
 printf '%s\n' "$name" >>"$VM_TEST_DOMAINS"
 [[ -z ${VM_TEST_COLLISION:-} ]] || exit 1
 printf '%s\n' "$name" >"$VM_TEST_UUIDS/$uuid"
+[[ $name != win11-base || -n ${VM_TEST_INSTALL_EXIT:-} ]] || : >"$VM_TEST_BASE"
 exit "${VM_TEST_INSTALL_EXIT:-0}"
 SH
 
@@ -103,6 +109,26 @@ esac
 [[ $answer == __cancel__ ]] && exit 1
 printf '%s\n' "$answer"
 SH
+
+# Records the answer file it would burn and leaves a stand-in disc.
+cat >"$bin/xorriso" <<'SH'
+#!/usr/bin/env bash
+printf 'xorriso %s\n' "$*" >>"$VM_TEST_CALLS"
+output= source=
+while (($#)); do
+  case $1 in
+    -o) output=$2; shift ;;
+    -*) ;;
+    *) source=$1 ;;
+  esac
+  shift
+done
+cp -- "$source/autounattend.xml" "$VM_TEST_INJECTED/"
+cat -- "$source/autounattend.xml" >>"$VM_TEST_INJECTED/all-discs.xml"
+printf 'answer disc\n' >"$output"
+SH
+
+printf '#!/bin/sh\n' >"$bin/swtpm"
 
 cat >"$bin/notify-send" <<'SH'
 #!/usr/bin/env bash
@@ -164,8 +190,9 @@ run() {
     VIRSH="$bin/virsh" VIRT_INSTALL="${VIRT_INSTALL:-$bin/virt-install}" VIRT_MANAGER="$bin/virt-manager" \
     ROFI="$bin/rofi" NOTIFY_SEND="$bin/notify-send" CURL="$bin/curl" GPG="$bin/gpg" \
     SYSTEMCTL="$bin/systemctl" ID_COMMAND="$bin/id" \
+    XORRISO="$bin/xorriso" SWTPM="${SWTPM:-$bin/swtpm}" \
     VM_TEST_CALLS="$calls" VM_TEST_DOMAINS="$domains" VM_TEST_INJECTED="$injected" \
-    VM_TEST_UUIDS="$test_root/uuids" \
+    VM_TEST_UUIDS="$test_root/uuids" VM_TEST_BASE="$test_root/base-built" \
     VM_TEST_MIRROR="$mirror" VM_TEST_PASSWORD="${VM_TEST_PASSWORD-$password}" "$helper" "$@"
 }
 
@@ -186,6 +213,7 @@ wait_for_call() {
 list=$(run list)
 [[ $list == *'debian13         Debian 13'* ]] || fail 'list is missing Debian 13'
 [[ $list == *'debian13-docker  Debian 13 + Docker'* ]] || fail 'list is missing Debian 13 + Docker'
+[[ $list == *'win11            Windows 11'* ]] || fail 'list is missing Windows 11'
 
 # ------------------------------------------------------------- dry run ---
 run --dry-run create debian13 >"$test_root/dry-plain"
@@ -236,6 +264,40 @@ assert_contains "$dry" 'PasswordAuthentication no'
 assert_contains "$dry" '--initrd-inject'
 grep -Eq '@[A-Z_]+@' "$dry" && fail 'docker dry run left a placeholder unfilled'
 
+run --dry-run create win11 >"$test_root/dry-win11"
+dry=$test_root/dry-win11
+assert_contains "$dry" "build the base from $test_root/home/Resources/ISO/Win11_<version>_x64.iso"
+assert_contains "$dry" '--name win11-base --osinfo win11 --vcpus 4 --memory 6144'
+assert_contains "$dry" '--disk size=100\,format=qcow2\,bus=sata --disk'
+assert_contains "$dry" '--network none --cdrom'
+assert_contains "$dry" '--boot uefi --tpm emulator --uuid \<base-uuid\> --noautoconsole --wait -1'
+assert_contains "$dry" 'sysprep.exe /generalize /oobe /shutdown /mode:vm'
+assert_contains "$dry" 'del /f /q C:\Windows\Panther\unattend.xml'
+assert_contains "$dry" 'PreventDeviceEncryption'
+assert_contains "$dry" '<Username>Administrator</Username>'
+assert_contains "$dry" '--name win11-1 --osinfo win11 --vcpus 4 --memory 6144'
+assert_contains "$dry" 'backing_store=/var/lib/libvirt/images/win11-base.qcow2\,backing_format=qcow2'
+assert_contains "$dry" '--network network=default\,model=e1000e --import --boot uefi --tpm emulator'
+assert_contains "$dry" '<Name>tester</Name>'
+assert_contains "$dry" '<Group>Administrators</Group>'
+assert_contains "$dry" '<ComputerName>win11-1</ComputerName>'
+assert_contains "$dry" '<TimeZone>GMT Standard Time</TimeZone>'
+assert_contains "$dry" '<UserLocale>en-GB</UserLocale>'
+assert_contains "$dry" '<UILanguage>en-US</UILanguage>'
+assert_contains "$dry" '<HideOnlineAccountScreens>true</HideOnlineAccountScreens>'
+[[ $(grep -c '<redacted-password>' "$dry") == 3 ]] || fail 'a win11 dry-run password was not redacted'
+assert_not_contains "$dry" 'id_rsa'
+grep -Eq '@[A-Z_]+@' "$dry" && fail 'win11 dry run left a placeholder unfilled'
+[[ ! -s $calls ]] || fail 'win11 dry run called an external tool'
+
+VM_PRESET_WIN11_TIMEZONE=America/Chicago VM_PRESET_DISK_GB=120 \
+  run --dry-run create win11 --name windows-test-box-01 >"$test_root/dry-win11-named"
+assert_contains "$test_root/dry-win11-named" '<ComputerName>windows-test-bo</ComputerName>'
+assert_contains "$test_root/dry-win11-named" '<TimeZone>Central Standard Time</TimeZone>'
+assert_contains "$test_root/dry-win11-named" '--disk size=120\,format=qcow2\,bus=sata\,backing_store='
+VM_PRESET_WIN11_LANGUAGE='en-US<' run --dry-run create win11 >/dev/null 2>&1 &&
+  fail 'a malformed Windows language was accepted'
+
 # ------------------------------------------------------- prerequisites ---
 set +e
 VIRT_INSTALL=/nonexistent/virt-install VM_TEST_UNITS=virtqemud.socket VM_TEST_GROUPS='tester wheel' \
@@ -249,6 +311,10 @@ reset_calls
 
 VM_TEST_NET=no run create debian13 >/dev/null 2>&1 && fail 'an inactive default network was accepted'
 assert_contains "$calls" 'the libvirt default network (sudo virsh net-start default)'
+reset_calls
+
+SWTPM=/nonexistent/swtpm run create win11 >/dev/null 2>&1 && fail 'win11 ran without swtpm'
+assert_contains "$calls" 'Missing: swtpm.'
 reset_calls
 
 VM_TEST_UNITS=libvirtd.service run --dry-run create debian13 >/dev/null ||
@@ -297,6 +363,72 @@ assert_contains "$calls" 'virt-install --connect qemu:///system --name debian13-
 grep -Fq 'curl ' "$calls" && fail 'a cached ISO was downloaded again'
 [[ ! -e $injected/vm-preset-authorized_keys ]] || fail 'the SSH key was installed after answering No'
 assert_contains "$injected/vm-preset-late.sh" '# No extra steps for this preset.'
+reset_calls
+
+# Windows 11: needs an ISO in ~/Resources/ISO; never downloads one.
+run create win11 >/dev/null 2>&1 && fail 'win11 ran without an ISO'
+assert_contains "$calls" "No Windows 11 ISO in $test_root/home/Resources/ISO."
+grep -Fq 'virt-install' "$calls" && fail 'virt-install ran without a Windows ISO'
+reset_calls
+run refresh-iso win11 >/dev/null 2>&1 && fail 'refresh-iso win11 claimed to download'
+grep -Fq 'curl ' "$calls" && fail 'refresh-iso win11 used the network'
+reset_calls
+
+mkdir -p "$test_root/home/Resources/ISO"
+win_iso=$test_root/home/Resources/ISO/Win11_25H2_English_x64.iso
+: >"$test_root/home/Resources/ISO/Win11_24H2_English_x64.iso"
+: >"$win_iso"
+
+# A failed base build leaves no base and removes its VM.
+VM_TEST_INSTALL_EXIT=1 run create win11 >/dev/null 2>&1 && fail 'a failed base build reported success'
+[[ ! -e $test_root/base-built ]] || fail 'a failed base build left a base image'
+grep -Fxq win11-base "$domains" && fail 'a failed base build left its VM defined'
+assert_contains "$calls" 'Building the Windows 11 base image failed.'
+reset_calls
+
+# The first create builds the base, then clones it.
+run create win11 >"$test_root/win11.out" 2>&1 ||
+  { cat "$test_root/win11.out" >&2; fail 'create win11 failed'; }
+assert_contains "$calls" 'virt-install --connect qemu:///system --name win11-base --osinfo win11 '
+assert_contains "$calls" "--network none --cdrom $win_iso "
+assert_contains "$calls" ' send-key '
+assert_contains "$calls" ' domstate '
+grep -Eq '^virsh -c qemu:///system undefine [0-9a-f-]+ --nvram$' "$calls" ||
+  fail 'the base VM was not undefined with its disk kept'
+grep -Fxq win11-base "$domains" && fail 'the base VM is still defined'
+assert_contains "$calls" 'virt-install --connect qemu:///system --name win11-1 --osinfo win11 '
+assert_contains "$calls" 'backing_store=/var/lib/libvirt/images/win11-base.qcow2,backing_format=qcow2'
+assert_contains "$calls" '--import --boot uefi --tpm emulator'
+assert_contains "$calls" '--event reboot --timeout 900'
+assert_contains "$calls" '--eject --live --config'
+assert_contains "$calls" 'win11-1 is finishing Windows setup. Log in as tester'
+assert_not_contains "$calls" 'rofi Install host SSH key?'
+wait_for_call 'virt-manager --connect qemu:///system --show-domain-console win11-1'
+assert_contains "$injected/all-discs.xml" 'sysprep.exe /generalize'
+[[ -z $(find "$test_root/cache/vm-presets" -name '.answers-*') ]] || fail 'an answer disc was left behind'
+[[ -z $(ls -A "$test_root/tmp") ]] || fail 'win11 answer files were left behind'
+encoded=$(sed -n 's/^ *<Value>\(.*\)<\/Value>$/\1/p' "$injected/autounattend.xml")
+[[ $(base64 -d <<<"$encoded" | iconv -f UTF-16LE -t UTF-8) == "${password}Password" ]] ||
+  fail 'the clone password does not decode to the password'
+grep -rFq -- "$password" "$test_root" && fail 'the Windows password was written to disk in plain text'
+reset_calls
+
+# Later creates only clone.
+run create win11 >/dev/null 2>&1 || fail 'a second create win11 failed'
+assert_contains "$calls" '--name win11-2 '
+assert_not_contains "$calls" '--name win11-base'
+reset_calls
+
+# A leftover base VM blocks a rebuild instead of being overwritten.
+rm -f "$test_root/base-built"
+printf 'win11-base\n' >>"$domains"
+run create win11 >/dev/null 2>&1 && fail 'built over a leftover base VM'
+assert_contains "$calls" 'A VM named win11-base is left from an unfinished base build.'
+grep -Fq 'virt-install' "$calls" && fail 'virt-install ran over a leftover base VM'
+grep -Fxv win11-base "$domains" >"$domains.tmp"; mv "$domains.tmp" "$domains"
+reset_calls
+
+VM_TEST_NAME=win11-base run create win11 >/dev/null 2>&1 && fail 'a clone took the base name'
 reset_calls
 
 # ------------------------------------------------------ refusals & cancel ---
@@ -389,6 +521,7 @@ grep -Fq '"when": "command -v virt-install >/dev/null && command -v virsh >/dev/
   fail 'the Virtual machines submenu is not guarded on the libvirt tools'
 grep -Fq 'vm-preset create debian13"' "$menu" || fail 'Debian 13 is not wired to the helper'
 grep -Fq 'vm-preset create debian13-docker"' "$menu" || fail 'Debian 13 + Docker is not wired to the helper'
+grep -Fq 'vm-preset create win11"' "$menu" || fail 'Windows 11 is not wired to the helper'
 grep -Fq '"action": "virt-manager --connect qemu:///system"' "$menu" || fail 'virt-manager entry is missing'
 
 printf 'ok: virtual machine presets\n'
