@@ -83,6 +83,10 @@ Scope {
     function toggle(): void {
       ClipboardState.togglePanel(bar.focusedScreen())
     }
+    // screensaver-lock keeps these entries when it wipes history on lock.
+    function pinnedData(): string {
+      return ClipboardState.pinnedData()
+    }
   }
 
   // The clipboard QR is an overlay rather than a bar panel, so it has no

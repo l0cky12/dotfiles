@@ -161,6 +161,17 @@ if ! pidof hyprlock >/dev/null 2>&1; then
     printf '%s: using the source lock config after layout rendering failed\n' "$PROGRAM" >&2
     lock_config=$source_config
   fi
-  [[ ! -x $clipboard_wipe ]] || "$clipboard_wipe" || true
+  if [[ -x $clipboard_wipe ]]; then
+    # Every subprocess has a deadline, including matching, decoding and
+    # deletion. A timeout discards partial IPC output and falls back to wiping
+    # all history. Even unavailable clipboard tools must not block hyprlock.
+    if pins=$(timeout -k 0.2s 1s quickshell ipc call clipboard pinnedData 2>/dev/null) &&
+       [[ -n $pins ]] &&
+       timeout -k 0.2s 2s "$clipboard_wipe" --pins "$pins"; then
+      :
+    else
+      timeout -k 0.2s 1s "$clipboard_wipe" || true
+    fi
+  fi
   exec hyprlock --config "$lock_config"
 fi

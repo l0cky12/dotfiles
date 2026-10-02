@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 bin_root="$repo_root/screensaver/.local/bin"
+real_timeout=$(command -v timeout)
 test_root=$(mktemp -d -t screensaver-test.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 
@@ -181,10 +182,11 @@ cat >"$test_root/bin/pkill" <<'SH'
 #!/usr/bin/env bash
 exit 0
 SH
-cat >"$test_root/bin/timeout" <<'SH'
-#!/usr/bin/env bash
-exit 0
-SH
+ln -s "$real_timeout" "$test_root/bin/timeout"
+for command_name in pidwait quickshell; do
+  printf '#!/bin/sh\nexit 1\n' >"$test_root/bin/$command_name"
+  chmod +x "$test_root/bin/$command_name"
+done
 cat >"$test_root/bin/hyprlock" <<'SH'
 #!/usr/bin/env bash
 printf 'hyprlock %s\n' "$*" >>"$LOCK_ACTION_LOG"
@@ -193,7 +195,7 @@ cat >"$test_root/home/.config/hypr/scripts/clipboard-wipe.sh" <<'SH'
 #!/usr/bin/env bash
 printf 'wipe\n' >>"$LOCK_ACTION_LOG"
 SH
-chmod +x "$test_root/bin/pidof" "$test_root/bin/pkill" "$test_root/bin/timeout" \
+chmod +x "$test_root/bin/pidof" "$test_root/bin/pkill" \
   "$test_root/bin/hyprlock" "$test_root/home/.config/hypr/scripts/clipboard-wipe.sh"
 export LOCK_ACTION_LOG="$test_root/lock-actions.log"
 export SCREENSAVER_LOCK_CONFIG="$repo_root/hypr/.config/hypr/hyprlock.conf"
@@ -235,6 +237,71 @@ HOME="$test_root/home" HYPRLOCK_RUNNING=0 "$bin_root/screensaver-lock"
   fail 'real lock path did not wipe immediately before starting hyprlock'
 grep -Fxq "source = \$hyprlockDir/layouts/layout5.conf" \
   "$test_root/lock-runtime/hyprlock.conf" || fail 'lock config did not use the selected layout'
+
+# Lock passes structured pin identities to the shared wipe, without touching
+# the live clipboard or IPC instance. Real timeout checks reject partial output.
+pin_root="$test_root/pins"
+mkdir -p "$pin_root/bin" "$pin_root/home/.config/hypr/scripts"
+export FIXTURE_PINS='[{"id":"42","preview":"path C:\\temp\tcol","hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}]'
+cat >"$pin_root/bin/quickshell" <<'SH'
+#!/usr/bin/env bash
+[[ $* == 'ipc call clipboard pinnedData' ]] || exit 1
+printf '%s\n' "$FIXTURE_PINS"
+SH
+cat >"$pin_root/home/.config/hypr/scripts/clipboard-wipe.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'wipe %s\n' "$*" >>"$LOCK_ACTION_LOG"
+SH
+chmod +x "$pin_root/bin/"* "$pin_root/home/.config/hypr/scripts/clipboard-wipe.sh"
+: >"$LOCK_ACTION_LOG"
+HOME="$pin_root/home" HYPRLOCK_RUNNING=0 PATH="$pin_root/bin:$PATH" "$bin_root/screensaver-lock"
+[[ $(head -n1 "$LOCK_ACTION_LOG") == "wipe --pins $FIXTURE_PINS" ]] ||
+  fail 'lock did not pass the complete structured pins to the wipe'
+
+# No shell answer means a full wipe, never a skipped one.
+printf '#!/bin/sh\nexit 1\n' >"$pin_root/bin/quickshell"
+: >"$LOCK_ACTION_LOG"
+HOME="$pin_root/home" HYPRLOCK_RUNNING=0 PATH="$pin_root/bin:$PATH" "$bin_root/screensaver-lock"
+[[ $(head -n1 "$LOCK_ACTION_LOG") == 'wipe ' ]] || fail 'an unreachable shell did not fall back to a full wipe'
+
+# Valid-looking partial IPC output must be discarded if the command hangs.
+cat >"$pin_root/bin/quickshell" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$FIXTURE_PINS"
+sleep 10
+SH
+: >"$LOCK_ACTION_LOG"
+SECONDS=0
+HOME="$pin_root/home" HYPRLOCK_RUNNING=0 PATH="$pin_root/bin:$PATH" "$bin_root/screensaver-lock"
+[[ $(head -n1 "$LOCK_ACTION_LOG") == 'wipe ' ]] || fail 'timed-out IPC retained partial pin output'
+((SECONDS < 5)) || fail 'IPC timeout delayed locking'
+
+# Test the real shared wipe with hung list, decode and mutation commands.
+printf '#!/bin/sh\nprintf "%%s\\n" "$FIXTURE_PINS"\n' >"$pin_root/bin/quickshell"
+cp "$repo_root/hypr/.config/hypr/scripts/clipboard-wipe.sh" "$pin_root/home/.config/hypr/scripts/clipboard-wipe.sh"
+cp "$repo_root/hypr/.config/hypr/scripts/clipboard-pins.py" "$pin_root/home/.config/hypr/scripts/clipboard-pins.py"
+printf '#!/bin/sh\nexit 0\n' >"$pin_root/bin/wl-copy"
+cat >"$pin_root/bin/cliphist" <<'SH'
+#!/usr/bin/env bash
+if [[ $1 == "$HUNG_CLIPBOARD_COMMAND" ]]; then sleep 10; exit; fi
+case $1 in
+  list) printf '42\tpath C:\\temp\tcol\n' ;;
+  decode) printf 'fixture data' ;;
+  wipe) printf 'fallback wipe\n' >>"$LOCK_ACTION_LOG" ;;
+esac
+SH
+chmod +x "$pin_root/bin/"*
+for command_name in list decode wipe; do
+  : >"$LOCK_ACTION_LOG"
+  SECONDS=0
+  HOME="$pin_root/home" HYPRLOCK_RUNNING=0 HUNG_CLIPBOARD_COMMAND="$command_name" \
+    PATH="$pin_root/bin:$PATH" "$bin_root/screensaver-lock" 2>"$test_root/hung-$command_name.err"
+  grep -Fq 'hyprlock --config ' "$LOCK_ACTION_LOG" || fail "hung $command_name prevented locking"
+  ((SECONDS < 6)) || fail "hung $command_name exceeded the cleanup deadline"
+  if [[ $command_name != wipe ]]; then
+    grep -Fxq 'fallback wipe' "$LOCK_ACTION_LOG" || fail "hung $command_name skipped the fallback wipe"
+  fi
+done
 
 mkdir "$test_root/fallback-layouts"
 cp "$repo_root/hyprlock/.config/hyprlock/layouts/hyprlock.conf" \

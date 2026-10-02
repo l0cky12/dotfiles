@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 store="$repo_root/hypr/.config/hypr/scripts/clipboard-store.sh"
 lock="$repo_root/screensaver/.local/bin/screensaver-lock"
+real_timeout=$(command -v timeout)
 test_root=$(mktemp -d -t clipboard-filter-test.XXXXXX)
 trap 'rm -rf -- "$test_root"' EXIT
 
@@ -133,12 +134,15 @@ for autostart in \
   grep -Fq -- '--type image' "$autostart" || fail 'image clipboard watcher is missing'
 done
 
-for command_name in pkill timeout; do
+for command_name in pkill pidwait quickshell; do
   cat >"$test_root/bin/$command_name" <<'SH'
 #!/usr/bin/env bash
 exit 0
 SH
 done
+printf '#!/bin/sh\nexit 1\n' >"$test_root/bin/quickshell"
+ln -s "$real_timeout" "$test_root/bin/timeout"
+chmod +x "$test_root/bin/pidwait" "$test_root/bin/quickshell"
 cat >"$test_root/bin/pidof" <<'SH'
 #!/usr/bin/env bash
 exit 1
@@ -152,12 +156,57 @@ cat >"$test_root/home/.config/hypr/scripts/clipboard-wipe.sh" <<'SH'
 #!/usr/bin/env bash
 printf 'wipe\n' >>"$CLIPBOARD_LOCK_LOG"
 SH
-chmod +x "$test_root/bin/pkill" "$test_root/bin/timeout" "$test_root/bin/pidof" \
+chmod +x "$test_root/bin/pkill" "$test_root/bin/pidof" \
   "$test_root/bin/hyprlock" "$test_root/home/.config/hypr/scripts/clipboard-wipe.sh"
 export CLIPBOARD_LOCK_LOG="$test_root/lock-actions"
 HOME="$test_root/home" "$lock"
 [[ $(<"$CLIPBOARD_LOCK_LOG") == $'wipe\nhyprlock' ]] ||
   fail 'Hyprlock did not wipe clipboard history before locking'
+
+# Clipboard pins follow their content onto new cliphist ids. The lock fixtures
+# above stub system commands, so this check leaves their stub dir out.
+if PATH="${PATH#"$test_root/bin:"}" command -v quickshell >/dev/null 2>&1; then
+  pin_home="$test_root/pin-home"
+  mkdir -p "$pin_home/.config/hypr/scripts" "$test_root/pin-bin" "$test_root/pin-runtime"
+  chmod 700 "$test_root/pin-runtime"
+  ln -s "$repo_root/hypr/.config/hypr/scripts/clipboard-pins.py" "$pin_home/.config/hypr/scripts/clipboard-pins.py"
+  cat >"$test_root/pin-bin/cliphist" <<'SH'
+#!/usr/bin/env bash
+case $1 in
+  list) printf '10\tfixture content\n98\tdecode failure\n' ;;
+  decode) [[ $2 != 98 ]] || exit 1; printf 'fixture content' ;;
+  *) exit 2 ;;
+esac
+SH
+  chmod +x "$test_root/pin-bin/cliphist"
+  HOME="$pin_home" XDG_STATE_HOME="$pin_home/.local/state" \
+    XDG_CONFIG_HOME="$pin_home/.config" XDG_CACHE_HOME="$pin_home/.cache" \
+    PATH="$test_root/pin-bin:${PATH#"$test_root/bin:"}" \
+    XDG_RUNTIME_DIR="$test_root/pin-runtime" \
+    QT_QPA_PLATFORM=offscreen env -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
+    timeout 30 dbus-run-session -- quickshell \
+    -p "$repo_root/quickshell/.config/quickshell/ClipboardPinSmoke.qml" >"$test_root/pin-smoke.log" 2>&1 || true
+  grep -Fq 'ok: clipboard pin smoke' "$test_root/pin-smoke.log" ||
+    { sed -n '1,60p' "$test_root/pin-smoke.log" >&2; fail 'ClipboardPinSmoke.qml did not pass'; }
+  python3 - "$pin_home" <<'PY'
+import json
+from pathlib import Path
+import sys
+files = list(Path(sys.argv[1]).rglob("clipboard-index.json"))
+assert len(files) == 1, "clipboard sidecar was not saved"
+index = json.loads(files[0].read_text())
+assert index and all(not item["pinned"] and "preview" not in item and "hash" not in item
+                     for item in index.values()), "unpin retained content metadata on disk"
+PY
+else
+  printf 'skip: quickshell is not installed, ClipboardPinSmoke.qml not run\n'
+fi
+
+if PATH="${PATH#"$test_root/bin:"}" command -v cliphist >/dev/null 2>&1; then
+  PATH="${PATH#"$test_root/bin:"}" python3 "$repo_root/tests/clipboard-pins.test.py"
+else
+  printf 'skip: cliphist is not installed, real database pin check not run\n'
+fi
 
 if [[ $jq_mode == stub ]]; then
   printf 'degraded: jq-less subset passed; install jq to cover its error behavior\n'
