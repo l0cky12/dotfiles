@@ -53,8 +53,6 @@ while [[ $(stty size 2>/dev/null || printf '24 80') == '24 80' ]] && ((SECONDS <
   sleep 0.02
 done
 
-tty_path=$(tty)
-tty_name=${tty_path#/dev/}
 # The launcher focuses each monitor in turn before spawning its terminal, so a
 # monitor that is briefly empty is NOT a dismissal -- treating it as one made
 # every already-running instance pkill the whole set mid-launch.  Only a real
@@ -75,7 +73,10 @@ while true; do
     --frame-rate 120 --canvas-width 0 --canvas-height 0 --reuse-canvas \
     --anchor-canvas c --anchor-text c --random-effect --no-eol --no-restore-cursor &
   effect_pid=$!
-  while pgrep -t "$tty_name" -x ttfx >/dev/null 2>&1; do
+  # The effect's own pid, not `pgrep -t TTY -x ttfx`: pgrep could run before
+  # the background child had exec'd ttfx, end this loop at once and leave the
+  # wait below blocking for the whole effect with keypresses ignored.
+  while kill -0 "$effect_pid" 2>/dev/null; do
     # `read` timing out is expected and must not trip errexit.
     if read -rsn1 -t 1 || ! in_focus; then
       cleanup 0
