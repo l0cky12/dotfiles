@@ -402,6 +402,7 @@ record_start() {
   sleep 0.5
   if ! [ -d "/proc/$pid" ]; then
     rm -f "$PIDFILE" "$OUTFILE_REF"
+    [ -s "$outfile" ] || rm -f -- "$outfile"
     webcam_stop
     notify_error "Recorder failed to start — see $CAPTURE_RUNTIME/record.log"
     return 1

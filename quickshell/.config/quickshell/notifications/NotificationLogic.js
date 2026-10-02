@@ -64,6 +64,11 @@ function snapshotOf(notification, timestamp, screenName) {
     summary: String(n.summary || "").slice(0, 2048),
     body: sanitizeBody(n.body),
     image: String(n.image || ""),
+    actionsJson: JSON.stringify(Array.prototype.filter.call(n.actions || [], function(action) {
+      return action && action.identifier !== "default"
+    }).map(function(action) {
+      return {identifier: String(action.identifier), text: String(action.text)}
+    })),
     glyph: knownGlyph(n),
     urgency: finiteNumber(n.urgency, 1),
     expireTimeout: Math.max(0, finiteNumber(n.expireTimeout, 0)),
@@ -77,7 +82,7 @@ function snapshotOf(notification, timestamp, screenName) {
   }
 }
 
-var UPDATE_ROLES = ["app", "desktopEntry", "appIcon", "summary", "body", "image",
+var UPDATE_ROLES = ["app", "desktopEntry", "appIcon", "summary", "body", "image", "actionsJson",
                     "glyph", "urgency", "expireTimeout"]
 
 function replacementSnapshot(notification, old) {

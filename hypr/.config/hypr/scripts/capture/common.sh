@@ -61,23 +61,12 @@ has() { command -v "$1" >/dev/null 2>&1; }
 # --- paths and filenames -----------------------------------------------------
 
 # capture_outfile <dir> <prefix> <ext>
-# Timestamped, and collision-safe: two captures in the same second get -2, -3.
+# Reserve a unique timestamped filename, including for editors that save later.
+# Callers remove an empty reservation if capture/editing does not produce data.
 capture_outfile() {
   local dir="$1" prefix="$2" ext="$3"
   mkdir -p "$dir" || return 1
-
-  local stamp base candidate n
-  stamp=$(date +'%Y-%m-%d_%H-%M-%S')
-  base="$dir/$prefix-$stamp"
-  candidate="$base.$ext"
-
-  n=2
-  while [ -e "$candidate" ]; do
-    candidate="$base-$n.$ext"
-    n=$((n + 1))
-  done
-
-  printf '%s' "$candidate"
+  mktemp -- "$dir/$prefix-$(date +'%Y-%m-%d_%H-%M-%S')-XXXXXX.$ext"
 }
 
 # capture_require_writable <dir>

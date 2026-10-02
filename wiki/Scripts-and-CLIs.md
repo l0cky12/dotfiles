@@ -206,7 +206,7 @@ supplies transform-aware Hyprland geometry and frozen-screen region selection;
 
 | Command | Behaviour |
 | --- | --- |
-| `screenshot smart` | drag selects a region; a small click selects the smallest visible window under the pointer |
+| `screenshot smart` | drag selects a region; a small click selects the smallest visible window under the pointer; copies the PNG and offers Edit/Save buttons |
 | `screenshot window` | active window geometry |
 | `screenshot monitor [--delay=N]` | focused output, optionally delayed |
 | `record toggle` | start/stop GPU recording with optional audio, webcam, and post-processing |
@@ -232,6 +232,15 @@ environment variable before launch:
 | OCR page segmentation / engine / DPI | 6 / 1 / 300 |
 | webcam | auto, 1280×720, medium preset |
 | smart-click threshold | 20 px |
+
+Screenshots stay temporary until **Save** writes them to `SCREENSHOT_DIR`.
+**Edit** opens Satty with clipboard copy and file saving enabled. Dismissing
+the notification removes the temporary image and leaves the clipboard copy.
+`--save` saves immediately; `--copy` uses only the clipboard.
+For default captures, clipboard, editor, and save failures retain the original
+image and report its path. Each editing session reserves a unique output
+filename; unused empty reservations are removed on exit. Custom editor
+launchers must wait for their editor to finish reading the input before returning.
 
 Recording uses `gpu-screen-recorder`, picks an available GPU codec, falls back to
 CPU encoding when no hardware encoder supports the capture, stops with a graceful

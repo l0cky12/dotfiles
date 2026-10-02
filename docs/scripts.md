@@ -88,9 +88,9 @@ selection; `common.sh` and `config.sh` are sourced libraries.
 
 | Command | Behavior | Outputs / modifications |
 | --- | --- | --- |
-| `capture.sh screenshot smart` | drag selects a region; a small click selects the smallest visible window under the pointer | saves/copies a PNG, then offers open/edit actions |
-| `capture.sh screenshot window` | captures active window geometry | screenshot directory and clipboard |
-| `capture.sh screenshot monitor [--delay=N]` | captures focused output, optionally delayed | screenshot directory and clipboard |
+| `capture.sh screenshot smart` | drag selects a region; a small click selects the smallest visible window under the pointer | copies a PNG, then offers Edit/Save actions; Save writes to the screenshot directory |
+| `capture.sh screenshot window` | captures active window geometry | clipboard; screenshot directory when Save is clicked |
+| `capture.sh screenshot monitor [--delay=N]` | captures focused output, optionally delayed | clipboard; screenshot directory when Save is clicked |
 | `capture.sh record toggle` | starts/stops GPU screen recording with optional audio/webcam and post-processing | recording directory; runtime PID/state files |
 | `capture.sh record webcam-toggle` | shows or hides a standalone webcam preview | mpv overlay and runtime PID/state files |
 | `capture.sh record webcam-size smaller\|larger` | opens a missing overlay, then steps it through small, medium, and large presets | mpv JSON IPC with PID-scoped Hyprland fallback |
@@ -116,6 +116,15 @@ variables before launch.
 | OCR page segmentation / engine / DPI | 6 / 1 / 300 |
 | webcam mode | auto, 1280×720, medium preset |
 | smart-click threshold | 20 pixels |
+
+Screenshots stay temporary until **Save** is clicked. **Edit** opens Satty with
+clipboard copy and file saving enabled. Dismissing or expiring the notification
+removes the temporary image; the clipboard keeps its copy. `--save` writes
+directly to `SCREENSHOT_DIR`, and `--copy` uses only the clipboard.
+For default captures, clipboard, editor, and save failures retain the original
+image and report its path. Editor output filenames are reserved uniquely;
+unused empty reservations are removed when the editor closes. Custom editors
+must wait until they finish reading the input before returning.
 
 Recording uses `gpu-screen-recorder`, selects an available GPU codec, falls back
 to CPU encoding when no hardware encoder supports the capture, stops with a
