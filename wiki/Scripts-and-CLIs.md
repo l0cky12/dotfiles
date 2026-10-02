@@ -237,6 +237,10 @@ Screenshots stay temporary until **Save** writes them to `SCREENSHOT_DIR`.
 **Edit** opens Satty with clipboard copy and file saving enabled. Dismissing
 the notification removes the temporary image and leaves the clipboard copy.
 `--save` saves immediately; `--copy` uses only the clipboard.
+For default captures, clipboard, editor, and save failures retain the original
+image and report its path. Each editing session reserves a unique output
+filename; unused empty reservations are removed on exit. Custom editor
+launchers must wait for their editor to finish reading the input before returning.
 
 Recording uses `gpu-screen-recorder`, picks an available GPU codec, falls back to
 CPU encoding when no hardware encoder supports the capture, stops with a graceful

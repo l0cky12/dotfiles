@@ -93,9 +93,13 @@ fi
 capture_freeze_stop
 
 BODY="$(basename "$FILE")"
+KEEP_CAPTURE=0
 if [ "$PROCESSING" != "save" ]; then
   if wl-copy -t image/png < "$FILE"; then
     BODY="$BODY — copied to clipboard"
+  else
+    KEEP_CAPTURE=1
+    notify_error "Could not copy screenshot; kept at $FILE" || true
   fi
 fi
 
@@ -123,21 +127,45 @@ if has notify-send; then
   # shellcheck disable=SC2016 # Variables below belong to the detached shell.
   setsid --fork bash -c '
     file="$1"; editor="$2"; body="$3"; title="$4"; processing="$5"
-    source "$6/common.sh"; shift 6
-    if [ "$processing" != save ]; then
-      trap '\''rm -f -- "$file"'\'' EXIT
-    fi
-    choice=$(notify-send "$@" "$title" "$body" 2>/dev/null) || exit 0
+    source "$6/common.sh"; keep_capture="$7"; shift 7
+    output=""
+    cleanup() {
+      if [ "$processing" != save ] && [ "$keep_capture" = 0 ]; then
+        rm -f -- "$file"
+      fi
+      if [ -n "$output" ] && [ ! -s "$output" ]; then
+        rm -f -- "$output"
+      fi
+    }
+    retain_capture() {
+      keep_capture=1
+      notify_error "$1; kept at $file" || true
+    }
+    trap cleanup EXIT
+    choice=$(notify-send "$@" "$title" "$body" 2>/dev/null) || {
+      retain_capture "Could not show screenshot actions"
+      exit 1
+    }
     case "$choice" in
       open) command -v xdg-open >/dev/null 2>&1 && exec xdg-open "$file" ;;
       edit)
-        require_cmd "${editor%% *}" || exit 1
-        if [ "${editor%% *}" = satty ]; then
-          output=$(capture_outfile "$SCREENSHOT_DIR" screenshot png) || exit 1
-          $editor "$file" --output-filename "$output"
-        else
-          $editor "$file"
+        executable=${editor%% *}
+        require_cmd "$executable" || {
+          retain_capture "Could not start screenshot editor"
+          exit 1
+        }
+        editor_args=("$file")
+        if [ "${executable##*/}" = satty ]; then
+          output=$(capture_outfile "$SCREENSHOT_DIR" screenshot png) || {
+            retain_capture "Could not create editor output"
+            exit 1
+          }
+          editor_args+=(--output-filename "$output")
         fi
+        $editor "${editor_args[@]}" || {
+          retain_capture "Screenshot editor failed"
+          exit 1
+        }
         ;;
       save)
         if capture_require_writable "$SCREENSHOT_DIR" &&
@@ -145,20 +173,19 @@ if has notify-send; then
            mv -- "$file" "$output"; then
           notify "Screenshot saved" "$output"
         else
-          trap - EXIT
-          notify_error "Could not save screenshot; kept at $file"
+          retain_capture "Could not save screenshot"
           exit 1
         fi
         ;;
     esac
-  ' _ "$FILE" "$EDITOR_CMD" "$BODY" "$TITLE" "$PROCESSING" "$_dir" \
+  ' _ "$FILE" "$EDITOR_CMD" "$BODY" "$TITLE" "$PROCESSING" "$_dir" "$KEEP_CAPTURE" \
       "${notify_args[@]}" "${action_args[@]}" >/dev/null 2>&1 </dev/null || true
 else
   if [ "$PROCESSING" = save ]; then
     notify "Screenshot saved" "$BODY"
   else
-    notify "Screenshot" "$BODY"
-    rm -f -- "$FILE"
+    notify "Screenshot" "$BODY" || true
+    [[ $KEEP_CAPTURE == 1 ]] || rm -f -- "$FILE"
   fi
 fi
 
