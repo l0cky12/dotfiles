@@ -109,6 +109,22 @@ render_lock_config() {
   trap - RETURN
 }
 
+# Current cliphist ids of the entries pinned in the Quickshell clipboard panel,
+# one per line, so the lock wipe keeps them. The shell reports previews rather
+# than ids because its id list is only as fresh as its last refresh, and copying
+# a pinned item again gives it a new id. Bounded: a wedged shell must not delay
+# locking, and no answer means a full wipe, as before.
+pinned_clipboard_ids() {
+  local previews
+  command -v quickshell >/dev/null 2>&1 && command -v cliphist >/dev/null 2>&1 || return 0
+  previews=$(timeout 1s quickshell ipc call clipboard pinnedPreviews 2>/dev/null) || return 0
+  [[ -n $previews ]] || return 0
+  # ENVIRON, not -v: -v would expand backslash escapes inside the previews.
+  cliphist list 2>/dev/null | PINNED=$previews awk '
+    BEGIN { n = split(ENVIRON["PINNED"], lines, "\n"); for (i = 1; i <= n; i++) keep[lines[i]] = 1 }
+    { tab = index($0, "\t"); if (tab > 1 && (substr($0, tab + 1) in keep)) print substr($0, 1, tab - 1) }' || true
+}
+
 if [[ ${1:-} == layout ]]; then
   case ${2:-} in
     current)
@@ -161,6 +177,9 @@ if ! pidof hyprlock >/dev/null 2>&1; then
     printf '%s: using the source lock config after layout rendering failed\n' "$PROGRAM" >&2
     lock_config=$source_config
   fi
-  [[ ! -x $clipboard_wipe ]] || "$clipboard_wipe" || true
+  if [[ -x $clipboard_wipe ]]; then
+    mapfile -t pinned_ids < <(pinned_clipboard_ids)
+    "$clipboard_wipe" "${pinned_ids[@]}" || true
+  fi
   exec hyprlock --config "$lock_config"
 fi

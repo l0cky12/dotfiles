@@ -236,6 +236,42 @@ HOME="$test_root/home" HYPRLOCK_RUNNING=0 "$bin_root/screensaver-lock"
 grep -Fxq "source = \$hyprlockDir/layouts/layout5.conf" \
   "$test_root/lock-runtime/hyprlock.conf" || fail 'lock config did not use the selected layout'
 
+# Pinned clipboard entries survive the lock wipe. The shell reports previews;
+# the lock maps them to the current cliphist ids, including previews with a
+# backslash or a tab, and skips a pinned preview cliphist no longer has.
+pin_root="$test_root/pins"
+mkdir -p "$pin_root/bin" "$pin_root/home/.config/hypr/scripts"
+cat >"$pin_root/bin/timeout" <<'SH'
+#!/usr/bin/env bash
+shift
+exec "$@"
+SH
+cat >"$pin_root/bin/quickshell" <<'SH'
+#!/usr/bin/env bash
+[[ $* == 'ipc call clipboard pinnedPreviews' ]] || exit 1
+printf 'keep me\npath C:\\temp\ncol1\tcol2\ngone already\n'
+SH
+cat >"$pin_root/bin/cliphist" <<'SH'
+#!/usr/bin/env bash
+[[ $1 == list ]] || exit 1
+printf '42\tkeep me\n41\tnot pinned\n40\tpath C:\\temp\n39\tcol1\tcol2\n38\tkeep me too\n'
+SH
+cat >"$pin_root/home/.config/hypr/scripts/clipboard-wipe.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'wipe %s\n' "$*" >>"$LOCK_ACTION_LOG"
+SH
+chmod +x "$pin_root/bin/"* "$pin_root/home/.config/hypr/scripts/clipboard-wipe.sh"
+: >"$LOCK_ACTION_LOG"
+HOME="$pin_root/home" HYPRLOCK_RUNNING=0 PATH="$pin_root/bin:$PATH" "$bin_root/screensaver-lock"
+[[ $(head -n1 "$LOCK_ACTION_LOG") == 'wipe 42 40 39' ]] ||
+  fail "lock wipe did not keep the pinned clipboard entries: $(head -n1 "$LOCK_ACTION_LOG")"
+
+# No shell answer means a full wipe, never a skipped one.
+printf '#!/bin/sh\nexit 1\n' >"$pin_root/bin/quickshell"
+: >"$LOCK_ACTION_LOG"
+HOME="$pin_root/home" HYPRLOCK_RUNNING=0 PATH="$pin_root/bin:$PATH" "$bin_root/screensaver-lock"
+[[ $(head -n1 "$LOCK_ACTION_LOG") == 'wipe ' ]] || fail 'an unreachable shell did not fall back to a full wipe'
+
 mkdir "$test_root/fallback-layouts"
 cp "$repo_root/hyprlock/.config/hyprlock/layouts/hyprlock.conf" \
   "$test_root/fallback-layouts/hyprlock.conf"

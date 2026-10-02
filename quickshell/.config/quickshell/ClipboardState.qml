@@ -7,7 +7,10 @@ import QtQuick
 // in autostart.lua already populate. No second clipboard daemon is started.
 //
 // cliphist has neither timestamps nor pinning, so both live in a small sidecar
-// index keyed by cliphist entry id, kept pruned against the live list.
+// index keyed by cliphist entry id, kept pruned against the live list. A pin
+// belongs to the content, not the id: wiping history re-stores pinned entries,
+// and copying one again re-inserts it, both under new ids, so a pin whose id
+// vanished moves to a new id with the same preview.
 Singleton {
   id: root
 
@@ -59,7 +62,8 @@ Singleton {
 
   // --- sidecar index (timestamps + pins) -------------------------------------
 
-  // id -> { firstSeen: ms, pinned: bool, backfilled: bool }
+  // id -> { firstSeen: ms, pinned: bool, backfilled: bool, preview?: string }
+  // `preview` is kept for pinned entries only, so their pin can follow them.
   // `backfilled` marks entries that already existed the first time we indexed
   // them: their real copy time is unknowable, so the UI shows no relative time
   // for them rather than a misleading "just now".
@@ -140,6 +144,8 @@ Singleton {
     const idx = root.index
     const seen = ({})
     const list = []
+    const rows = []
+    var changed = false
 
     for (var i = 0; i < root.rawLines.length; i++) {
       const line = root.rawLines[i]
@@ -149,16 +155,44 @@ Singleton {
       const id = line.substring(0, tab)
       if (!/^[0-9]+$/.test(id))
         continue
-      const preview = line.substring(tab + 1)
       seen[id] = true
+      rows.push({ id: id, preview: line.substring(tab + 1) })
+    }
+
+    // Pins whose id is gone, by preview, waiting for their content's new id.
+    const orphanedPins = ({})
+    for (var old in idx) {
+      if (!seen[old] && idx[old].pinned === true && typeof idx[old].preview === "string")
+        orphanedPins[idx[old].preview] = idx[old]
+    }
+
+    for (var r = 0; r < rows.length; r++) {
+      const id = rows[r].id
+      const preview = rows[r].preview
 
       if (!idx[id]) {
-        idx[id] = {
-          firstSeen: now,
-          pinned: false,
-          // Everything present on the very first index build predates us.
-          backfilled: firstRun
+        const moved = orphanedPins[preview]
+        if (moved) {
+          delete orphanedPins[preview]
+          idx[id] = {
+            firstSeen: moved.firstSeen,
+            pinned: true,
+            backfilled: moved.backfilled === true,
+            preview: preview
+          }
+          changed = true
+        } else {
+          idx[id] = {
+            firstSeen: now,
+            pinned: false,
+            // Everything present on the very first index build predates us.
+            backfilled: firstRun
+          }
         }
+      }
+      if (idx[id].pinned === true && idx[id].preview !== preview) {
+        idx[id].preview = preview
+        changed = true
       }
 
       // "[[ binary data 321 KiB png 1010x609 ]]"
@@ -187,7 +221,7 @@ Singleton {
 
     root.index = idx
     root.entries = list
-    if (pruned || firstRun)
+    if (pruned || firstRun || changed)
       root.saveIndex()
     if (root.selectedIndex >= root.filtered.length)
       root.selectedIndex = 0
@@ -223,7 +257,21 @@ Singleton {
     actionProc.running = true
   }
 
-  // Wipe, preserving pinned entries (they are decoded and re-stored).
+  // Previews of every pinned entry, one per line. screensaver-lock maps them
+  // onto current cliphist ids itself, because this list of ids is only as
+  // fresh as the last refresh.
+  function pinnedPreviews() {
+    const out = []
+    for (var id in root.index) {
+      const item = root.index[id]
+      if (item.pinned === true && typeof item.preview === "string")
+        out.push(item.preview)
+    }
+    return out.join("\n")
+  }
+
+  // Wipe, preserving pinned entries (they are decoded and re-stored, and the
+  // next rebuild moves each pin onto its re-stored id).
   function wipe() {
     const pinned = root.entries.filter(e => e.pinned).map(e => root.safeId(e.id))
                               .filter(s => s !== "")

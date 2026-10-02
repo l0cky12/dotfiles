@@ -159,6 +159,23 @@ HOME="$test_root/home" "$lock"
 [[ $(<"$CLIPBOARD_LOCK_LOG") == $'wipe\nhyprlock' ]] ||
   fail 'Hyprlock did not wipe clipboard history before locking'
 
+# Clipboard pins follow their content onto new cliphist ids. The lock fixtures
+# above put a no-op `timeout` on PATH, so this one leaves their stub dir out.
+if command -v quickshell >/dev/null 2>&1; then
+  pin_home="$test_root/pin-home"
+  mkdir -p "$pin_home" "$test_root/pin-bin"
+  printf '#!/bin/sh\nexit 0\n' >"$test_root/pin-bin/cliphist"
+  chmod +x "$test_root/pin-bin/cliphist"
+  HOME="$pin_home" XDG_STATE_HOME="$pin_home/.local/state" \
+    PATH="$test_root/pin-bin:${PATH#"$test_root/bin:"}" \
+    QT_QPA_PLATFORM=offscreen timeout 30 quickshell \
+    -p "$repo_root/quickshell/.config/quickshell/ClipboardPinSmoke.qml" >"$test_root/pin-smoke.log" 2>&1 || true
+  grep -Fq 'ok: clipboard pin smoke' "$test_root/pin-smoke.log" ||
+    { sed -n '1,60p' "$test_root/pin-smoke.log" >&2; fail 'ClipboardPinSmoke.qml did not pass'; }
+else
+  printf 'skip: quickshell is not installed, ClipboardPinSmoke.qml not run\n'
+fi
+
 if [[ $jq_mode == stub ]]; then
   printf 'degraded: jq-less subset passed; install jq to cover its error behavior\n'
 fi
