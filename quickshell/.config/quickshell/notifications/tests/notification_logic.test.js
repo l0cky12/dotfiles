@@ -27,4 +27,9 @@ assert.equal(logic.localImagePath("image://qsimage/1"), "");
 assert.equal(logic.validEntry(snapshot), true);
 assert.equal(logic.validEntry({key: "../../x", summary: "bad"}), false);
 
+assert.equal(logic.isMediaNotification("Spotify", "/tmp/art.jpg"), true);
+assert.equal(logic.isMediaNotification("spotify", "file:///tmp/art.jpg"), true);
+assert.equal(logic.isMediaNotification("Spotify", ""), false);
+assert.equal(logic.isMediaNotification("Slack", "/tmp/art.jpg"), false);
+
 console.log("notification logic tests: ok");

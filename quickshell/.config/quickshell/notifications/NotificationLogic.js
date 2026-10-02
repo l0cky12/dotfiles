@@ -103,6 +103,12 @@ function shouldBypassDnd(notification, allowedApps) {
   return false
 }
 
+// Spotify track-change cards (hypr/scripts/spotify-notify.sh) get the vinyl
+// layout; anything else keeps the plain card.
+function isMediaNotification(app, image) {
+  return String(app || "").toLowerCase() === "spotify" && String(image || "").length > 0
+}
+
 function localImagePath(value) {
   var text = String(value || "")
   if (text.indexOf("file://") === 0) {
@@ -135,6 +141,7 @@ if (typeof module !== "undefined") {
     updateRoles: updateRoles,
     shouldBypassDnd: shouldBypassDnd,
     localImagePath: localImagePath,
+    isMediaNotification: isMediaNotification,
     persistableEntry: persistableEntry,
     validEntry: validEntry
   }

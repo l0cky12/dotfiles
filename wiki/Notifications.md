@@ -98,6 +98,7 @@ seconds, and ordinary requests are clamped to 30 seconds.
 | `stackGap`, `sidePadding` | 8, 12 |
 | `iconSize`, `iconGap`, `glyphGap`, `closeSize` | 40, 12, 8, 18 |
 | `countdownHeight` | 2 |
+| `vinylSize` | 64 — album sleeve size on Spotify track cards (record + live progress bar from `MediaState`) |
 | `animationMs`, `closeFadeMs` | 130, 100 |
 | `borderWidths` | `[]` — per side, `[top, right, bottom, left]` |
 | `debug` | `false` |

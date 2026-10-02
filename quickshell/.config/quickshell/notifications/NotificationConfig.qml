@@ -25,6 +25,7 @@ Singleton {
   readonly property int multiLinePadding: intValue("multiLinePadding", 10, 0, 64)
   readonly property int iconSize: intValue("iconSize", 40, 12, 128)
   readonly property int iconGap: intValue("iconGap", 12, 0, 64)
+  readonly property int vinylSize: intValue("vinylSize", 64, 24, 160)
   readonly property int glyphGap: intValue("glyphGap", 8, 0, 64)
   readonly property int closeSize: intValue("closeSize", 18, 12, 48)
   readonly property int countdownHeight: intValue("countdownHeight", 2, 1, 8)
