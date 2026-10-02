@@ -58,7 +58,6 @@ Hyprland `hyprland.start`
 │   ├── video-download OSD
 │   ├── theme picker and wallpaper panel
 │   └── desktop-mode panel and observed-state indicators
-├── quickshell -c cava-visualizer
 ├── wl-paste watchers (text + image) → clipboard-store.sh → cliphist
 ├── hypr-wallpaper-picker restore → hyprpaper
 ├── hypridle → ASCII screensaver → conditional lock → DPMS → suspend

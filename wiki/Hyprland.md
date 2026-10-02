@@ -79,7 +79,6 @@ a serial timeline.
 | `hypr-wallpaper-picker restore` | restore the last wallpaper and start Hyprpaper |
 | two `wl-paste --watch` processes | capture text and image clipboard changes |
 | `quickshell` | bar, panels, notifications, clipboard UI, OSDs |
-| `quickshell -c cava-visualizer` | audio visualiser shell instance |
 | `hypridle` | screensaver, lock, DPMS, and suspend policy |
 | `desktop-mode daemon` | mode expiry and backend reconciliation |
 | `spotify-notify.sh` | track-change notifications |
