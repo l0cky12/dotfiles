@@ -140,11 +140,17 @@ end
 
 -- lmenu lives in Quickshell; the keypress must not start a process.
 expect_global("SUPER + SHIFT + A", "lmenu root", "quickshell:lmenu")
-expect_exec("SUPER + ALT + A", "web app manager",
-    "quickshell ipc call webapps toggle")
+expect_global("SUPER + ALT + A", "web app manager", "quickshell:webapps")
 expect_exec("SUPER + CTRL + T", "activity (btop, floating)",
     "/home/liam/.config/hypr/scripts/btop-float.sh")
-expect_exec("SUPER + T", "theme picker", "quickshell ipc call theme toggle")
+expect_global("SUPER + T", "theme picker", "quickshell:theme")
+-- Every panel key goes through a global shortcut, not an IPC client process.
+for _, capture in ipairs(captures) do
+    local d = capture.dispatcher
+    if type(d) == "table" and d.kind == "exec_cmd" and d.command:find("quickshell ipc", 1, true) then
+        error("panel key still starts a quickshell ipc client: " .. capture.keys)
+    end
+end
 expect_exec("SUPER + CTRL + SHIFT + G", "play temporary dotfiles history",
     "/home/liam/.config/hypr/scripts/gource-dotfiles.sh")
 expect_exec("SUPER + SHIFT + Backspace", "toggle window gaps on all workspaces",
@@ -191,7 +197,7 @@ assert(fullscreen_found, "missing native Lua fullscreen binding")
 for workspace = 1, 10 do
     expect_move("SUPER + SHIFT + " .. number_keys[workspace], "move to workspace " .. workspace,
         workspace, true)
-    expect_move("SUPER + CTRL + " .. number_keys[workspace], "move silently to workspace " .. workspace,
+    expect_move("SUPER + SHIFT + CTRL + " .. number_keys[workspace], "move silently to workspace " .. workspace,
         workspace, false)
     expect("SUPER + " .. number_keys[workspace], "workspace " .. workspace,
         "focus", workspace, nil)
