@@ -7,7 +7,7 @@ These scripts are below `hypr/.config/hypr/scripts/`.
 | Script | Invocation | Purpose and effects | Main dependencies |
 | --- | --- | --- | --- |
 | `Dropterminal.sh` | `SUPER+SHIFT+Return` | toggles a Kitty scratchpad on a special workspace | `hyprctl`, Kitty |
-| `calculator.sh` | `SUPER+CTRL+Q`, `SUPER+SHIFT+C` | evaluates a `qalc` expression and copies the selected answer | Rofi, `qalc`, `wl-copy` |
+| `calculator.sh` | `SUPER+CTRL+Q`, `SUPER+SHIFT+C` | evaluates a `qalc` expression and copies the selected answer; lists the last 100 calculations (`${XDG_STATE_HOME:-~/.local/state}/calculator/history`) for search, Ctrl+Enter copies a past result | Rofi, `qalc`, `wl-copy` |
 | `quick-search.sh` | `SUPER+A`, `SUPER+SHIFT+A` | starts in apps or an Omakub-style root menu and uses `Tab` to cycle windows, apps, and commands; `quick-search-everything.sh` supplies category navigation plus confirmed reboot and shutdown | Rofi, `systemctl` |
 | `docker-dev-env` | `SUPER+SHIFT+A` → Development → Docker environments | starts, stops, inspects, and tails logs for local MySQL, PostgreSQL, MariaDB, and Redis services | Docker Engine, Docker Compose, OpenSSL; optional notifications and Kitty |
 | `vm-preset` | `SUPER+SHIFT+A` → Development → Virtual machines | creates a blank Debian 13 or Debian 13 + Docker VM with an unattended install; the guest user is the host user, and the prompted password is kept only as a hash | libvirt, `virt-install`, `virsh`, Rofi, OpenSSL, curl; optional virt-manager and GnuPG |

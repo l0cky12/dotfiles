@@ -117,7 +117,7 @@ emergencies, and it asks nothing first. Use it deliberately or not at all.
 | `Super+C` / `Super+X` / `Super+V` | Copy / cut / paste, working correctly in both terminals and normal apps. | One habit everywhere; no more "which clipboard shortcut is it here?" |
 | `Super+Ctrl+V` | Clipboard history. | "I copied that ten minutes ago…" |
 | `Super+Alt+E` | Emoji picker — search, pick, it is copied. | 🙂 |
-| `Super+Ctrl+Q` (also `Super+Shift+C`) | Calculator — type an expression, Enter copies the answer. | Quick maths without opening anything. |
+| `Super+Ctrl+Q` (also `Super+Shift+C`) | Calculator — type an expression, Enter copies the answer. Your last 100 calculations are listed underneath; type to search them and press Ctrl+Enter to copy an old result. | Quick maths without opening anything. |
 | `Super+Ctrl+.` | Media transcode menu over your Pictures and Videos. | Converting a video's format. |
 
 ## Screenshots, recording, and capture

@@ -108,7 +108,7 @@ Under `hypr/.config/hypr/scripts/`.
 | Script | Bound to | What it does |
 | --- | --- | --- |
 | `Dropterminal.sh` | `SUPER+SHIFT+Return` | Kitty scratchpad on a special workspace |
-| `calculator.sh` | `SUPER+CTRL+Q`, `SUPER+SHIFT+C` | `qalc` behind Rofi; Enter copies the answer |
+| `calculator.sh` | `SUPER+CTRL+Q`, `SUPER+SHIFT+C` | `qalc` behind Rofi; Enter copies the answer; searchable history of the last 100 calculations in `~/.local/state/calculator/history`, Ctrl+Enter copies a past result |
 | `quick-search.sh` | `SUPER+A` | apps view; `Tab` cycles windows, apps, commands |
 | `quick-search-everything.sh` | — | category navigation plus confirmed reboot and shutdown |
 | `docker-dev-env` | lmenu → Development | start, stop, inspect, and tail local MySQL, PostgreSQL, MariaDB, Redis |

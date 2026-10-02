@@ -99,7 +99,7 @@ already-running shell rather than starting a process.
 | `SUPER+X` | universal cut | terminal cut intentionally does nothing |
 | `SUPER+V` | universal paste | terminal-appropriate shortcut |
 | `SUPER+ALT+E` | emoji picker | themed Rofi fuzzy search, copies the glyph |
-| `SUPER+CTRL+Q` | calculator | `qalc` behind Rofi; Enter on the answer copies it |
+| `SUPER+CTRL+Q` | calculator | `qalc` behind Rofi; Enter on the answer copies it; type to search history, Ctrl+Enter copies a past result |
 | `SUPER+SHIFT+C` | calculator | second binding for the same script |
 | `SUPER+CTRL+.` | transcode media | fuzzy picker over `~/Pictures` and `~/Videos` |
 

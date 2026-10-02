@@ -66,7 +66,7 @@ opened with `SUPER+K`.
 | `SUPER+CTRL+V` | clipboard history | active Quickshell/cliphist panel |
 | `SUPER+CTRL+S` | share | opens LocalSend; its window is floated and centered |
 | `SUPER+ALT+E` | emoji menu | themed Rofi fuzzy search; copies the selected emoji |
-| `SUPER+CTRL+Q` | calculator | themed Rofi prompt backed by `qalc`; Enter on the answer copies it |
+| `SUPER+CTRL+Q` | calculator | themed Rofi prompt backed by `qalc`; Enter on the answer copies it; type to search history, Ctrl+Enter copies a past result |
 | `SUPER+SHIFT+C` | calculator | alternate binding for the same calculator |
 | `SUPER+CTRL+.` | transcode media | fuzzy picker over `~/Pictures` and `~/Videos`; copies the result as a file URI |
 
