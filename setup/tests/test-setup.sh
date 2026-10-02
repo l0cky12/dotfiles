@@ -32,6 +32,8 @@ for package in quickshell menu modes screensaver cliphist dots systemd; do
 done
 grep -q 'Backup: .*\.config/hypr' <<<"$out" # directory conflict
 grep -q 'Backup: .*\.config/hypr/hyprland\.lua\.bak\.' <<<"$out" # broken symlink conflict
+# Shared base directories are containers, not conflicts: never copied whole.
+if grep -Eq 'Backup: .*/home/\.(config|local)\.bak\.' <<<"$out"; then exit 1; fi
 # Active SSH port and required application port are both planned.
 grep -q '2222/tcp' <<<"$out"
 grep -q '53317/tcp' <<<"$out"
