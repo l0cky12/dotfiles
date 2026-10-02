@@ -33,7 +33,7 @@ hl.config({
             color = "{{ hypr_rgba(shadow, shadow_opacity) }}",
         },
         blur = {
-            enabled = true,
+            enabled = {{ on(blur) }},
             size = {{ blur_size }},
             passes = {{ blur_passes }},
             ignore_opacity = true,
